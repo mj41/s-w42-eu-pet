@@ -243,9 +243,20 @@ func fillCircle(dst *image.RGBA, cx, cy, r int, c color.RGBA) {
 	}
 }
 
+// CloudPNG is a transparent dream cloud (200x150) for a sprite next to the sleeping face.
+func CloudPNG() []byte {
+	img := image.NewRGBA(image.Rect(0, 0, 200, 150))
+	for _, c := range [][3]int{{110, 70, 52}, {72, 84, 36}, {150, 88, 38}, {92, 46, 34}, {132, 44, 34}, {110, 104, 34}, {26, 128, 8}, {42, 112, 12}} {
+		fillCircle(img, c[0], c[1], c[2], cloud)
+	}
+	var b bytes.Buffer
+	png.Encode(&b, img)
+	return b.Bytes()
+}
+
 // PNGs are the icons as files (name -> PNG bytes), for the robot's file store.
 func PNGs() map[string][]byte {
-	out := map[string][]byte{}
+	out := map[string][]byte{"cloud.png": CloudPNG()}
 	entries, _ := pngFS.ReadDir("png")
 	for _, e := range entries {
 		if b, err := pngFS.ReadFile("png/" + e.Name()); err == nil {

@@ -26,10 +26,6 @@ var moodColor = map[pet.Mood]string{
 	pet.Tired: "#1a0030", pet.Napping: "#0a0018",
 }
 
-// dreamShare is how often a touch while asleep shows a dream; otherwise a sleepy "Zzz".
-// A variable so tests can make it certain.
-var dreamShare = 0.4
-
 const (
 	hardPressZone   = 3 // all three head zones at full (0-3): the whole palm; one finger only dreams
 	dreamEvery      = 8 * time.Second
@@ -150,7 +146,7 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 	lang := p.Settings.Lang
 	switch re.Kind {
 	case pet.KindAsleep: // a touch while asleep: mostly a sleepy "Zzz", sometimes a dream
-		if rand.Float64() < dreamShare {
+		if rand.Float64() < a.timing.dreamShare {
 			a.dream(r, now)
 		} else {
 			a.snore(r, now)
@@ -507,8 +503,27 @@ func (a *App) dream(r *robot, now time.Time) {
 	r.lastAsleep = now
 	r.gen++
 	r.busyUntil = now.Add(10 * time.Second)
-	r.conn.binary(wire.BinShowJPEG, robotpic.Dream(robotpic.Dreams[rand.IntN(len(robotpic.Dreams))]))
-	r.pictureOn = true
+	item := robotpic.Dreams[rand.IntN(len(robotpic.Dreams))]
+	if cloud, pic := assetDir+"cloud.png", assetDir+item+".png"; r.canSprite(cloud) && r.canSprite(pic) {
+		// A dream cloud next to the sleeping face, the dreamed thing bobbing in it.
+		if r.screenOff {
+			r.conn.command("screensaver", map[string]any{"on": false})
+			r.screenOff = false
+		}
+		if r.pictureOn {
+			r.conn.command("face", nil)
+			r.pictureOn = false
+		}
+		a.emotion(r, "sleepy")
+		a.sprite(r, map[string]any{"id": "cloud", "asset": cloud, "x": 232, "y": 72, "scale": 0.75, "opacity": 0.95, "z": 1})
+		a.sprite(r, map[string]any{"id": "dream", "asset": pic, "x": 239, "y": 70, "scale": 0.4, "z": 2})
+		for i, y := range []int{60, 72, 60, 72} {
+			a.later(r, time.Duration(800+i*1200)*time.Millisecond, func() { a.sprite(r, map[string]any{"id": "dream", "y": y, "ms": 1100}) })
+		}
+	} else {
+		r.conn.binary(wire.BinShowJPEG, robotpic.Dream(item))
+		r.pictureOn = true
+	}
 	a.later(r, 6*time.Second, func() { a.express(r, a.now()) })
 	if r.pet.Phase(now) == pet.Night { // a daytime nap keeps the screen on
 		a.later(r, 9*time.Second, func() { a.sleepScreen(r) })

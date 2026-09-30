@@ -49,7 +49,8 @@ type App struct {
 	codes    map[string]pairCode
 	sessions map[string]*session
 	subs     map[*subscriber]struct{}
-	dirty    bool // state changed since the last save
+	dirty    bool   // state changed since the last save
+	timing   timing // the game's pace (game.go)
 	saveMu   sync.Mutex
 }
 
@@ -115,6 +116,7 @@ func New(cfg Config) *App {
 		codes:    map[string]pairCode{},
 		sessions: map[string]*session{},
 		subs:     map[*subscriber]struct{}{},
+		timing:   defaultTiming,
 	}
 	if cfg.StateFile != "" {
 		if err := a.load(); err != nil && !errors.Is(err, fs.ErrNotExist) {

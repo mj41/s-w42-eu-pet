@@ -405,8 +405,8 @@ func TestStateSurvivesRestart(t *testing.T) {
 }
 
 func TestCatchTheBall(t *testing.T) {
-	fastGame(t, 300*time.Millisecond)
 	e := newEnv(t, "")
+	e.fastGame(300 * time.Millisecond)
 	r := e.connectRobot("robot-1")
 	kid := e.browser()
 	kid.pair(r)
@@ -454,13 +454,12 @@ func TestCatchTheBall(t *testing.T) {
 	}
 }
 
-// fastGame shortens the game's timing for a test.
-func fastGame(t *testing.T, round time.Duration) {
-	saved := []time.Duration{gameRoundTime, gameMoveExtra, gameGap, gameIntro, gameStars}
-	gameRoundTime, gameMoveExtra, gameGap, gameIntro, gameStars = round, 0, 50*time.Millisecond, 50*time.Millisecond, 100*time.Millisecond
-	t.Cleanup(func() {
-		gameRoundTime, gameMoveExtra, gameGap, gameIntro, gameStars = saved[0], saved[1], saved[2], saved[3], saved[4]
-	})
+// fastGame shortens the game's timing for a test (before the game starts).
+func (e *env) fastGame(round time.Duration) {
+	e.app.mu.Lock()
+	defer e.app.mu.Unlock()
+	e.app.timing.round, e.app.timing.moveExtra = round, 0
+	e.app.timing.gap, e.app.timing.intro, e.app.timing.stars = 50*time.Millisecond, 50*time.Millisecond, 100*time.Millisecond
 }
 
 // lightMsg is a light stream message with n samples of the same values.
@@ -473,8 +472,8 @@ func lightMsg(n int, ps, ch0 uint16) []byte {
 }
 
 func TestHeadDodgesAHand(t *testing.T) {
-	fastGame(t, 2*time.Second)
 	e := newEnv(t, "")
+	e.fastGame(2 * time.Second)
 	r := e.connectRobot("robot-1")
 	kid := e.browser()
 	kid.pair(r)
@@ -526,8 +525,8 @@ func TestHeadDodgesAHand(t *testing.T) {
 }
 
 func TestNightDreamsAndWake(t *testing.T) {
-	alwaysDream(t)
 	e := newEnv(t, "")
+	e.alwaysDream()
 	e.clock.set(time.Date(2026, 9, 30, 21, 0, 0, 0, prague)) // Wednesday night
 	r := e.connectRobot("robot-1")
 	kid := e.browser()
@@ -580,8 +579,8 @@ func TestNightDreamsAndWake(t *testing.T) {
 }
 
 func TestNapDreamsUntilThePalm(t *testing.T) {
-	alwaysDream(t)
 	e := newEnv(t, "")
+	e.alwaysDream()
 	r := e.connectRobot("robot-1")
 	kid := e.browser()
 	kid.pair(r)
@@ -611,10 +610,10 @@ func TestNapDreamsUntilThePalm(t *testing.T) {
 }
 
 // alwaysDream makes every touch while asleep a dream (not the random "Zzz").
-func alwaysDream(t *testing.T) {
-	saved := dreamShare
-	dreamShare = 1
-	t.Cleanup(func() { dreamShare = saved })
+func (e *env) alwaysDream() {
+	e.app.mu.Lock()
+	e.app.timing.dreamShare = 1
+	e.app.mu.Unlock()
 }
 
 func TestEatWithSprites(t *testing.T) {
@@ -641,4 +640,42 @@ func TestEatWithSprites(t *testing.T) {
 	if say := r.command("say"); !strings.Contains(say["text"].(string), "ortik") && !strings.Contains(say["text"].(string), "Mnam") {
 		t.Fatalf("eat bubble: %v", say)
 	}
+}
+
+// haveFiles answers the pet's file list request: the robot already has these pet files.
+func haveFiles(t *testing.T, r *fakeRobot, names ...string) {
+	t.Helper()
+	all := petAssets()
+	var files []string
+	for _, n := range names {
+		b, ok := all[n]
+		if !ok {
+			t.Fatalf("no pet file %s", n)
+		}
+		files = append(files, fmt.Sprintf(`{"name":%q,"bytes":%d,"crc":%d}`, n, len(b), crc32.ChecksumIEEE(b)))
+	}
+	r.event("assets", map[string]any{"list": `{"files":[` + strings.Join(files, ",") + `]}`, "free": 1e6, "total": 2e6})
+	time.Sleep(100 * time.Millisecond)
+}
+
+func TestGameWithSprites(t *testing.T) {
+	e := newEnv(t, "")
+	e.fastGame(300 * time.Millisecond)
+	r := e.connectRobotWith("robot-1", []string{"sprite", "assets"})
+	kid := e.browser()
+	kid.pair(r)
+	haveFiles(t, r, "pet/ball.png", "pet/star.png")
+
+	kid.post("/api/action", map[string]any{"action": "play"})
+	if ball := r.command("sprite"); ball["asset"] != "pet/ball.png" {
+		t.Fatalf("ball sprite: %v", ball)
+	}
+	if glide := r.command("sprite"); glide["id"] != "ball" || glide["ms"] == nil {
+		t.Fatalf("the ball should glide to the next spot: %v", glide)
+	}
+	r.next("stars", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		return body.Command == "sprite" && body.Args["asset"] == "pet/star.png"
+	})
 }

@@ -29,16 +29,22 @@ import (
 // (older firmware, proximity off) the head dodges on a timer instead.
 // Everything here runs with a.mu held.
 
-// Game timing (variables so tests can run a game quickly).
-var (
-	gameRoundTime = 5 * time.Second        // to catch one ball
-	gameMoveExtra = time.Second            // more time for balls with a moving head
-	gameGap       = 700 * time.Millisecond // after a catch, before the next ball
-	gameIntro     = 1500 * time.Millisecond
-	gameStars     = 3 * time.Second // the result picture, before the face says the score
-	dodgeEvery    = 1200 * time.Millisecond
-	dodgeBack     = 1100 * time.Millisecond // a dodge returns to the middle after this
-)
+// timing is the game's pace (and the dream share); per App, so tests can speed it up.
+type timing struct {
+	round      time.Duration // to catch one ball
+	moveExtra  time.Duration // more time for balls with a moving head
+	gap        time.Duration // after a catch, before the next ball
+	intro      time.Duration
+	stars      time.Duration // the result, before the face says the score
+	dodgeEvery time.Duration
+	dodgeBack  time.Duration // a dodge returns to the middle after this
+	dreamShare float64       // how often a touch while asleep shows a dream; otherwise a sleepy "Zzz"
+}
+
+var defaultTiming = timing{
+	round: 5 * time.Second, moveExtra: time.Second, gap: 700 * time.Millisecond, intro: 1500 * time.Millisecond,
+	stars: 3 * time.Second, dodgeEvery: 1200 * time.Millisecond, dodgeBack: 1100 * time.Millisecond, dreamShare: 0.4,
+}
 
 // Hand detection (raw sensor counts; see handNear).
 const (
@@ -117,7 +123,7 @@ func (a *App) startGame(r *robot, now time.Time) {
 	a.say(r, "game", "", 2)
 	a.play(r, sound.Hello, false)
 	a.publishState(r)
-	a.afterGame(r, g, gameIntro, func() { a.nextRound(r, g) })
+	a.afterGame(r, g, a.timing.intro, func() { a.nextRound(r, g) })
 }
 
 func (a *App) nextRound(r *robot, g *game) {
@@ -135,14 +141,24 @@ func (a *App) nextRound(r *robot, g *game) {
 	}
 	g.spot, g.waiting = spot, true
 	g.dodges, g.sawLight = 0, false
-	r.conn.binary(wire.BinShowJPEG, robotpic.Ball(spot))
-	r.pictureOn = true
+	if ball := assetDir + "ball.png"; r.canSprite(ball) {
+		// The ball glides over the face to its next spot (the center of a quarter).
+		x, y := 80+160*(spot%2), 60+120*(spot/2)
+		if g.round == 1 {
+			a.sprite(r, map[string]any{"id": "ball", "asset": ball, "x": x, "y": y, "scale": 0.6, "z": 1})
+		} else {
+			a.sprite(r, map[string]any{"id": "ball", "x": x, "y": y, "ms": 300})
+		}
+	} else {
+		r.conn.binary(wire.BinShowJPEG, robotpic.Ball(spot))
+		r.pictureOn = true
+	}
 	r.busyUntil = a.now().Add(time.Minute)
 	a.publishState(r)
 
-	d := gameRoundTime
+	d := a.timing.round
 	if g.round > 1 {
-		d += gameMoveExtra
+		d += a.timing.moveExtra
 	}
 	g.deadline = time.Now().Add(d)
 	a.roundTimeout(r, g, g.round)
@@ -202,7 +218,7 @@ func (a *App) wander(r *robot, g *game, round int) {
 
 // dodge turns the head away from a coming hand, then back; a few times per ball.
 func (a *App) dodge(r *robot, g *game, now time.Time) {
-	if g.round < 4 || !g.waiting || g.dodges >= g.round-2 || now.Sub(g.lastDodge) < dodgeEvery {
+	if g.round < 4 || !g.waiting || g.dodges >= g.round-2 || now.Sub(g.lastDodge) < a.timing.dodgeEvery {
 		return
 	}
 	g.dodges++
@@ -212,7 +228,7 @@ func (a *App) dodge(r *robot, g *game, now time.Time) {
 	a.look(r, g.side*dodgeYaw, headMidPitch+5)
 	g.deadline = g.deadline.Add(time.Second) // a fair chance after each dodge
 	round := g.round
-	a.inRound(r, g, round, dodgeBack, func() { a.look(r, 0, headMidPitch) })
+	a.inRound(r, g, round, a.timing.dodgeBack, func() { a.look(r, 0, headMidPitch) })
 }
 
 // handNear reads one light sample: true when a hand seems close. The baselines
@@ -279,7 +295,7 @@ func (a *App) gameTap(r *robot, g *game, x, y float64, now time.Time) {
 	r.conn.command("leds", leds)
 	a.publishState(r)
 	round := g.round
-	a.afterGame(r, g, gameGap, func() {
+	a.afterGame(r, g, a.timing.gap, func() {
 		if g.round == round {
 			a.nextRound(r, g)
 		}
@@ -297,15 +313,29 @@ func (a *App) endGame(r *robot, g *game) {
 	re := r.pet.FinishGame(now, g.hits)
 	a.dirty = true
 	a.begin(r, now, 7*time.Second)
-	r.conn.binary(wire.BinShowJPEG, robotpic.Stars(g.hits, pet.GameRounds))
-	r.pictureOn = true
+	if star := assetDir + "star.png"; r.canSprite(star) {
+		// One star per ball over the face: bright for a catch, faint for a miss.
+		r.conn.command("sprite_clear", nil)
+		a.emotion(r, "happy")
+		for i := range pet.GameRounds {
+			opacity := 1.0
+			if i >= g.hits {
+				opacity = 0.25
+			}
+			a.sprite(r, map[string]any{"id": fmt.Sprintf("star%d", i), "asset": star, "x": 32 + 64*i, "y": 120, "scale": 0.35, "opacity": opacity, "z": 3})
+		}
+	} else {
+		r.conn.binary(wire.BinShowJPEG, robotpic.Stars(g.hits, pet.GameRounds))
+		r.pictureOn = true
+	}
 	a.play(r, sound.Tada, false)
 	leds := idleSides(r.pet, r.pet.Mood(now))
 	leds["effect"], leds["seconds"], leds["speed"] = "rainbow", 3, 2
 	r.conn.command("leds", leds)
-	a.later(r, gameStars, func() { // the speech bubble is under pictures: face first
+	a.later(r, a.timing.stars, func() { // the speech bubble is under pictures and sprites: face first
 		r.conn.command("face", nil)
-		r.pictureOn = false
+		r.conn.command("sprite_clear", nil)
+		r.pictureOn, r.spritesOn = false, false
 		a.emotion(r, "happy")
 		key, score := "game_over", fmt.Sprintf(map[string]string{"cs": "%d z %d", "en": "%d of %d"}[r.pet.Settings.Lang], g.hits, pet.GameRounds)
 		if g.hits == 0 {
@@ -327,6 +357,10 @@ func (a *App) stopGame(r *robot) {
 	if r.conn != nil {
 		r.conn.command("light_stream", map[string]any{"on": false})
 		r.conn.command("home", nil)
+		if r.spritesOn {
+			r.conn.command("sprite_clear", nil)
+			r.spritesOn = false
+		}
 	}
 	a.publishState(r)
 }
