@@ -57,6 +57,8 @@ type Pet struct {
 	Born     time.Time `json:"born"`
 	Updated  time.Time `json:"updated"`
 	NapUntil time.Time `json:"nap_until,omitzero"`
+	// NightWakeUntil: woken at night by a hard press, awake until then (needs stay paused).
+	NightWakeUntil time.Time `json:"night_wake_until,omitzero"`
 
 	PlayDay    string    `json:"play_day"` // the local date PlayMin counts, "2006-01-02"
 	PlayMin    float64   `json:"play_min"` // play and cuddle time on PlayDay
@@ -140,13 +142,38 @@ func (p *Pet) clamp() {
 	p.Stats.Food, p.Stats.Fun, p.Stats.Energy = c(p.Stats.Food), c(p.Stats.Fun), c(p.Stats.Energy)
 }
 
+// Phase is the schedule's phase, except that a pet woken at night is awake for a while.
+func (p *Pet) Phase(now time.Time) Phase {
+	ph := p.Settings.PhaseAt(now)
+	if ph == Night && now.Before(p.NightWakeUntil) {
+		return Awake
+	}
+	return ph
+}
+
+// WakeAtNight wakes the sleeping pet for Settings.NightWakeMin minutes (a hard press).
+func (p *Pet) WakeAtNight(now time.Time) Reaction {
+	p.Advance(now)
+	switch {
+	case p.Settings.PhaseAt(now) != Night:
+		return Reaction{Kind: KindWake}
+	case p.Settings.NightWakeMin <= 0:
+		return Reaction{Kind: KindAsleep}
+	case now.Before(p.NightWakeUntil):
+		return Reaction{Kind: KindNightWake}
+	}
+	p.NightWakeUntil = now.Add(time.Duration(p.Settings.NightWakeMin) * time.Minute)
+	p.log(now, KindNightWake, "")
+	return Reaction{Kind: KindNightWake, Changed: true}
+}
+
 // Napping reports whether the pet takes a daytime nap at now.
 func (p *Pet) Napping(now time.Time) bool { return now.Before(p.NapUntil) }
 
 // Mood at now (after Advance).
 func (p *Pet) Mood(now time.Time) Mood {
 	switch {
-	case p.Settings.PhaseAt(now) == Night:
+	case p.Phase(now) == Night:
 		return Sleeping
 	case p.Napping(now):
 		return Napping
@@ -223,26 +250,27 @@ type Reaction struct {
 }
 
 const (
-	KindEat      = "eat"
-	KindFull     = "full"      // not hungry: refuses food
-	KindCuddle   = "cuddle"    // head stroke or the cuddle button
-	KindPlay     = "play"      // a game
-	KindTooTired = "too_tired" // no energy to play
-	KindLimit    = "limit"     // today's play time is used up
-	KindNap      = "nap"
-	KindNotTired = "not_tired" // refuses a nap
-	KindWake     = "wake"      // woken from a nap
-	KindAsleep   = "asleep"    // it is night: only a sleepy answer
-	KindShake    = "shake"     // the robot was shaken
-	KindGame     = "game"      // a game of catch starts on the robot
-	KindGameOver = "game_over" // the game ended; Hits balls caught
+	KindEat       = "eat"
+	KindFull      = "full"      // not hungry: refuses food
+	KindCuddle    = "cuddle"    // head stroke or the cuddle button
+	KindPlay      = "play"      // a game
+	KindTooTired  = "too_tired" // no energy to play
+	KindLimit     = "limit"     // today's play time is used up
+	KindNap       = "nap"
+	KindNotTired  = "not_tired"  // refuses a nap
+	KindWake      = "wake"       // woken from a nap
+	KindAsleep    = "asleep"     // it is night: only a sleepy answer (a dream on the robot)
+	KindNightWake = "night_wake" // woken at night by a hard press
+	KindShake     = "shake"      // the robot was shaken
+	KindGame      = "game"       // a game of catch starts on the robot
+	KindGameOver  = "game_over"  // the game ended; Hits balls caught
 )
 
 // awake is the common start of an action: needs up to date, night answers
 // sleepily, a nap ends.
 func (p *Pet) awake(now time.Time) (Reaction, bool) {
 	p.Advance(now)
-	if p.Settings.PhaseAt(now) == Night {
+	if p.Phase(now) == Night {
 		return Reaction{Kind: KindAsleep}, false
 	}
 	if p.Napping(now) {
@@ -356,7 +384,7 @@ const NapLength = 15 * time.Minute
 func (p *Pet) Nap(now time.Time) Reaction {
 	p.Advance(now)
 	switch {
-	case p.Settings.PhaseAt(now) == Night:
+	case p.Phase(now) == Night:
 		return Reaction{Kind: KindAsleep}
 	case p.Napping(now):
 		return Reaction{Kind: KindNap}

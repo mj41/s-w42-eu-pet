@@ -10,7 +10,6 @@ import (
 // Several variants: one is picked at random so the pet does not sound like a machine.
 var robotTexts = map[string]map[string][]string{
 	"cs": {
-		"asleep":      {"Psst... spim.", "Zzz... dobrou noc.", "Ted se spi. Zitra!"},
 		"eat":         {"Mnam, %s!", "%s! To je dobrota!", "Mnam mnam!"},
 		"full":        {"Uz nemuzu, jsem plny!", "Dekuju, uz mam dost."},
 		"cuddle":      {"To je prijemne!", "Jeste!", "Mrrr...", "Mam te rad!"},
@@ -29,11 +28,11 @@ var robotTexts = map[string]map[string][]string{
 		"goodnight":   {"Dobrou noc!", "Dobrou noc, sladke sny!"},
 		"morning":     {"Dobre rano!", "Dobre rano! Mam hlad!"},
 		"game":        {"Chyt micek!", "Hrajeme! Chyt micek!"},
+		"night_wake":  {"Uaaa... uz jsem vzhuru.", "Co je? Ja jsem spal..."},
 		"game_over":   {"Hura! %s!", "Super, %s!"},
 		"game_over_0": {"Priste to vyjde!", "Zkusime to znovu?"},
 	},
 	"en": {
-		"asleep":      {"Shh... sleeping.", "Zzz... good night.", "It's sleep time. Tomorrow!"},
 		"eat":         {"Yum, %s!", "%s! Delicious!", "Nom nom!"},
 		"full":        {"I'm full!", "Thanks, that's enough."},
 		"cuddle":      {"That's nice!", "More!", "Purr...", "I love you!"},
@@ -52,6 +51,7 @@ var robotTexts = map[string]map[string][]string{
 		"goodnight":   {"Good night!", "Good night, sweet dreams!"},
 		"morning":     {"Good morning!", "Good morning! I'm hungry!"},
 		"game":        {"Catch the ball!", "Let's play catch!"},
+		"night_wake":  {"Yaaawn... I'm awake.", "What is it? I was sleeping..."},
 		"game_over":   {"Yay! %s!", "Great, %s!"},
 		"game_over_0": {"Next time!", "Let's try again?"},
 	},

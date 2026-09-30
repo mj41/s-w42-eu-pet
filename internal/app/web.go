@@ -22,7 +22,7 @@ import (
 	"github.com/mj41/stackchan-server/wire"
 )
 
-//go:embed ui/index.html ui/parent.html ui/emoji
+//go:embed ui/index.html ui/parent.html ui/emoji ui/chan
 var uiFS embed.FS
 
 // page serves one of the UI pages (from UIDir during development).
@@ -43,12 +43,13 @@ func (a *App) page(name string) http.HandlerFunc {
 	}
 }
 
-// emojiFiles serves the pictures (Fluent Emoji Flat, MIT; see ui/emoji/LICENSE).
-func (a *App) emojiFiles() http.Handler {
+// uiFiles serves a picture folder: emoji (Fluent Emoji Flat, MIT; see ui/emoji/LICENSE)
+// or chan (the tiny Stack-chan faces; see ui/chan/NOTICE).
+func (a *App) uiFiles(dir string) http.Handler {
 	if a.cfg.UIDir != "" {
-		return http.FileServer(http.Dir(filepath.Join(a.cfg.UIDir, "emoji")))
+		return http.FileServer(http.Dir(filepath.Join(a.cfg.UIDir, dir)))
 	}
-	sub, _ := fs.Sub(uiFS, "ui/emoji")
+	sub, _ := fs.Sub(uiFS, "ui/"+dir)
 	return http.FileServerFS(sub)
 }
 
@@ -80,7 +81,7 @@ func (a *App) view(r *robot) stateView {
 	day := p.Settings.Day(now)
 	v := stateView{
 		Robot: r.id, Online: r.conn != nil, Name: p.Settings.Name, Lang: p.Settings.Lang,
-		Mood: p.Mood(now), Phase: p.Settings.PhaseAt(now), Stats: p.Stats, AgeDays: p.AgeDays(now),
+		Mood: p.Mood(now), Phase: p.Phase(now), Stats: p.Stats, AgeDays: p.AgeDays(now),
 		Game: r.game.view(), PlayLeft: p.PlayLeft(now), Wake: p.Settings.NextWake(now), Bed: day.Bed, Foods: pet.FoodOrder,
 	}
 	if p.Napping(now) {
@@ -436,7 +437,7 @@ func (a *App) handleSettings(w http.ResponseWriter, r *http.Request) {
 		delete(rb.unknownTags, uid)
 	}
 	rb.pet.Settings = s
-	rb.phase = s.PhaseAt(now) // a new bedtime starts tonight's routine, not instantly
+	rb.phase = rb.pet.Phase(now) // a new bedtime starts tonight's routine, not instantly
 	a.dirty = true
 	if c := rb.conn; c != nil {
 		if s.Sounds {

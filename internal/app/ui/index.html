@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#bfe6ff">
 <title>Stack-chan Pet</title>
+<link rel="icon" href="/chan/happy.svg">
 <style>
   :root {
     --sky: #bfe6ff; --ground: #fff7e6; --ink: #3b2f2a; --muted: #8a7b70;
@@ -97,6 +98,8 @@
   .pair { display: none; text-align: center; margin: auto; max-width: 420px; font-size: 22px; font-weight: 800; }
   .pair img { width: 160px; margin: 0 auto 16px; }
   .pair p { font-size: 17px; font-weight: 600; color: var(--muted); }
+  .credit { font-size: 12px; color: var(--muted); text-align: center; margin-top: 24px; }
+  .credit a { color: inherit; }
   body.unpaired main > :not(.pair) { display: none; }
   body.unpaired .pair { display: block; }
 </style>
@@ -111,7 +114,7 @@
   <div class="offline" id="offline"></div>
 
   <div class="stage" id="stage">
-    <img class="face" id="face" src="/emoji/happy.svg" alt="">
+    <img class="face" id="face" src="/chan/happy.svg" alt="">
     <div class="bubble" id="bubble"><img id="bubbleImg" src="/emoji/apple.svg" alt=""></div>
     <img class="zzz" src="/emoji/zzz.svg" alt="">
   </div>
@@ -141,9 +144,10 @@
   </section>
 
   <section class="pair">
-    <img src="/emoji/happy.svg" alt="">
+    <img src="/chan/happy.svg" alt="">
     <div data-t="scan"></div>
     <p data-t="scanHow"></p>
+    <p class="credit">Stack-chan is developed and published by meganetaaan · <a href="https://github.com/meganetaaan/stack-chan">github.com/meganetaaan/stack-chan</a></p>
   </section>
 </main>
 
@@ -166,6 +170,7 @@ const T = {
     age: d => d === 0 ? "born today" : d === 1 ? "1 day old" : `${d} days old`,
   },
 };
+// The pet is a tiny Stack-chan (ui/chan): the same face as on the robot's screen.
 const moodFace = { happy: "happy", ok: "neutral", hungry: "sad", bored: "grumpy", tired: "yawn", napping: "sleeping", sleeping: "sleeping" };
 const moodNeed = { hungry: "apple", bored: "ball", tired: "battery" };
 const $ = id => document.getElementById(id);
@@ -191,7 +196,7 @@ function render(s) {
   $("name").textContent = s.name;
   $("age").textContent = t("age", s.age_days);
   const off = $("offline"); off.textContent = t("offline"); off.classList.toggle("on", !s.online);
-  $("face").src = `/emoji/${moodFace[s.mood] || "neutral"}.svg`;
+  $("face").src = `/chan/${moodFace[s.mood] || "neutral"}.svg`;
   const need = moodNeed[s.mood];
   $("bubble").classList.toggle("on", !!need);
   if (need) $("bubbleImg").src = `/emoji/${need}.svg`;
@@ -226,7 +231,7 @@ function fx(src, n = 1) {
 function faceAnim(cls, face, ms = 1600) {
   const f = $("face");
   f.classList.remove("shake", "jump"); void f.offsetWidth; f.classList.add(cls);
-  if (face) { f.src = `/emoji/${face}.svg`; setTimeout(() => state && render(state), ms); }
+  if (face) { f.src = `/chan/${face}.svg`; setTimeout(() => state && render(state), ms); }
 }
 // react shows a reaction, from this page or from the robot (head stroke, food card).
 function react(r) {
@@ -239,7 +244,8 @@ function react(r) {
     case "nap": fx("/emoji/zzz.svg"); break;
     case "wake": faceAnim("jump", "happy"); fx("/emoji/sun.svg"); break;
     case "shake": faceAnim("shake"); break;
-    case "asleep": fx("/emoji/moon.svg"); break;
+    case "asleep": fx("/emoji/moon.svg"); fx("/emoji/star.svg", 2); break; // a dream on the robot
+    case "night_wake": faceAnim("jump", "yawn"); break;
     case "game_over": if (r.hits) fx("/emoji/star.svg", r.hits); faceAnim("jump", "happy"); break;
   }
 }

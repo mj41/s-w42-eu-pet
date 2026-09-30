@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Stack-chan Pet – rodiče</title>
+<link rel="icon" href="/chan/happy.svg">
 <style>
   :root { --bg: #f6f4ef; --card: #fff; --ink: #2d2a26; --muted: #7b746b; --line: #e6e0d6; --accent: #3f7be0; --danger: #c62828; --ok: #2e7d32; }
   @media (prefers-color-scheme: dark) {
@@ -107,6 +108,8 @@
       <div class="row"><label><input id="school" type="checkbox"> <span data-t="school"></span></label></div>
       <div class="row"><input id="schoolFrom" type="time"> – <input id="schoolTo" type="time"></div>
       <p class="hint" data-t="schoolHint"></p>
+      <div class="row"><label for="nightWake" data-t="nightWake"></label><input id="nightWake" type="number" min="0" max="60"></div>
+      <p class="hint" data-t="nightWakeHint"></p>
     </section>
 
     <section>
@@ -155,6 +158,8 @@
       <p class="hint" data-t="resetHint"></p>
     </section>
   </div>
+  <p class="hint" style="text-align:center">Stack-chan is developed and published by meganetaaan ·
+    <a href="https://github.com/meganetaaan/stack-chan">github.com/meganetaaan/stack-chan</a> · pictures: Fluent Emoji (MIT)</p>
 </main>
 
 <script>
@@ -170,6 +175,8 @@ const T = {
     difficultyHint: "Jak rychle dostává hlad a nudí se. Mazlíček nikdy neumře ani neonemocní – jen je smutný.",
     schedule: "Denní režim", wake: "Vstává", bed: "Jde spát", weekday: "Po–Pá", weekend: "So–Ne",
     scheduleHint: "V noci mazlíček spí: jeho potřeby stojí, obrazovka zhasne a na dotyk jen ospale odpoví. 10 minut před spaním zívá.",
+    nightWake: "Vzbudit v noci",
+    nightWakeHint: "Minuty, 0 = nejde. V noci lehký dotyk hlavy ukáže sen; silný stisk (celou dlaní nebo podržet 1,5 s) mazlíčka na chvíli potichu vzbudí, pak zase usne.",
     school: "Škola / školka (Po–Pá)", schoolHint: "Během školy potřeby stojí, aby mazlíček netrpěl, když dítě není doma.",
     limits: "Omezení", playLimit: "Hraní denně", minutes: "Minut za den, 0 = bez omezení.",
     playLimitHint: "Po vyčerpání je mazlíček unavený a chce si odpočinout do zítřka. Krmit jde vždy.",
@@ -185,7 +192,7 @@ const T = {
     todayText: (m, left, mood, phase) => `Hraní dnes: ${m} min${left >= 0 ? `, zbývá ${left} min` : ""}. Nálada: ${mood}. ${phase}`,
     moods: { happy: "šťastný", ok: "v pohodě", hungry: "hladový", bored: "nudí se", tired: "unavený", napping: "dřímá", sleeping: "spí" },
     phases: { awake: "", night: "Je noc.", school: "Je škola – potřeby stojí." },
-    kinds: { feed: "Jídlo", full: "Nechtěl jíst (plný)", cuddle: "Pohlazení", play: "Hraní", nap: "Zdřímnutí", morning: "Ráno – vstal", night: "Večer – usnul", reset: "Nový mazlíček" },
+    kinds: { night_wake: "Vzbuzen v noci", feed: "Jídlo", full: "Nechtěl jíst (plný)", cuddle: "Pohlazení", play: "Hraní", nap: "Zdřímnutí", morning: "Ráno – vstal", night: "Večer – usnul", reset: "Nový mazlíček" },
     foods: { apple: "jablko", carrot: "mrkev", banana: "banán", bread: "chleba", milk: "mléko", cake: "dort" },
     offline: "Robot není připojený.",
   },
@@ -200,6 +207,8 @@ const T = {
     difficultyHint: "How fast it gets hungry and bored. The pet never dies or gets ill – it only gets sad.",
     schedule: "Daily routine", wake: "Wakes up", bed: "Bedtime", weekday: "Mon–Fri", weekend: "Sat–Sun",
     scheduleHint: "At night the pet sleeps: its needs pause, the screen goes dark and a touch only gets a sleepy answer. It yawns 10 minutes before bedtime.",
+    nightWake: "Wake at night",
+    nightWakeHint: "Minutes, 0 = never. At night a light touch on the head shows a dream; a hard press (the whole palm, or held 1.5 s) wakes the pet quietly for a while, then it falls asleep again.",
     school: "School / kindergarten (Mon–Fri)", schoolHint: "During school the needs pause, so the pet does not suffer while the kid is away.",
     limits: "Limits", playLimit: "Play per day", minutes: "Minutes per day, 0 = no limit.",
     playLimitHint: "When it is used up, the pet is tired and rests until tomorrow. Feeding always works.",
@@ -215,12 +224,12 @@ const T = {
     todayText: (m, left, mood, phase) => `Played today: ${m} min${left >= 0 ? `, ${left} min left` : ""}. Mood: ${mood}. ${phase}`,
     moods: { happy: "happy", ok: "fine", hungry: "hungry", bored: "bored", tired: "tired", napping: "napping", sleeping: "asleep" },
     phases: { awake: "", night: "It is night.", school: "School time – needs paused." },
-    kinds: { feed: "Food", full: "Refused food (full)", cuddle: "Cuddle", play: "Play", nap: "Nap", morning: "Morning – woke up", night: "Evening – fell asleep", reset: "New pet" },
+    kinds: { night_wake: "Woken at night", feed: "Food", full: "Refused food (full)", cuddle: "Cuddle", play: "Play", nap: "Nap", morning: "Morning – woke up", night: "Evening – fell asleep", reset: "New pet" },
     foods: { apple: "apple", carrot: "carrot", banana: "banana", bread: "bread", milk: "milk", cake: "cake" },
     offline: "The robot is not connected.",
   },
 };
-const kindIcon = { feed: "plate", full: "grumpy", cuddle: "hug", play: "ball", nap: "zzz", morning: "sun", night: "moon", reset: "party" };
+const kindIcon = { night_wake: "moon", feed: "plate", full: "grumpy", cuddle: "hug", play: "ball", nap: "zzz", morning: "sun", night: "moon", reset: "party" };
 const SOUNDS = ["chirp", "munch", "tada", "no", "yawn", "morning", "lullaby", "hello", "whee"];
 const FOODS = ["apple", "carrot", "banana", "bread", "milk", "cake"];
 const $ = id => document.getElementById(id);
@@ -261,6 +270,7 @@ function fill(d) {
   $("name").value = s.name; $("lang").value = s.lang; $("difficulty").value = s.difficulty;
   $("wdWake").value = s.weekday.wake; $("wdBed").value = s.weekday.bed;
   $("weWake").value = s.weekend.wake; $("weBed").value = s.weekend.bed;
+  $("nightWake").value = s.night_wake_min;
   $("school").checked = s.school; $("schoolFrom").value = s.school_from; $("schoolTo").value = s.school_to;
   $("playLimit").value = s.play_limit_min;
   $("sounds").checked = s.sounds; $("volume").value = s.volume; $("volumeN").textContent = s.volume;
@@ -340,6 +350,7 @@ function collect() {
     weekend: { wake: $("weWake").value, bed: $("weBed").value },
     school: $("school").checked, school_from: $("schoolFrom").value, school_to: $("schoolTo").value,
     play_limit_min: +$("playLimit").value || 0,
+    night_wake_min: +$("nightWake").value || 0,
     sounds: $("sounds").checked, volume: +$("volume").value,
     night_light: $("nightLight").checked, screen_off_at_night: $("screenOff").checked,
     foods,

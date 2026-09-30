@@ -515,3 +515,51 @@ func TestHeadDodgesAHand(t *testing.T) {
 		t.Fatalf("dodges: %d", dodges)
 	}
 }
+
+func TestNightDreamsAndWake(t *testing.T) {
+	e := newEnv(t, "")
+	e.clock.set(time.Date(2026, 9, 30, 21, 0, 0, 0, prague)) // Wednesday night
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+
+	// A light touch: a dream picture, no waking.
+	r.event("head_press", map[string]any{"z0": 1, "z1": 0, "z2": 0})
+	r.binary(wire.BinShowJPEG)
+	if _, st := kid.get("/api/state"); st["phase"] != "night" {
+		t.Fatalf("after a light touch: %v", st["phase"])
+	}
+
+	// The whole palm: awake for a few minutes, quietly.
+	r.event("head_press", map[string]any{"z0": 3, "z1": 2, "z2": 3})
+	if on := r.command("screensaver"); on["on"] != false {
+		t.Fatalf("wake screen: %v", on)
+	}
+	if say := r.command("say"); !strings.Contains(say["text"].(string), "vzhuru") && !strings.Contains(say["text"].(string), "spal") {
+		t.Fatalf("night wake: %v", say)
+	}
+	if _, st := kid.get("/api/state"); st["phase"] != "awake" {
+		t.Fatalf("woken: %v", st["phase"])
+	}
+	if code, out := kid.post("/api/action", map[string]any{"action": "cuddle"}); code != 200 || out["reaction"].(map[string]any)["kind"] != "cuddle" {
+		t.Fatalf("cuddle while woken: %v", out)
+	}
+
+	// Time is up: back to sleep with a good night.
+	e.clock.set(time.Date(2026, 9, 30, 21, 6, 0, 0, prague))
+	e.app.Tick()
+	r.next("good night", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		text, _ := body.Args["text"].(string)
+		return body.Command == "say" && strings.Contains(text, "Dobrou noc")
+	})
+
+	// A touch held long counts as a hard press too.
+	e.clock.set(time.Date(2026, 9, 30, 22, 0, 0, 0, prague))
+	r.event("head_release", map[string]any{"ms": 2000})
+	r.command("screensaver")
+	if _, st := kid.get("/api/state"); st["phase"] != "awake" {
+		t.Fatalf("held long: %v", st["phase"])
+	}
+}

@@ -218,3 +218,26 @@ func TestGame(t *testing.T) {
 		t.Fatalf("night: %+v", r)
 	}
 }
+
+func TestWakeAtNight(t *testing.T) {
+	p := New(at(0, 21, 0), DefaultSettings())
+	if r := p.Play(at(0, 21, 0)); r.Kind != KindAsleep {
+		t.Fatalf("night play: %+v", r)
+	}
+	if r := p.WakeAtNight(at(0, 21, 0)); r.Kind != KindNightWake || !r.Changed {
+		t.Fatalf("wake: %+v", r)
+	}
+	if ph, m := p.Phase(at(0, 21, 3)), p.Mood(at(0, 21, 3)); ph != Awake || m == Sleeping {
+		t.Fatalf("woken: %s %s", ph, m)
+	}
+	if r := p.Cuddle(at(0, 21, 3)); r.Kind != KindCuddle {
+		t.Fatalf("cuddle while woken: %+v", r)
+	}
+	if ph := p.Phase(at(0, 21, 6)); ph != Night {
+		t.Fatalf("after 5 minutes: %s", ph)
+	}
+	p.Settings.NightWakeMin = 0
+	if r := p.WakeAtNight(at(0, 22, 0)); r.Kind != KindAsleep {
+		t.Fatalf("waking disabled: %+v", r)
+	}
+}

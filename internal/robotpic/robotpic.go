@@ -202,3 +202,43 @@ func faded(src image.Image) image.Image {
 	}
 	return out
 }
+
+// Dreams are what the sleeping pet may dream of (icons in png/).
+var Dreams = []string{"apple", "cake", "banana", "ball", "heart", "star", "milk", "carrot"}
+
+var (
+	night = color.RGBA{0x0e, 0x14, 0x33, 0xFF}
+	cloud = color.RGBA{0xe8, 0xec, 0xff, 0xFF}
+)
+
+// Dream shows the night sky with a dream cloud: what the pet dreams of.
+func Dream(item string) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	draw.Draw(img, img.Bounds(), &image.Uniform{night}, image.Point{}, draw.Src)
+	if moon := icon("moon"); moon != nil {
+		drawScaled(img, moon, image.Rect(18, 18, 18+64, 18+64))
+	}
+	if star := icon("star"); star != nil {
+		for _, p := range [][3]int{{110, 24, 18}, {40, 178, 14}, {92, 120, 12}, {292, 24, 14}} {
+			drawScaled(img, star, image.Rect(p[0], p[1], p[0]+p[2], p[1]+p[2]))
+		}
+	}
+	// The dream cloud: a puff of circles, with small ones leading to it from the moon.
+	for _, c := range [][3]int{{205, 120, 62}, {160, 138, 42}, {250, 140, 44}, {185, 90, 40}, {232, 88, 40}, {205, 162, 40}, {104, 88, 9}, {124, 104, 13}} {
+		fillCircle(img, c[0], c[1], c[2], cloud)
+	}
+	if ic := icon(item); ic != nil {
+		drawScaled(img, ic, image.Rect(205-50, 125-50, 205+50, 125+50))
+	}
+	return encode(img)
+}
+
+func fillCircle(dst *image.RGBA, cx, cy, r int, c color.RGBA) {
+	for y := cy - r; y <= cy+r; y++ {
+		for x := cx - r; x <= cx+r; x++ {
+			if dx, dy := x-cx, y-cy; dx*dx+dy*dy <= r*r && image.Pt(x, y).In(dst.Bounds()) {
+				dst.SetRGBA(x, y, c)
+			}
+		}
+	}
+}

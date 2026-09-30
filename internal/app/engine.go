@@ -1,6 +1,7 @@
 package app
 
 import (
+	"math/rand/v2"
 	"time"
 
 	"github.com/mj41/stackchan-pet/internal/pet"
@@ -25,6 +26,9 @@ var moodColor = map[pet.Mood]string{
 }
 
 const (
+	hardPressZone   = 2    // all three head zones at least this (0-3): a whole palm
+	hardPressMs     = 1500 // or a touch held this long
+	dreamEvery      = 8 * time.Second
 	nightLightColor = "#180600"
 	reactionTime    = 4 * time.Second  // how long a reaction shows before the mood comes back
 	nagEvery        = 30 * time.Minute // "I'm hungry!" at most this often
@@ -133,16 +137,8 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 	p := r.pet
 	lang := p.Settings.Lang
 	switch re.Kind {
-	case pet.KindAsleep: // a touch at night: one sleepy answer, then dark again
-		if now.Sub(r.lastAsleep) < 20*time.Second {
-			return
-		}
-		r.lastAsleep = now
-		r.gen++
-		r.busyUntil = now.Add(12 * time.Second)
-		a.emotion(r, "sleepy")
-		a.say(r, "asleep", "", 4)
-		a.later(r, 12*time.Second, func() { a.sleepScreen(r) })
+	case pet.KindAsleep: // a touch at night: a dream, then dark again
+		a.dream(r, now)
 		return
 	case pet.KindEat:
 		a.begin(r, now, reactionTime)
@@ -244,11 +240,34 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 	if a.gameEvent(r, ev, now) {
 		return
 	}
+	night := p.Phase(now) == pet.Night
 	var re pet.Reaction
 	switch ev.Name {
 	case "screen_long_press": // hold a finger on the screen: a game of catch
 		re = a.playAction(r, now)
-	case "head_press", "head_swipe_forward", "head_swipe_backward":
+	case "head_press":
+		if !night {
+			re = p.Cuddle(now)
+			break
+		}
+		// At night a light touch shows a dream; a hard press (the whole palm) wakes the pet.
+		zones := [3]float64{}
+		for i, k := range []string{"z0", "z1", "z2"} {
+			zones[i], _ = ev.Data[k].(float64)
+		}
+		a.log.Info("head press at night", "robot", id, "zones", zones) // to tune "hard"
+		if min(zones[0], zones[1], zones[2]) >= hardPressZone {
+			a.nightWake(r, now)
+			return
+		}
+		re = pet.Reaction{Kind: pet.KindAsleep}
+	case "head_release": // held long at night: a hard press too
+		ms, _ := ev.Data["ms"].(float64)
+		if night && ms >= hardPressMs {
+			a.nightWake(r, now)
+		}
+		return
+	case "head_swipe_forward", "head_swipe_backward":
 		re = p.Cuddle(now)
 	case "nfc_tag": // a food card
 		uid, _ := ev.Data["uid"].(string)
@@ -264,7 +283,7 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		a.log.Info("food card", "robot", id, "uid", uid, "food", food, "reaction", re.Kind)
 	case "screen_tap":
 		switch {
-		case p.Settings.PhaseAt(now) == pet.Night:
+		case night:
 			re = pet.Reaction{Kind: pet.KindAsleep}
 		case p.Napping(now):
 			re = p.Wake(now)
@@ -323,7 +342,7 @@ func (a *App) robotOnline(r *robot) {
 	now := a.now()
 	p := r.pet
 	p.Advance(now)
-	r.phase = p.Settings.PhaseAt(now)
+	r.phase = p.Phase(now)
 	r.pictureOn, r.screenOff = false, false
 	r.gen++
 	if p.Settings.Sounds {
@@ -344,7 +363,7 @@ func (a *App) Tick() {
 		p := r.pet
 		p.Advance(now)
 		a.dirty = true
-		phase := p.Settings.PhaseAt(now)
+		phase := p.Phase(now) // a pet woken at night counts as awake until it falls asleep again
 		prev := r.phase
 		r.phase = phase
 		if r.conn == nil {
@@ -367,7 +386,8 @@ func (a *App) daytime(r *robot, now time.Time) {
 	p := r.pet
 	mood := p.Mood(now)
 	today := now.Format(time.DateOnly)
-	if m := p.Settings.MinutesToBed(now); m > 0 && m <= 10 && r.bedWarned != today {
+	wokenAtNight := p.Settings.PhaseAt(now) == pet.Night // quiet: no warnings, no nags
+	if m := p.Settings.MinutesToBed(now); !wokenAtNight && m > 0 && m <= 10 && r.bedWarned != today {
 		r.bedWarned = today
 		a.begin(r, now, 5*time.Second)
 		a.emotion(r, "sleepy")
@@ -379,7 +399,7 @@ func (a *App) daytime(r *robot, now time.Time) {
 		a.react(r, pet.Reaction{Kind: pet.KindWake, Changed: true}, now)
 		return
 	}
-	if r.phase == pet.Awake && now.Sub(r.lastNag) >= nagEvery {
+	if r.phase == pet.Awake && !wokenAtNight && now.Sub(r.lastNag) >= nagEvery {
 		key := map[pet.Mood]string{pet.Hungry: "hungry", pet.Bored: "bored", pet.Tired: "tired"}[mood]
 		if key != "" {
 			r.lastNag = now
@@ -430,4 +450,45 @@ func (a *App) morning(r *robot, now time.Time) {
 	leds := idleSides(p, p.Mood(now))
 	leds["effect"], leds["color"], leds["speed"], leds["seconds"] = "breathe", "#ffb000", 0.5, 6
 	r.conn.command("leds", leds)
+}
+
+// dream shows what the sleeping pet dreams of: a light touch at night. No sound;
+// the sleepy face comes back and the screen goes dark again.
+func (a *App) dream(r *robot, now time.Time) {
+	if r.conn == nil || now.Sub(r.lastAsleep) < dreamEvery {
+		return
+	}
+	r.lastAsleep = now
+	r.gen++
+	r.busyUntil = now.Add(10 * time.Second)
+	r.conn.binary(wire.BinShowJPEG, robotpic.Dream(robotpic.Dreams[rand.IntN(len(robotpic.Dreams))]))
+	r.pictureOn = true
+	a.later(r, 6*time.Second, func() { a.express(r, a.now()) })
+	a.later(r, 9*time.Second, func() { a.sleepScreen(r) })
+}
+
+// nightWake: a hard press at night wakes the pet for a few minutes (quietly);
+// when the time is up the Tick sees night again and plays the lullaby.
+func (a *App) nightWake(r *robot, now time.Time) {
+	re := r.pet.WakeAtNight(now)
+	a.publishReaction(r, re)
+	if re.Kind != pet.KindNightWake {
+		a.dream(r, now) // waking at night is off: dream on
+		return
+	}
+	if !re.Changed || r.conn == nil {
+		return
+	}
+	a.dirty = true
+	r.phase = pet.Awake // woken, not morning: no morning greeting
+	a.begin(r, now, reactionTime)
+	r.conn.command("screensaver", map[string]any{"on": false})
+	r.screenOff = false
+	if r.pictureOn {
+		r.conn.command("face", nil)
+		r.pictureOn = false
+	}
+	a.emotion(r, "sleepy")
+	a.say(r, "night_wake", "", 4)
+	a.publishState(r)
 }

@@ -55,7 +55,10 @@ now and then.
 
 The daily routine: 10 minutes before bedtime the pet yawns. At bedtime it
 plays a lullaby, says good night, dims the LEDs to a night light and turns the
-screen off. A touch at night gets only a sleepy answer. In the morning it
+screen off. At night a light touch on the head (or a tap on the screen) shows a dream
+on the robot's screen, silently; a hard press (the whole palm on the head, or
+a touch held 1.5 s) wakes the pet quietly for a few minutes (parent setting,
+0 = never), then it falls asleep again with the lullaby. In the morning it
 wakes the screen, greets and plays a tune. Needs pause at night and during
 school hours, so the pet never suffers while the kid sleeps or is away.
 
@@ -95,7 +98,14 @@ until "Pet" shows, then Connect, and scan the new QR code with the kid's phone.
 The robot's speech bubble font has no Czech letters, so its Czech texts are
 written without diacritics; the pages use proper Czech.
 
-Pictures are [Fluent Emoji Flat](https://github.com/microsoft/fluentui-emoji)
+The pet on the pages is a tiny Stack-chan (`internal/app/ui/chan/`, drawn for
+this project after the robot's own face). Stack-chan is developed and
+published by meganetaaan, https://github.com/meganetaaan/stack-chan; the
+character is used under its
+[derivative work guideline](https://github.com/rt-net/stack-chan/blob/main/GUIDELINE.md),
+which asks for that credit where users see it (the pages show it).
+
+Other pictures are [Fluent Emoji Flat](https://github.com/microsoft/fluentui-emoji)
 (MIT, `internal/app/ui/emoji/LICENSE`); `internal/robotpic/render-icons.sh`
 renders the PNGs for the robot's screen.
 

@@ -10,7 +10,12 @@ import (
 )
 
 func TestPictures(t *testing.T) {
-	pics := map[string][]byte{"needs": Needs(80, 45, 10), "ball3": Ball(3), "stars": Stars(3, 5)}
+	pics := map[string][]byte{"needs": Needs(80, 45, 10), "ball3": Ball(3), "stars": Stars(3, 5), "dream": Dream("cake")}
+	for _, d := range Dreams {
+		if icon(d) == nil {
+			t.Errorf("no icon for dream %s", d)
+		}
+	}
 	for _, f := range pet.FoodOrder {
 		pics[f] = Food(f)
 		if icon(f) == nil {

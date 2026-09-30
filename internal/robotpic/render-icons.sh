@@ -4,6 +4,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 SVG=../app/ui/emoji
-for f in apple carrot banana cake milk bread heart battery ball star; do
+for f in apple carrot banana cake milk bread heart battery ball star moon; do
     inkscape "$SVG/$f.svg" --export-type=png --export-width=160 --export-filename="png/$f.png" >/dev/null 2>&1
 done

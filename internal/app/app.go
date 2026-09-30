@@ -140,7 +140,8 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /api/parent/pin", a.handlePIN)
 	mux.HandleFunc("POST /api/parent/reset", a.handleReset)
 	mux.HandleFunc("POST /api/parent/try", a.handleTry)
-	mux.Handle("GET /emoji/", http.StripPrefix("/emoji/", a.emojiFiles()))
+	mux.Handle("GET /emoji/", http.StripPrefix("/emoji/", a.uiFiles("emoji")))
+	mux.Handle("GET /chan/", http.StripPrefix("/chan/", a.uiFiles("chan")))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 	return mux
 }
