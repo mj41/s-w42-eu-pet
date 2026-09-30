@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -436,7 +437,11 @@ func (a *App) handleSettings(w http.ResponseWriter, r *http.Request) {
 	for uid := range s.Foods {
 		delete(rb.unknownTags, uid)
 	}
+	oldLang := rb.pet.Settings.Lang
 	rb.pet.Settings = s
+	if s.Lang != oldLang {
+		go a.warmVoice(context.Background()) // the new language's lines
+	}
 	rb.phase = rb.pet.Phase(now) // a new bedtime starts tonight's routine, not instantly
 	a.dirty = true
 	if c := rb.conn; c != nil {
@@ -564,6 +569,11 @@ func (a *App) handleTry(w http.ResponseWriter, r *http.Request) {
 		a.goodnight(rb, now)
 	case req.What == "needs":
 		a.showNeeds(rb, now)
+	case req.What == "voice": // a spoken line, even at night (a preview)
+		saved := rb.pet.Settings.Sounds
+		rb.pet.Settings.Sounds = true
+		a.sayLine(rb, text(rb.pet.Settings.Lang, "hungry", ""), 3, true)
+		rb.pet.Settings.Sounds = saved
 	default:
 		http.Error(w, "unknown preview", http.StatusBadRequest)
 		return

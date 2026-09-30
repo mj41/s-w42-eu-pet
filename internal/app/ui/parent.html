@@ -370,7 +370,7 @@ function renderTries() {
   const box = $("tries");
   if (box.children.length) return;
   const add = (label, what) => { const b = document.createElement("button"); b.textContent = label; b.onclick = () => api("/api/parent/try", { what }); box.appendChild(b); };
-  add(t("morning"), "morning"); add(t("night"), "night"); add(t("needs"), "needs");
+  add(t("morning"), "morning"); add(t("night"), "night"); add(t("needs"), "needs"); add(t("voice"), "voice");
   for (const s of SOUNDS) add(`${t("sound")}: ${s}`, "sound:" + s);
 }
 

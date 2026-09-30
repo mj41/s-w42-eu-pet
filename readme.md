@@ -99,8 +99,13 @@ until "Pet" shows, then Connect, and scan the new QR code with the kid's phone.
 - `internal/sound`: synthesized sounds, 16 kHz PCM, each under the robot's 3 s buffer
 - `internal/robotpic`: 320x240 JPEG pictures for the robot's screen (needs, food)
 
-The robot's speech bubble font has no Czech letters, so its Czech texts are
-written without diacritics; the pages use proper Czech.
+The pet speaks its lines: Microsoft Edge's read-aloud voice (Czech: Antonín, a
+little higher and faster, English: Ana), made a bit robot by ffmpeg (40% of a
+robotized copy mixed in). Each line is made once and kept in `-voice-dir`; at
+start the pet makes all its fixed lines ahead of time. Without Edge (offline) it
+falls back to espeak-ng. The speech is streamed to the robot at speaking pace.
+The robot's speech bubble font has no Czech letters: the bubble shows the
+lines without diacritics.
 
 The pet on the pages is a tiny Stack-chan (`internal/app/ui/chan/`, drawn for
 this project after the robot's own face). Stack-chan is developed and

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/mj41/stackchan-pet/internal/app"
+	"github.com/mj41/stackchan-pet/internal/voice"
 )
 
 func main() {
@@ -37,7 +38,10 @@ func main() {
 		tz        = flag.String("tz", "", "the family's time zone for the schedule, e.g. Europe/Prague (default: this machine's)")
 		uiDir     = flag.String("ui-dir", "", "development: serve the pages from this directory (e.g. internal/app/ui), so edits need only a reload")
 		debug     = flag.Bool("debug", false, "debug logging")
-		espeak    = flag.String("espeak", lookPath("espeak-ng"), "espeak-ng for the pet's voice (\"\" = no voice)")
+		ffmpeg    = flag.String("ffmpeg", lookPath("ffmpeg"), "ffmpeg for the Edge voice (\"\" = no Edge voice)")
+		espeak    = flag.String("espeak", lookPath("espeak-ng"), "espeak-ng, the fallback voice (\"\" = none)")
+		voiceDir  = flag.String("voice-dir", defaultCacheDir("voice"), "where the spoken lines are kept")
+		noVoice   = flag.Bool("no-voice", false, "the pet does not speak")
 		debugDir  = flag.String("debug-dir", defaultCacheDir("screens"), "where screen snapshots from the robot are saved (POST /api/debug/{id}/run)")
 	)
 	flag.Parse()
@@ -68,6 +72,10 @@ func main() {
 		}
 	}
 
+	var synth *voice.Synth
+	if !*noVoice && (*ffmpeg != "" || *espeak != "") {
+		synth = &voice.Synth{FFmpeg: *ffmpeg, Espeak: *espeak, CacheDir: *voiceDir}
+	}
 	a := app.New(app.Config{
 		RobotToken: token,
 		PublicURL:  strings.TrimRight(*publicURL, "/"),
@@ -76,7 +84,7 @@ func main() {
 		Location:   loc,
 		Log:        log,
 		DebugDir:   *debugDir,
-		Espeak:     *espeak,
+		Voice:      synth,
 	})
 	srv := &http.Server{Addr: *listen, Handler: a.Handler(), ReadHeaderTimeout: 10 * time.Second}
 

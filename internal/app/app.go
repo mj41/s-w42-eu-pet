@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/mj41/stackchan-pet/internal/pet"
+	"github.com/mj41/stackchan-pet/internal/voice"
 	"github.com/mj41/stackchan-server/wire"
 )
 
@@ -38,7 +39,7 @@ type Config struct {
 	Log        *slog.Logger
 	Now        func() time.Time // tests; default time.Now
 	DebugDir   string           // where screen snapshots from the robot are saved (debug.go); "" = not saved
-	Espeak     string           // the espeak-ng program for the pet's voice (voice.go); "" = no voice
+	Voice      *voice.Synth     // the pet's voice (voice.go); nil = silent lines
 }
 
 // App holds all state. One mutex guards everything; robot sockets only queue messages.
@@ -54,8 +55,6 @@ type App struct {
 	dirty    bool   // state changed since the last save
 	timing   timing // the game's pace (game.go)
 	saveMu   sync.Mutex
-	voiceMu  sync.Mutex
-	voices   map[string][]int16 // synthesized lines (voice.go)
 }
 
 type pairCode struct {
@@ -128,7 +127,6 @@ func New(cfg Config) *App {
 		sessions: map[string]*session{},
 		subs:     map[*subscriber]struct{}{},
 		timing:   defaultTiming,
-		voices:   map[string][]int16{},
 	}
 	if cfg.StateFile != "" {
 		if err := a.load(); err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -373,6 +371,7 @@ func (a *App) Save() error {
 
 // Run drives the pets (every 15 s) and saves the state (every minute) until ctx ends.
 func (a *App) Run(ctx context.Context) {
+	go a.warmVoice(ctx)
 	tick := time.NewTicker(15 * time.Second)
 	defer tick.Stop()
 	save := time.NewTicker(time.Minute)
