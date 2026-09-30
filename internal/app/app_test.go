@@ -801,3 +801,33 @@ func TestTouchKindsOnTheRobot(t *testing.T) {
 		t.Fatalf("two strokes: %s", k)
 	}
 }
+
+func TestMenuOnTheRobot(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobotWith("robot-1", []string{"sprite", "assets"})
+	kid := e.browser()
+	kid.pair(r)
+	files := []string{"pet/menu-bg.png"}
+	for _, m := range menuItems {
+		files = append(files, "pet/"+m.asset)
+	}
+	haveFiles(t, r, files...)
+
+	r.event("screen_long_press", map[string]any{"x": 160, "y": 120})
+	taps := 0
+	for taps < len(menuItems) {
+		args := r.command("sprite")
+		if args["tap"] == true {
+			taps++
+		}
+	}
+	// A tap on the apple tile: the needs picture.
+	r.event("screen_tap", map[string]any{"x": 230, "y": 60, "sprite": "menu:needs", "asset": "pet/menu-needs.png"})
+	r.binary(wire.BinShowJPEG)
+	e.app.mu.Lock()
+	open := e.app.robots["robot-1"].menuOpen
+	e.app.mu.Unlock()
+	if open {
+		t.Fatal("the menu should close after a choice")
+	}
+}

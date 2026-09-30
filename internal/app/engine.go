@@ -289,8 +289,20 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 	asleep := night || p.Napping(now) // the night, or a daytime nap
 	var re pet.Reaction
 	switch ev.Name {
-	case "screen_long_press": // hold a finger on the screen: a game of catch
-		re = a.playAction(r, now)
+	case "screen_long_press": // hold a finger on the screen: the menu (or a game without one)
+		switch {
+		case asleep:
+			re = pet.Reaction{Kind: pet.KindAsleep}
+		case r.menuOpen:
+			a.closeMenu(r)
+			a.express(r, now)
+			return
+		case r.canMenu():
+			a.openMenu(r, now)
+			return
+		default:
+			re = a.playAction(r, now)
+		}
 	case "head_press":
 		zones := [3]float64{}
 		for i, k := range []string{"z0", "z1", "z2"} {
@@ -338,6 +350,11 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		re = p.Feed(now, food)
 		a.log.Info("food card", "robot", id, "uid", uid, "food", food, "reaction", re.Kind)
 	case "screen_tap":
+		if r.menuOpen {
+			sprite, _ := ev.Data["sprite"].(string)
+			a.menuTap(r, sprite, now)
+			return
+		}
 		switch {
 		case night:
 			re = pet.Reaction{Kind: pet.KindAsleep}

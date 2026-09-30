@@ -257,7 +257,10 @@ func CloudPNG() []byte {
 // Files are the pictures for the robot's file store (name -> bytes): the icons (PNG),
 // the full-screen faces (face-<mood>.jpg) and the dream cloud.
 func Files() map[string][]byte {
-	out := map[string][]byte{"cloud.png": CloudPNG()}
+	out := map[string][]byte{"cloud.png": CloudPNG(), "menu-bg.png": menuBackdrop()}
+	for _, t := range menuTiles {
+		out[t.name+".png"] = menuTile(t.icon, t.color)
+	}
 	entries, _ := pngFS.ReadDir("png")
 	for _, e := range entries {
 		if b, err := pngFS.ReadFile("png/" + e.Name()); err == nil {
@@ -265,4 +268,66 @@ func Files() map[string][]byte {
 		}
 	}
 	return out
+}
+
+// Menu pictures for the robot's screen (sprites; the server places and reads them).
+var menuTiles = []struct {
+	name, icon string
+	color      color.RGBA
+}{
+	{"menu-play", "ball", color.RGBA{0x4c, 0xaf, 0x50, 0xff}},
+	{"menu-needs", "apple", color.RGBA{0xff, 0xa7, 0x26, 0xff}},
+	{"menu-nap", "moon", color.RGBA{0x7e, 0x57, 0xc2, 0xff}},
+	{"menu-close", "", color.RGBA{0x78, 0x90, 0x9c, 0xff}},
+}
+
+// MenuTileSize is the size of a menu tile.
+const MenuTileW, MenuTileH = 130, 96
+
+// menuTile is a rounded coloured tile with a big icon (or an X), transparent corners.
+func menuTile(icon string, c color.RGBA) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, MenuTileW, MenuTileH))
+	fillRoundRect(img, img.Bounds(), 18, c)
+	if ic := iconFor(icon); ic != nil {
+		drawScaled(img, ic, image.Rect(MenuTileW/2-36, MenuTileH/2-36, MenuTileW/2+36, MenuTileH/2+36))
+	} else { // close: a white X
+		for i := -26; i <= 26; i++ {
+			fillCircle(img, MenuTileW/2+i, MenuTileH/2+i, 6, color.RGBA{0xff, 0xff, 0xff, 0xff})
+			fillCircle(img, MenuTileW/2+i, MenuTileH/2-i, 6, color.RGBA{0xff, 0xff, 0xff, 0xff})
+		}
+	}
+	return encodePNG(img)
+}
+
+// menuBackdrop dims the face behind the menu.
+func menuBackdrop() []byte {
+	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{0x0e, 0x14, 0x33, 0xc8}}, image.Point{}, draw.Src)
+	return encodePNG(img)
+}
+
+func iconFor(name string) image.Image {
+	if name == "" {
+		return nil
+	}
+	return icon(name)
+}
+
+func encodePNG(img image.Image) []byte {
+	var b bytes.Buffer
+	png.Encode(&b, img)
+	return b.Bytes()
+}
+
+// fillRoundRect fills r with rounded corners of radius rad.
+func fillRoundRect(dst *image.RGBA, r image.Rectangle, rad int, c color.RGBA) {
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			cx := min(max(x, r.Min.X+rad), r.Max.X-1-rad)
+			cy := min(max(y, r.Min.Y+rad), r.Max.Y-1-rad)
+			if dx, dy := x-cx, y-cy; dx*dx+dy*dy <= rad*rad {
+				dst.SetRGBA(x, y, c)
+			}
+		}
+	}
 }

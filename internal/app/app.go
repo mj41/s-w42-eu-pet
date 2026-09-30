@@ -107,6 +107,8 @@ type robot struct {
 	touchID     int
 	strokes     []time.Time // recent head swipes
 	lastScratch time.Time
+	menuOpen    bool // the menu is on the robot's screen (menu.go)
+	menuID      int
 	voiceGen    int         // bumped by each spoken line: an older one stops
 	head        *[2]float64 // yaw, pitch (degrees) from the robot's telemetry; nil until known
 	headBefore  *[2]float64 // where the head was before a game or dance: it goes back there
