@@ -2,6 +2,7 @@ package pet
 
 import (
 	"encoding/json"
+	"math"
 	"testing"
 	"time"
 )
@@ -250,5 +251,23 @@ func TestSettingsLoadOverDefaults(t *testing.T) {
 	}
 	if s.Name != "Robík" || s.Volume != 10 || s.NightWakeMin != 5 || !s.Sounds || s.Weekday.Bed != "20:00" {
 		t.Fatalf("loaded: %+v", s)
+	}
+}
+
+func TestTouchKinds(t *testing.T) {
+	p := New(at(0, 9, 0), DefaultSettings())
+	p.Stats.Fun = 20
+	now := at(0, 9, 0)
+	for _, c := range []struct {
+		kind string
+		fun  float64
+	}{{TouchTickle, 23}, {TouchScratch, 33}, {TouchLong, 41}, {"??", 47}} {
+		now = now.Add(5 * time.Second)
+		if r := p.Touch(now, c.kind); r.Kind != KindCuddle || !r.Changed || math.Abs(p.Stats.Fun-c.fun) > 0.2 {
+			t.Fatalf("%s: %+v, fun %.0f want %.0f", c.kind, r, p.Stats.Fun, c.fun)
+		}
+	}
+	if l := p.Log[0]; l.Detail != "tickle" {
+		t.Fatalf("log: %+v", p.Log)
 	}
 }

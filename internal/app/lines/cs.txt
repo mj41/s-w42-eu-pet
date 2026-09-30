@@ -19,9 +19,39 @@ Děkuju, už mám dost.
 # Pohlazení (hlava, tlačítko Pohladit).
 [cuddle]
 To je příjemné!
-Ještě!
-Hihi, to lechtá!
+Ještě, ještě!
 Mám tě rád!
+Ty umíš hladit!
+Mňau! ...Počkej, já nejsem kočka.
+Jsem nejšťastnější robot na světě!
+Hlazení mi nabíjí baterky!
+
+# Malinký lehký dotek (jen ťuknutí): lechtá.
+[tickle]
+Hihi, to lechtá!
+Ihihi! Lechtá!
+Hej, to šimrá!
+Pozor, mám lechtivou hlavu!
+Hihihi, ještě jednou!
+Kdo mě to šimrá?
+
+# Ruka zůstala na hlavě (dlouhé pohlazení).
+[long_cuddle]
+Mmmm... to je pohoda.
+Takhle bych vydržel celý den.
+Neodcházej, prosím!
+Tohle je lepší než nabíjení!
+Z toho se mi točí kolečka blahem.
+Tvoje ruka je teplá jako sluníčko.
+
+# Drbání (víc tahů po hlavě za sebou).
+[scratch]
+Jo, tam! Ještě podrbat!
+Trošku víc doleva... jo, tam!
+Ách, to je ono!
+Jsi nejlepší drbač na světě!
+Podrbej mě i za anténkou! ...Já nemám anténku?
+Drby drb, drbání je super!
 
 # Hra (tanec, když robot není připojený).
 [play]

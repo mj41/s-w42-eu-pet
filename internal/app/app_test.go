@@ -271,6 +271,7 @@ func TestPairAndPlay(t *testing.T) {
 	// Stroking the head is a cuddle.
 	fun := stats(t, out["state"].(map[string]any))["fun"].(float64)
 	r.event("head_press", map[string]any{"z0": 2})
+	r.event("head_release", map[string]any{"ms": 600}) // a normal cuddle
 	r.command("sticker")
 	_, st = kid.get("/api/state")
 	if got := stats(t, st)["fun"].(float64); got != fun+6 {
@@ -723,7 +724,7 @@ func TestFoodCardIsNotACuddle(t *testing.T) {
 	r.event("head_press", map[string]any{"z0": 2, "z1": 1, "z2": 0}) // the card touches the head first
 	r.event("nfc_tag", map[string]any{"uid": "04AABBCC"})
 	r.event("head_press", map[string]any{"z0": 1, "z1": 0, "z2": 0}) // and again while lifted
-	time.Sleep(cuddleWait + 300*time.Millisecond)
+	time.Sleep(touchWait + 300*time.Millisecond)
 	e.app.mu.Lock()
 	log := e.app.robots["robot-1"].pet.Log
 	e.app.mu.Unlock()
@@ -754,4 +755,49 @@ func TestHeadGoesBackAfterTheGame(t *testing.T) {
 		m.frame.Decode(&body)
 		return body.Command == "look" && body.Args["yaw"] == 10.0 && body.Args["pitch"] == 30.0
 	})
+}
+
+func TestTouchKindsOnTheRobot(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	lastTouch := func() string {
+		e.app.mu.Lock()
+		defer e.app.mu.Unlock()
+		log := e.app.robots["robot-1"].pet.Log
+		if len(log) == 0 || log[len(log)-1].Kind != "cuddle" {
+			return "none"
+		}
+		if d := log[len(log)-1].Detail; d != "" {
+			return d
+		}
+		return "cuddle"
+	}
+	pause := func() { // past the pet's cuddle cooldown
+		e.clock.set(e.clock.now().Add(5 * time.Second))
+	}
+
+	r.event("head_press", map[string]any{"z0": 1, "z1": 0, "z2": 0})
+	r.event("head_release", map[string]any{"ms": 150})
+	r.command("sticker") // shy
+	if k := lastTouch(); k != "tickle" {
+		t.Fatalf("a tiny light touch: %s", k)
+	}
+
+	pause()
+	r.event("head_press", map[string]any{"z0": 3, "z1": 3, "z2": 2})
+	time.Sleep(longTouchMs*time.Millisecond + 200*time.Millisecond) // the hand rests
+	if k := lastTouch(); k != "long" {
+		t.Fatalf("a resting hand: %s", k)
+	}
+	r.event("head_release", map[string]any{"ms": 2400}) // no second reaction
+
+	pause()
+	r.event("head_swipe_forward", nil)
+	r.event("head_swipe_backward", nil)
+	time.Sleep(touchWait + 200*time.Millisecond)
+	if k := lastTouch(); k != "scratch" {
+		t.Fatalf("two strokes: %s", k)
+	}
 }

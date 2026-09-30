@@ -16,9 +16,36 @@ Thanks, that's enough.
 
 [cuddle]
 That's nice!
-More!
-Hehe, that tickles!
+More, more!
 I love you!
+You're great at cuddles!
+Meow! ...Wait, I'm not a cat.
+I'm the happiest robot in the world!
+Cuddles charge my batteries!
+
+[tickle]
+Hehe, that tickles!
+Hihihi! Tickly!
+Hey, that tickles!
+Careful, my head is ticklish!
+Hehehe, again!
+Who's tickling me?
+
+[long_cuddle]
+Mmmm... this is nice.
+I could stay like this all day.
+Don't go, please!
+This is better than charging!
+My gears are spinning with joy.
+Your hand is warm like the sun.
+
+[scratch]
+Yes, right there! More scratching!
+A bit more to the left... yes, there!
+Ahh, that's the spot!
+You're the best scratcher in the world!
+Scratch behind my antenna too! ...I don't have one?
+Scritch scratch, scratching is great!
 
 [play]
 Yay, let's play!

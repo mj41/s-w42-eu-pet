@@ -243,10 +243,11 @@ func (p *Pet) Note(now time.Time, kind, detail string) { p.log(now, kind, detail
 
 // Reaction is what an action did; the caller shows it on the robot and the page.
 type Reaction struct {
-	Kind    string `json:"kind"`           // see the Kind* constants
-	Food    string `json:"food,omitempty"` // for KindEat
-	Hits    int    `json:"hits,omitempty"` // for KindGameOver
-	Changed bool   `json:"changed"`        // the needs changed
+	Kind    string `json:"kind"`            // see the Kind* constants
+	Food    string `json:"food,omitempty"`  // for KindEat
+	Hits    int    `json:"hits,omitempty"`  // for KindGameOver
+	Touch   string `json:"touch,omitempty"` // for KindCuddle: tickle, cuddle, long, scratch
+	Changed bool   `json:"changed"`         // the needs changed
 }
 
 const (
@@ -304,21 +305,45 @@ const cuddleEvery = 4 * time.Second
 
 // Cuddle is a head stroke. Stroking without a break raises fun only every few seconds.
 func (p *Pet) Cuddle(now time.Time) Reaction {
+	return p.Touch(now, TouchCuddle)
+}
+
+// Kinds of touch on the head (the robot's head sensor), each worth some fun.
+const (
+	TouchTickle  = "tickle"  // a tiny, light touch
+	TouchCuddle  = "cuddle"  // a normal touch or a stroke
+	TouchLong    = "long"    // a hand resting on the head
+	TouchScratch = "scratch" // several strokes in a row
+)
+
+var touchFun = map[string]float64{TouchTickle: 3, TouchCuddle: 6, TouchLong: 8, TouchScratch: 10}
+
+// Touch is a cuddle of some kind (see Touch*). Touching without a break raises fun only
+// every few seconds.
+func (p *Pet) Touch(now time.Time, kind string) Reaction {
 	if r, ok := p.awake(now); !ok {
 		return r
 	}
 	if p.PlayLeft(now) == 0 {
 		return Reaction{Kind: KindLimit}
 	}
+	fun, ok := touchFun[kind]
+	if !ok {
+		kind, fun = TouchCuddle, touchFun[TouchCuddle]
+	}
 	p.countPlay(now)
 	if now.Sub(p.LastCuddle) < cuddleEvery {
-		return Reaction{Kind: KindCuddle}
+		return Reaction{Kind: KindCuddle, Touch: kind}
 	}
 	p.LastCuddle = now
-	p.Stats.Fun += 6
+	p.Stats.Fun += fun
 	p.clamp()
-	p.log(now, "cuddle", "")
-	return Reaction{Kind: KindCuddle, Changed: true}
+	detail := ""
+	if kind != TouchCuddle {
+		detail = kind
+	}
+	p.log(now, "cuddle", detail)
+	return Reaction{Kind: KindCuddle, Touch: kind, Changed: true}
 }
 
 // Play is a game: fun for energy and a little food.

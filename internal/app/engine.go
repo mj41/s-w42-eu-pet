@@ -28,8 +28,7 @@ var moodColor = map[pet.Mood]string{
 }
 
 const (
-	cuddleWait = 800 * time.Millisecond // a head touch waits this long: a food card may follow
-	cardQuiet  = 2 * time.Second        // head touches this soon after a card are the card
+	cardQuiet = 2 * time.Second // head touches this soon after a card are the card
 
 	hardPressZone   = 3 // all three head zones at full (0-3): the whole palm; one finger only dreams
 	dreamEvery      = 8 * time.Second
@@ -197,8 +196,21 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 		}
 		a.begin(r, now, reactionTime)
 		a.emotion(r, "happy")
-		c.command("sticker", map[string]any{"name": "heart", "seconds": 2})
-		a.say(r, "cuddle", "", 3)
+		switch re.Touch {
+		case pet.TouchTickle: // giggling, blushing
+			c.command("sticker", map[string]any{"name": "shy", "seconds": 2})
+			a.say(r, "tickle", "", 3)
+		case pet.TouchLong: // melting under the hand
+			c.command("sticker", map[string]any{"name": "heart", "seconds": 3})
+			a.say(r, "long_cuddle", "", 4)
+		case pet.TouchScratch: // "right there!"
+			c.command("sticker", map[string]any{"name": "heart", "seconds": 2})
+			c.command("nod", nil)
+			a.say(r, "scratch", "", 4)
+		default:
+			c.command("sticker", map[string]any{"name": "heart", "seconds": 2})
+			a.say(r, "cuddle", "", 3)
+		}
 		a.play(r, sound.Chirp, false)
 	case pet.KindPlay:
 		a.begin(r, now, 5*time.Second)
@@ -280,15 +292,15 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 	case "screen_long_press": // hold a finger on the screen: a game of catch
 		re = a.playAction(r, now)
 	case "head_press":
-		if !asleep {
-			a.cuddleSoon(r, now)
-			return
-		}
-		// Asleep, a light touch (one finger) shows a dream; the whole palm (3,3,3) wakes the pet.
 		zones := [3]float64{}
 		for i, k := range []string{"z0", "z1", "z2"} {
 			zones[i], _ = ev.Data[k].(float64)
 		}
+		if !asleep {
+			a.touchStart(r, now, zones)
+			return
+		}
+		// Asleep, a light touch (one finger) shows a dream; the whole palm (3,3,3) wakes the pet.
 		a.log.Info("head press while asleep", "robot", id, "zones", zones, "night", night) // to tune "hard"
 		switch {
 		case min(zones[0], zones[1], zones[2]) < hardPressZone:
@@ -299,9 +311,15 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		default:
 			re = p.Wake(now)
 		}
+	case "head_release":
+		if !asleep {
+			ms, _ := ev.Data["ms"].(float64)
+			a.touchEnd(r, now, ms)
+		}
+		return
 	case "head_swipe_forward", "head_swipe_backward":
 		if !asleep {
-			a.cuddleSoon(r, now)
+			a.stroke(r, now)
 			return
 		}
 		re = pet.Reaction{Kind: pet.KindAsleep} // a stroke while asleep: a dream
@@ -618,22 +636,89 @@ func (a *App) eatSprite(r *robot, asset, line string) {
 	})
 }
 
-// cuddleSoon turns a head touch into a cuddle after a short wait: holding a food card
-// to the robot touches its head too, and the card (read a moment later) must win.
-func (a *App) cuddleSoon(r *robot, now time.Time) {
+// Head touches: a tiny light touch tickles, a hand resting on the head is a long
+// cuddle, several strokes in a row are scratching, anything else a cuddle. The pet
+// reacts a moment later: holding a food card to the robot touches its head too, and
+// the card (read a moment later) must win.
+const (
+	tickleMs     = 300  // shorter and light (no zone above tickleZone): a tickle
+	tickleZone   = 1    // head zone intensity (0-3)
+	longTouchMs  = 1500 // held this long: a long cuddle, while the hand still rests
+	scratchWin   = 2500 * time.Millisecond
+	scratchCount = 2 // strokes within scratchWin
+	touchWait    = 500 * time.Millisecond
+)
+
+func (a *App) touchStart(r *robot, now time.Time, zones [3]float64) {
+	r.touchAt, r.touchZone, r.touchSeen = now, max(zones[0], zones[1], zones[2]), false
+	r.touchID++
+	id := r.touchID
+	time.AfterFunc(longTouchMs*time.Millisecond, func() { // still touching: the hand rests
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		if r.touchID == id && !r.touchSeen && !r.touchAt.IsZero() {
+			r.touchSeen = true
+			a.touchSoon(r, a.now(), pet.TouchLong, 0)
+		}
+	})
+}
+
+func (a *App) touchEnd(r *robot, now time.Time, ms float64) {
+	if r.touchAt.IsZero() || r.touchSeen {
+		r.touchAt = time.Time{}
+		return
+	}
+	r.touchSeen = true
+	kind := pet.TouchCuddle
+	switch {
+	case ms < tickleMs && r.touchZone <= tickleZone:
+		kind = pet.TouchTickle
+	case ms >= longTouchMs:
+		kind = pet.TouchLong
+	}
+	r.touchAt = time.Time{}
+	a.touchSoon(r, now, kind, touchWait)
+}
+
+// stroke: a head swipe. Several in a row are scratching (it replaces the plain touch).
+func (a *App) stroke(r *robot, now time.Time) {
+	recent := r.strokes[:0]
+	for _, t := range r.strokes {
+		if now.Sub(t) < scratchWin {
+			recent = append(recent, t)
+		}
+	}
+	r.strokes = append(recent, now)
+	if len(r.strokes) >= scratchCount {
+		r.strokes = nil
+		r.touchSeen = true // this touch is the scratching
+		a.touchSoon(r, now, pet.TouchScratch, touchWait)
+		return
+	}
+	a.touchSoon(r, now, pet.TouchCuddle, touchWait)
+}
+
+// touchSoon reacts to a touch after wait, unless a food card came (or a newer touch).
+func (a *App) touchSoon(r *robot, now time.Time, kind string, wait time.Duration) {
 	if now.Sub(r.lastCard) < cardQuiet {
 		return
 	}
+	if kind != pet.TouchScratch && now.Sub(r.lastScratch) < scratchWin {
+		return // the release after scratching is not a new cuddle
+	}
+	if kind == pet.TouchScratch {
+		r.lastScratch = now
+	}
 	r.cuddleGen++
 	gen := r.cuddleGen
-	time.AfterFunc(cuddleWait, func() {
+	time.AfterFunc(wait, func() {
 		a.mu.Lock()
 		defer a.mu.Unlock()
 		now := a.now()
 		if r.cuddleGen != gen || r.conn == nil || r.game != nil || now.Sub(r.lastCard) < cardQuiet {
 			return
 		}
-		re := r.pet.Cuddle(now)
+		re := r.pet.Touch(now, kind)
 		a.dirty = true
 		a.react(r, re, now)
 		a.publishReaction(r, re)
