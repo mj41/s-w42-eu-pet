@@ -2,6 +2,7 @@ package app
 
 import (
 	"math/rand/v2"
+	"slices"
 	"time"
 
 	"github.com/mj41/stackchan-pet/internal/pet"
@@ -117,6 +118,10 @@ func (a *App) say(r *robot, key, arg string, seconds float64) {
 func (a *App) play(r *robot, name string, atNight bool) {
 	s := r.pet.Settings
 	if !s.Sounds || (!atNight && s.PhaseAt(a.now()) == pet.Night) {
+		return
+	}
+	if asset := soundAsset(name); r.files[asset] && slices.Contains(r.commands, "play") {
+		r.conn.command("play", map[string]any{"asset": asset}) // stored on the robot: nothing to send
 		return
 	}
 	if pcm := sound.PCM(name); pcm != nil {
@@ -333,6 +338,11 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		return
 	case "asset_error":
 		a.log.Warn("robot file upload failed", "robot", id, "name", ev.Data["name"], "reason", ev.Data["reason"])
+		return
+	case "sound_error":
+		a.log.Warn("robot could not play a sound", "robot", id, "asset", ev.Data["asset"], "reason", ev.Data["reason"])
+		return
+	case "sound_done":
 		return
 	case "sprite_error":
 		a.log.Warn("robot could not show a sprite", "robot", id, "id", ev.Data["id"], "reason", ev.Data["reason"])

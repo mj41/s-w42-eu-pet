@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mj41/stackchan-pet/internal/robotpic"
+	"github.com/mj41/stackchan-pet/internal/sound"
 	"github.com/mj41/stackchan-server/wire"
 )
 
@@ -17,14 +18,19 @@ import (
 
 const assetDir = "pet/"
 
-// petAssets are the files the pet wants on the robot.
+// petAssets are the files the pet wants on the robot: its pictures and sounds (WAV).
 func petAssets() map[string][]byte {
 	out := map[string][]byte{}
 	for name, b := range robotpic.PNGs() {
 		out[assetDir+name] = b
 	}
+	for _, name := range sound.Names {
+		out[soundAsset(name)] = sound.WAV(sound.PCM(name))
+	}
 	return out
 }
+
+func soundAsset(name string) string { return assetDir + "snd/" + name + ".wav" }
 
 // syncAssets compares the robot's list with the pet's files and uploads the difference. a.mu held.
 func (a *App) syncAssets(r *robot, listJSON string) {

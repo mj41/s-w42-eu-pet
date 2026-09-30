@@ -19,3 +19,10 @@ func TestSoundsFitTheRobotBuffer(t *testing.T) {
 		t.Error("unknown sound should be nil")
 	}
 }
+
+func TestWAV(t *testing.T) {
+	w := WAV([]int16{1, -2, 3})
+	if len(w) != 50 || string(w[:4]) != "RIFF" || string(w[8:16]) != "WAVEfmt " || string(w[36:40]) != "data" || w[44] != 1 || w[46] != 0xFE {
+		t.Fatalf("WAV header or data wrong: % x", w)
+	}
+}

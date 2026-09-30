@@ -140,3 +140,25 @@ func noise(ms, gain float64) []int16 {
 	}
 	return out
 }
+
+// WAV wraps PCM as a WAV file (16-bit mono at Rate), for the robot's file store.
+func WAV(pcm []int16) []byte {
+	data := 2 * len(pcm)
+	b := make([]byte, 44+data)
+	copy(b, "RIFF")
+	binary.LittleEndian.PutUint32(b[4:], uint32(36+data))
+	copy(b[8:], "WAVEfmt ")
+	binary.LittleEndian.PutUint32(b[16:], 16)     // fmt chunk size
+	binary.LittleEndian.PutUint16(b[20:], 1)      // PCM
+	binary.LittleEndian.PutUint16(b[22:], 1)      // mono
+	binary.LittleEndian.PutUint32(b[24:], Rate)   // sample rate
+	binary.LittleEndian.PutUint32(b[28:], Rate*2) // byte rate
+	binary.LittleEndian.PutUint16(b[32:], 2)      // block align
+	binary.LittleEndian.PutUint16(b[34:], 16)     // bits
+	copy(b[36:], "data")
+	binary.LittleEndian.PutUint32(b[40:], uint32(data))
+	for i, s := range pcm {
+		binary.LittleEndian.PutUint16(b[44+2*i:], uint16(s))
+	}
+	return b
+}
