@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -64,8 +63,7 @@ func allLines(lang string) []string {
 				}
 			case key == "game_over":
 				for hits := 1; hits <= pet.GameRounds; hits++ {
-					score := fmt.Sprintf(map[string]string{"cs": "%d z %d", "en": "%d of %d"}[lang], hits, pet.GameRounds)
-					out = append(out, strings.ReplaceAll(v, "%s", score))
+					out = append(out, strings.ReplaceAll(v, "%s", scoreText(lang, hits, pet.GameRounds)))
 				}
 			}
 		}

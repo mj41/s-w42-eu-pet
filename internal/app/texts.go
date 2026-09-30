@@ -23,6 +23,7 @@ var (
 	robotTexts = map[string]map[string][]string{} // lang -> key -> variants
 	foodTexts  = map[string]map[string][]string{} // lang -> food -> variants
 	foodNames  = map[string]map[string]string{}   // lang -> food -> name
+	scoreTexts = map[string]map[string]string{}   // lang -> balls caught -> "tři z pěti"
 )
 
 func init() {
@@ -38,6 +39,7 @@ func init() {
 // parseLines reads one language's lines file.
 func parseLines(lang, text string) error {
 	robotTexts[lang], foodTexts[lang], foodNames[lang] = map[string][]string{}, map[string][]string{}, map[string]string{}
+	scoreTexts[lang] = map[string]string{}
 	section := ""
 	for n, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)
@@ -47,12 +49,16 @@ func parseLines(lang, text string) error {
 			section = strings.TrimSpace(line[1 : len(line)-1])
 		case section == "":
 			return fmt.Errorf("line %d: text before the first [section]", n+1)
-		case section == "names":
-			food, name, ok := strings.Cut(line, "=")
+		case section == "names" || section == "score":
+			key, value, ok := strings.Cut(line, "=")
 			if !ok {
-				return fmt.Errorf("line %d: want food = name", n+1)
+				return fmt.Errorf("line %d: want key = text", n+1)
 			}
-			foodNames[lang][strings.TrimSpace(food)] = strings.TrimSpace(name)
+			m := foodNames[lang]
+			if section == "score" {
+				m = scoreTexts[lang]
+			}
+			m[strings.TrimSpace(key)] = strings.TrimSpace(value)
 		case strings.HasPrefix(section, "food "):
 			food := strings.TrimSpace(strings.TrimPrefix(section, "food "))
 			foodTexts[lang][food] = append(foodTexts[lang][food], line)
@@ -61,6 +67,14 @@ func parseLines(lang, text string) error {
 		}
 	}
 	return nil
+}
+
+// scoreText is the game's score in words ("tři z pěti"), or "3 z 5" without them.
+func scoreText(lang string, hits, rounds int) string {
+	if s := scoreTexts[lang][fmt.Sprint(hits)]; s != "" {
+		return s
+	}
+	return fmt.Sprintf(map[string]string{"cs": "%d z %d", "en": "%d of %d"}[lang], hits, rounds)
 }
 
 // foodText picks what the pet says about a food.

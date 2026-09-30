@@ -115,6 +115,19 @@ What is it? I was sleeping...
 [game_over]
 Yay! %s!
 Great, %s!
+Awesome, %s!
+
+[game_over_all]
+Awesome, five out of five!
+All five! You're a catching champion!
+Five out of five! Well done!
+
+[score]
+1 = one out of five
+2 = two out of five
+3 = three out of five
+4 = four out of five
+5 = five out of five
 
 [game_over_0]
 Next time!

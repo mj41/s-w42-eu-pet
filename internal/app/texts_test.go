@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -10,7 +11,7 @@ import (
 // The keys the code says (text(lang, key, ...)).
 var lineKeys = []string{"eat", "full", "cuddle", "play", "too_tired", "limit", "nap", "not_tired", "wake", "shake",
 	"hello", "hungry", "bored", "tired", "bedtime", "goodnight", "morning", "game", "night_wake", "game_over", "game_over_0",
-	"tickle", "long_cuddle", "scratch"}
+	"tickle", "long_cuddle", "scratch", "game_over_all"}
 
 func TestLinesFilesAreComplete(t *testing.T) {
 	for _, lang := range []string{"cs", "en"} {
@@ -31,6 +32,11 @@ func TestLinesFilesAreComplete(t *testing.T) {
 			}
 			if !found {
 				t.Errorf("lines/%s.txt: unknown section [%s]", lang, key)
+			}
+		}
+		for hits := 1; hits <= pet.GameRounds; hits++ {
+			if scoreTexts[lang][fmt.Sprint(hits)] == "" {
+				t.Errorf("lines/%s.txt [score]: no %d", lang, hits)
 			}
 		}
 		for _, food := range pet.FoodOrder {

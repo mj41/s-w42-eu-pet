@@ -441,7 +441,7 @@ func TestCatchTheBall(t *testing.T) {
 		var body wire.RobotCommandBody
 		m.frame.Decode(&body)
 		text, _ := body.Args["text"].(string)
-		return body.Command == "say" && strings.Contains(text, "1 z 5")
+		return body.Command == "say" && strings.Contains(text, "jeden z peti")
 	})
 	_, st := kid.get("/api/state")
 	if st["game"] != nil {

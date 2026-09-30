@@ -132,10 +132,25 @@ Hrajeme! Chyť míček!
 Ááá... už jsem vzhůru.
 Co je? Já jsem spal...
 
-# Konec hry. %s = skóre, např. "3 z 5".
+# Konec hry. %s = skóre slovy z [score], např. "tři z pěti".
 [game_over]
 Hurá! %s!
 Super, %s!
+Paráda, %s!
+
+# Konec hry, chytil všechny míčky.
+[game_over_all]
+Paráda, pět z pěti!
+Všech pět! Jsi mistr chytání!
+Pět z pěti! To se ti povedlo!
+
+# Skóre slovy: počet chycených míčků = text (hra má 5 míčků).
+[score]
+1 = jeden z pěti
+2 = dva z pěti
+3 = tři z pěti
+4 = čtyři z pěti
+5 = pět z pěti
 
 # Konec hry, nechytil ani jeden míček.
 [game_over_0]

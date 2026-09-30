@@ -338,9 +338,12 @@ func (a *App) endGame(r *robot, g *game) {
 		a.clearSprites(r)
 		r.pictureOn = false
 		a.emotion(r, "happy")
-		key, score := "game_over", fmt.Sprintf(map[string]string{"cs": "%d z %d", "en": "%d of %d"}[r.pet.Settings.Lang], g.hits, pet.GameRounds)
-		if g.hits == 0 {
+		key, score := "game_over", scoreText(r.pet.Settings.Lang, g.hits, pet.GameRounds)
+		switch g.hits {
+		case 0:
 			key = "game_over_0"
+		case pet.GameRounds:
+			key = "game_over_all"
 		}
 		a.say(r, key, score, 4)
 		r.conn.command("nod", nil)
