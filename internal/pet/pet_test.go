@@ -196,3 +196,25 @@ func TestNextWake(t *testing.T) {
 		t.Errorf("Friday evening: %s", w)
 	}
 }
+
+func TestGame(t *testing.T) {
+	p := New(at(0, 9, 0), DefaultSettings())
+	p.Stats = Stats{Food: 80, Fun: 20, Energy: 80}
+	if r := p.StartGame(at(0, 9, 0)); r.Kind != KindGame || p.Stats.Fun != 20 {
+		t.Fatalf("start: %+v %+v", r, p.Stats)
+	}
+	r := p.FinishGame(at(0, 9, 0), 4)
+	if r.Kind != KindGameOver || r.Hits != 4 || p.Stats.Fun != 44 || p.Stats.Energy != 72 {
+		t.Fatalf("finish: %+v %+v", r, p.Stats)
+	}
+	if e := p.Log[len(p.Log)-1]; e.Kind != "play" || e.Detail != "4/5" {
+		t.Fatalf("log: %+v", e)
+	}
+	p.Stats.Energy = 5
+	if r := p.StartGame(at(0, 10, 0)); r.Kind != KindTooTired {
+		t.Fatalf("tired: %+v", r)
+	}
+	if r := p.StartGame(at(0, 22, 0)); r.Kind != KindAsleep {
+		t.Fatalf("night: %+v", r)
+	}
+}

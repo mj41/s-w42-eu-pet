@@ -85,6 +85,15 @@
   .food:active { transform: translateY(3px); }
   .food img { width: 100%; }
 
+  .gamecard { display: none; text-align: center; background: var(--card); border-radius: 24px; padding: 16px; font-size: 22px; font-weight: 800; }
+  .gamecard .ball { width: 96px; margin: 0 auto 8px; animation: bounce .8s ease-in-out infinite alternate; }
+  @keyframes bounce { from { transform: translateY(0) rotate(0); } to { transform: translateY(-24px) rotate(40deg); } }
+  .gamecard .stars { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+  .gamecard .stars img { width: 44px; filter: grayscale(1); opacity: .3; transition: all .3s; }
+  .gamecard .stars img.on { filter: none; opacity: 1; transform: scale(1.15); }
+  body.gaming .gamecard { display: block; }
+  body.gaming .buttons { display: none; }
+
   .pair { display: none; text-align: center; margin: auto; max-width: 420px; font-size: 22px; font-weight: 800; }
   .pair img { width: 160px; margin: 0 auto 16px; }
   .pair p { font-size: 17px; font-weight: 600; color: var(--muted); }
@@ -120,6 +129,12 @@
     <button class="btn nap" id="btnNap"><img id="napImg" src="/emoji/moon.svg" alt=""><span id="napLabel" data-t="nap"></span></button>
   </section>
 
+  <section class="gamecard">
+    <img class="ball" src="/emoji/ball.svg" alt="">
+    <div data-t="catch"></div>
+    <div class="stars" id="stars"></div>
+  </section>
+
   <section class="nightcard">
     <div id="nightText"></div>
     <div class="wake"><img src="/emoji/sun.svg" alt=""><span id="wakeAt"></span></div>
@@ -137,12 +152,14 @@
 <script>
 const T = {
   cs: {
+    catch: "Chyť míček na robotovi!",
     feed: "Jídlo", cuddle: "Pohladit", play: "Hrát", nap: "Spinkat", wake: "Vzbudit",
     scan: "Naskenuj QR kód na robotovi", scanHow: "Na robotovi přejeď zespodu nahoru a klepni na QR.",
     offline: "Robot teď není připojený.", sleeps: n => `Psst… ${n} spí.`,
     age: d => d === 0 ? "dnes narozen" : d === 1 ? "1 den" : d < 5 ? `${d} dny` : `${d} dní`,
   },
   en: {
+    catch: "Catch the ball on the robot!",
     feed: "Food", cuddle: "Cuddle", play: "Play", nap: "Nap", wake: "Wake up",
     scan: "Scan the QR code on the robot", scanHow: "On the robot, swipe up from the bottom and tap QR.",
     offline: "The robot is not connected right now.", sleeps: n => `Shh… ${n} is sleeping.`,
@@ -165,6 +182,8 @@ function render(s) {
   lang = s.lang || lang;
   document.body.classList.remove("unpaired");
   document.body.classList.toggle("night", s.phase === "night");
+  document.body.classList.toggle("gaming", !!s.game);
+  if (s.game) stars(s.game);
   $("stage").classList.toggle("napping", s.mood === "napping");
   const napping = s.mood === "napping";
   $("napLabel").dataset.t = napping ? "wake" : "nap";
@@ -184,6 +203,13 @@ function render(s) {
   $("nightText").textContent = t("sleeps", s.name);
   $("wakeAt").textContent = s.wake;
   document.querySelector('meta[name="theme-color"]').content = s.phase === "night" ? "#0e1433" : "#bfe6ff";
+}
+
+// stars shows the game's progress: one star per ball, lit when caught.
+function stars(g) {
+  const box = $("stars");
+  while (box.children.length < g.rounds) { const i = document.createElement("img"); i.src = "/emoji/star.svg"; i.alt = ""; box.appendChild(i); }
+  [...box.children].forEach((img, i) => img.classList.toggle("on", i < g.hits));
 }
 
 // fx floats a picture up from the pet (hearts, food, zzz...).
@@ -214,6 +240,7 @@ function react(r) {
     case "wake": faceAnim("jump", "happy"); fx("/emoji/sun.svg"); break;
     case "shake": faceAnim("shake"); break;
     case "asleep": fx("/emoji/moon.svg"); break;
+    case "game_over": if (r.hits) fx("/emoji/star.svg", r.hits); faceAnim("jump", "happy"); break;
   }
 }
 

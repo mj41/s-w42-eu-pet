@@ -88,6 +88,7 @@ type robot struct {
 	screenOff  bool      // the pet turned the robot's screen off for the night
 	busyUntil  time.Time // a reaction shows until then; the mood waits
 	gen        int       // bumped by each reaction; delayed steps of an older one are dropped
+	game       *game     // a game of catch in progress (game.go)
 }
 
 func New(cfg Config) *App {

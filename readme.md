@@ -16,6 +16,7 @@ It is a separate server that the robot switches to from its QR screen
 | Stroke or press the head | Cuddle: happy face, heart, a chirp |
 | Hold an NFC card to it | Eats the card's food (shown big on the screen) |
 | Tap the screen | Shows its needs as three bars for a few seconds |
+| Hold a finger on the screen | A game of catch (below) |
 | Shake it | "Wheee!", dizzy |
 | Come close (proximity) | Says hello now and then |
 
@@ -23,6 +24,14 @@ The kid's page (`http://<server>:8770/` after scanning the robot's QR code)
 works with pictures, so it needs no reading: the pet's face, three need bars
 (food, fun, energy) and four big buttons: food, cuddle, play and nap. Actions
 from the robot show on the page too.
+
+**Catch the ball** (the play button, or a long press on the robot's screen):
+the robot's screen shows a ball in one of its four quarters, and the kid taps
+it on the robot. Five balls, about five seconds each; a tap on the wrong
+quarter is just ignored, and a ball not caught flies on to the next place.
+Every catch chirps and blinks green; at the end the robot shows one star per
+catch and says the score. More catches, more fun. The page shows the stars as
+they come. Without the robot connected, play is a short dance on the page.
 
 Needs: food, fun and energy go from 0 to 100 and drop while the pet is awake.
 Its mood follows them (happy, fine, hungry, bored, tired). The pet is kind: it

@@ -169,6 +169,7 @@ func (a *App) detach(c *robotConn) {
 		return
 	}
 	r.conn = nil
+	r.game = nil
 	for code, pc := range a.codes {
 		if pc.robotID == c.id {
 			delete(a.codes, code)

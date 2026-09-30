@@ -10,7 +10,7 @@ import (
 )
 
 func TestPictures(t *testing.T) {
-	pics := map[string][]byte{"needs": Needs(80, 45, 10)}
+	pics := map[string][]byte{"needs": Needs(80, 45, 10), "ball3": Ball(3), "stars": Stars(3, 5)}
 	for _, f := range pet.FoodOrder {
 		pics[f] = Food(f)
 		if icon(f) == nil {
@@ -30,6 +30,17 @@ func TestPictures(t *testing.T) {
 	if dir := os.Getenv("PICDIR"); dir != "" {
 		for name, b := range pics {
 			os.WriteFile(dir+"/"+name+".jpg", b, 0o644)
+		}
+	}
+}
+
+func TestSpotAt(t *testing.T) {
+	for _, c := range []struct {
+		x, y float64
+		want int
+	}{{10, 10, 0}, {300, 10, 1}, {10, 200, 2}, {300, 200, 3}, {160, 120, 3}} {
+		if got := SpotAt(c.x, c.y); got != c.want {
+			t.Errorf("SpotAt(%v, %v) = %d, want %d", c.x, c.y, got, c.want)
 		}
 	}
 }

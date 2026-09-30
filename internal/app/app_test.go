@@ -394,3 +394,48 @@ func TestStateSurvivesRestart(t *testing.T) {
 		t.Fatalf("after restart: %+v sessions %d", rb, len(again.sessions))
 	}
 }
+
+func TestCatchTheBall(t *testing.T) {
+	gameRoundTime, gameGap, gameIntro, gameStars = 300*time.Millisecond, 50*time.Millisecond, 50*time.Millisecond, 100*time.Millisecond
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+
+	code, out := kid.post("/api/action", map[string]any{"action": "play"})
+	if code != 200 || out["reaction"].(map[string]any)["kind"] != "game" {
+		t.Fatalf("play: %d %v", code, out)
+	}
+	if say := r.command("say"); !strings.Contains(say["text"].(string), "micek") {
+		t.Fatalf("game intro: %v", say)
+	}
+	r.binary(wire.BinShowJPEG) // the first ball
+
+	// Tap the wrong quarter (ignored), then the ball.
+	e.app.mu.Lock()
+	spot := e.app.robots["robot-1"].game.spot
+	e.app.mu.Unlock()
+	centers := [][2]float64{{80, 60}, {240, 60}, {80, 180}, {240, 180}}
+	wrong := centers[(spot+1)%4]
+	r.event("screen_tap", map[string]any{"x": wrong[0], "y": wrong[1]})
+	r.event("screen_tap", map[string]any{"x": centers[spot][0], "y": centers[spot][1]})
+	r.binary(wire.BinSpeakerPCM) // the catch chirp (the intro hello came before the ball)
+
+	// The other balls fly away unnoticed; then the stars and the score.
+	r.next("game over", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		text, _ := body.Args["text"].(string)
+		return body.Command == "say" && strings.Contains(text, "1 z 5")
+	})
+	_, st := kid.get("/api/state")
+	if st["game"] != nil {
+		t.Fatalf("game still on: %v", st["game"])
+	}
+	e.app.mu.Lock()
+	last := e.app.robots["robot-1"].pet.Log
+	e.app.mu.Unlock()
+	if l := last[len(last)-1]; l.Kind != "play" || l.Detail != "1/5" {
+		t.Fatalf("log: %+v", l)
+	}
+}

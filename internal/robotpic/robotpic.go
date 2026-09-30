@@ -140,3 +140,65 @@ func fillRound(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
 		}
 	}
 }
+
+// Spots is the number of places the ball can be: the four quarters of the screen.
+const Spots = 4
+
+// SpotAt is the quarter of the screen a tap at x, y lands in (0 top left, 1 top right,
+// 2 bottom left, 3 bottom right).
+func SpotAt(x, y float64) int {
+	s := 0
+	if x >= W/2 {
+		s++
+	}
+	if y >= H/2 {
+		s += 2
+	}
+	return s
+}
+
+// Ball shows the ball in one quarter of the screen: tap it!
+func Ball(spot int) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	draw.Draw(img, img.Bounds(), &image.Uniform{cream}, image.Point{}, draw.Src)
+	cx, cy := W/4+(spot%2)*W/2, H/4+(spot/2%2)*H/2
+	if ic := icon("ball"); ic != nil {
+		drawScaled(img, ic, image.Rect(cx-52, cy-52, cx+52, cy+52))
+	}
+	return encode(img)
+}
+
+// Stars shows the result of a game: one star per catch, faded ones for misses.
+func Stars(hits, rounds int) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	draw.Draw(img, img.Bounds(), &image.Uniform{cream}, image.Point{}, draw.Src)
+	star := icon("star")
+	if star == nil || rounds <= 0 {
+		return encode(img)
+	}
+	size := min(64, (W-16)/rounds-4)
+	x := (W - rounds*(size+4)) / 2
+	for i := range rounds {
+		ic := star
+		if i >= hits {
+			ic = faded(star)
+		}
+		drawScaled(img, ic, image.Rect(x, H/2-size/2, x+size, H/2+size/2))
+		x += size + 4
+	}
+	return encode(img)
+}
+
+// faded is a grey, mostly transparent copy of an icon (a star not earned).
+func faded(src image.Image) image.Image {
+	b := src.Bounds()
+	out := image.NewNRGBA(b)
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			c := color.NRGBAModel.Convert(src.At(x, y)).(color.NRGBA)
+			g := uint8((uint32(c.R)*3 + uint32(c.G)*6 + uint32(c.B)) / 10)
+			out.SetNRGBA(x, y, color.NRGBA{g * 3 / 4, g * 3 / 4, g * 3 / 4, c.A / 2})
+		}
+	}
+	return out
+}

@@ -209,6 +209,8 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 		a.emotion(r, "happy")
 		a.say(r, "wake", "", 3)
 		a.play(r, sound.Chirp, false)
+	case pet.KindGame: // startGame shows it
+		return
 	case pet.KindShake:
 		a.begin(r, now, 3*time.Second)
 		c.command("sticker", map[string]any{"name": "dizzy", "seconds": 2})
@@ -239,8 +241,13 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 	now := a.now()
 	p := r.pet
 	r.lastSeen = now
+	if a.gameEvent(r, ev, now) {
+		return
+	}
 	var re pet.Reaction
 	switch ev.Name {
+	case "screen_long_press": // hold a finger on the screen: a game of catch
+		re = a.playAction(r, now)
 	case "head_press", "head_swipe_forward", "head_swipe_backward":
 		re = p.Cuddle(now)
 	case "nfc_tag": // a food card
@@ -394,6 +401,7 @@ func (a *App) daytime(r *robot, now time.Time) {
 // goodnight: lullaby, sleepy face, night light, then the screen goes dark.
 func (a *App) goodnight(r *robot, now time.Time) {
 	p := r.pet
+	a.stopGame(r)
 	p.Note(now, "night", "")
 	r.gen++
 	r.busyUntil = now.Add(15 * time.Second)

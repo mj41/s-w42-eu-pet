@@ -7,6 +7,7 @@
 package pet
 
 import (
+	"fmt"
 	"math"
 	"time"
 )
@@ -217,6 +218,7 @@ func (p *Pet) Note(now time.Time, kind, detail string) { p.log(now, kind, detail
 type Reaction struct {
 	Kind    string `json:"kind"`           // see the Kind* constants
 	Food    string `json:"food,omitempty"` // for KindEat
+	Hits    int    `json:"hits,omitempty"` // for KindGameOver
 	Changed bool   `json:"changed"`        // the needs changed
 }
 
@@ -232,6 +234,8 @@ const (
 	KindWake     = "wake"      // woken from a nap
 	KindAsleep   = "asleep"    // it is night: only a sleepy answer
 	KindShake    = "shake"     // the robot was shaken
+	KindGame     = "game"      // a game of catch starts on the robot
+	KindGameOver = "game_over" // the game ended; Hits balls caught
 )
 
 // awake is the common start of an action: needs up to date, night answers
@@ -307,6 +311,42 @@ func (p *Pet) Play(now time.Time) Reaction {
 	p.clamp()
 	p.log(now, "play", "")
 	return Reaction{Kind: KindPlay, Changed: true}
+}
+
+// GameRounds is the number of balls in one game of catch.
+const GameRounds = 5
+
+// StartGame checks the pet can play a game of catch (the robot runs it); the
+// reward comes with FinishGame.
+func (p *Pet) StartGame(now time.Time) Reaction {
+	if r, ok := p.awake(now); !ok {
+		return r
+	}
+	if p.PlayLeft(now) == 0 {
+		return Reaction{Kind: KindLimit}
+	}
+	if p.Stats.Energy < 15 {
+		return Reaction{Kind: KindTooTired}
+	}
+	p.countPlay(now)
+	return Reaction{Kind: KindGame}
+}
+
+// Caught counts a caught ball as play time (a game takes about half a minute).
+func (p *Pet) Caught(now time.Time) { p.countPlay(now) }
+
+// FinishGame ends a game of catch: more fun for more catches, playing makes
+// hungry and tired as Play does.
+func (p *Pet) FinishGame(now time.Time, hits int) Reaction {
+	p.Advance(now)
+	hits = max(0, min(GameRounds, hits))
+	p.countPlay(now)
+	p.Stats.Fun += 8 + 4*float64(hits)
+	p.Stats.Energy -= 8
+	p.Stats.Food -= 4
+	p.clamp()
+	p.log(now, "play", fmt.Sprintf("%d/%d", hits, GameRounds))
+	return Reaction{Kind: KindGameOver, Hits: hits, Changed: true}
 }
 
 // NapLength is how long a daytime nap lasts unless the kid wakes the pet.

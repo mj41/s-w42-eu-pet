@@ -69,6 +69,7 @@ type stateView struct {
 	Bed      string     `json:"bed"`       // today's bedtime
 	NapUntil *time.Time `json:"nap_until,omitempty"`
 	Foods    []string   `json:"foods"`
+	Game     *gameView  `json:"game,omitempty"` // a game of catch on the robot
 }
 
 // view builds the kid's view. a.mu held.
@@ -80,7 +81,7 @@ func (a *App) view(r *robot) stateView {
 	v := stateView{
 		Robot: r.id, Online: r.conn != nil, Name: p.Settings.Name, Lang: p.Settings.Lang,
 		Mood: p.Mood(now), Phase: p.Settings.PhaseAt(now), Stats: p.Stats, AgeDays: p.AgeDays(now),
-		PlayLeft: p.PlayLeft(now), Wake: p.Settings.NextWake(now), Bed: day.Bed, Foods: pet.FoodOrder,
+		Game: r.game.view(), PlayLeft: p.PlayLeft(now), Wake: p.Settings.NextWake(now), Bed: day.Bed, Foods: pet.FoodOrder,
 	}
 	if p.Napping(now) {
 		t := p.NapUntil
@@ -119,7 +120,7 @@ func (a *App) publishState(r *robot) {
 }
 
 func (a *App) publishReaction(r *robot, re pet.Reaction) {
-	a.publish(r.id, sseEvent{"reaction", mustJSON(map[string]any{"robot": r.id, "kind": re.Kind, "food": re.Food, "changed": re.Changed})})
+	a.publish(r.id, sseEvent{"reaction", mustJSON(map[string]any{"robot": r.id, "kind": re.Kind, "food": re.Food, "hits": re.Hits, "changed": re.Changed})})
 }
 
 func mustJSON(v any) []byte {
@@ -258,8 +259,8 @@ func (a *App) handleAction(w http.ResponseWriter, r *http.Request) {
 		re = p.Feed(now, req.Food)
 	case "cuddle":
 		re = p.Cuddle(now)
-	case "play":
-		re = p.Play(now)
+	case "play": // a game of catch on the robot; a dance without it
+		re = a.playAction(rb, now)
 	case "nap":
 		re = p.Nap(now)
 	case "wake":
