@@ -29,6 +29,7 @@ type Settings struct {
 	PlayLimitMin int `json:"play_limit_min"` // play and cuddle minutes per day, 0 = no limit
 
 	Sounds           bool `json:"sounds"`
+	Voice            bool `json:"voice"`               // the pet speaks its lines (with sounds on)
 	Volume           int  `json:"volume"`              // robot speaker, 0..100
 	NightLight       bool `json:"night_light"`         // dim warm LEDs at night
 	ScreenOffAtNight bool `json:"screen_off_at_night"` // the robot's screen sleeps at night
@@ -65,6 +66,7 @@ func DefaultSettings() Settings {
 		SchoolFrom:       "08:00",
 		SchoolTo:         "15:00",
 		Sounds:           true,
+		Voice:            true,
 		Volume:           40,
 		NightLight:       true,
 		ScreenOffAtNight: true,

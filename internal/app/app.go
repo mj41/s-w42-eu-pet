@@ -38,6 +38,7 @@ type Config struct {
 	Log        *slog.Logger
 	Now        func() time.Time // tests; default time.Now
 	DebugDir   string           // where screen snapshots from the robot are saved (debug.go); "" = not saved
+	Espeak     string           // the espeak-ng program for the pet's voice (voice.go); "" = no voice
 }
 
 // App holds all state. One mutex guards everything; robot sockets only queue messages.
@@ -53,6 +54,8 @@ type App struct {
 	dirty    bool   // state changed since the last save
 	timing   timing // the game's pace (game.go)
 	saveMu   sync.Mutex
+	voiceMu  sync.Mutex
+	voices   map[string][]int16 // synthesized lines (voice.go)
 }
 
 type pairCode struct {
@@ -99,6 +102,7 @@ type robot struct {
 	faceHidden bool              // the drawn face steps aside for speech or a full-screen picture
 	lastCard   time.Time         // the last food card: head touches around it are not cuddles
 	cuddleGen  int               // bumped by a card: a waiting head touch is dropped
+	voiceGen   int               // bumped by each spoken line: an older one stops
 }
 
 func New(cfg Config) *App {
@@ -122,6 +126,7 @@ func New(cfg Config) *App {
 		sessions: map[string]*session{},
 		subs:     map[*subscriber]struct{}{},
 		timing:   defaultTiming,
+		voices:   map[string][]int16{},
 	}
 	if cfg.StateFile != "" {
 		if err := a.load(); err != nil && !errors.Is(err, fs.ErrNotExist) {

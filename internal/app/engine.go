@@ -109,11 +109,19 @@ func (a *App) say(r *robot, key, arg string, seconds float64) {
 	a.sayText(r, text(r.pet.Settings.Lang, key, arg), seconds)
 }
 
+// sayText shows a line in the speech bubble (folded: the robot's font has no Czech
+// letters) and speaks it.
 func (a *App) sayText(r *robot, t string, seconds float64) {
-	if t != "" {
-		a.hideFace(r) // the bubble belongs to the robot's own face
-		r.conn.command("say", map[string]any{"text": t, "seconds": seconds})
+	a.sayLine(r, t, seconds, false)
+}
+
+func (a *App) sayLine(r *robot, t string, seconds float64, atNight bool) {
+	if t == "" {
+		return
 	}
+	a.hideFace(r) // the bubble belongs to the robot's own face
+	r.conn.command("say", map[string]any{"text": asciiOnly(t), "seconds": seconds})
+	a.speak(r, t, atNight)
 }
 
 // play sends a sound when sounds are on; not at night unless atNight (the lullaby).
@@ -482,7 +490,7 @@ func (a *App) goodnight(r *robot, now time.Time) {
 		r.pictureOn = false
 	}
 	a.emotion(r, "sleepy")
-	a.say(r, "goodnight", "", 6)
+	a.sayLine(r, text(r.pet.Settings.Lang, "goodnight", ""), 6, true)
 	a.play(r, sound.Lullaby, true)
 	r.conn.command("leds", moodLEDs(p, pet.Sleeping))
 	a.later(r, 10*time.Second, func() { a.sleepScreen(r) })

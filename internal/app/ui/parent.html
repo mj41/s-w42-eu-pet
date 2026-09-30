@@ -136,6 +136,7 @@
     <section>
       <h2 data-t="robot"></h2>
       <div class="row"><label><input id="sounds" type="checkbox"> <span data-t="sounds"></span></label></div>
+      <div class="row"><label><input id="voice" type="checkbox"> <span data-t="voice"></span></label></div>
       <div class="row"><label for="volume" data-t="volume"></label><input id="volume" type="range" min="0" max="100"><span id="volumeN" style="min-width:2.5em"></span></div>
       <div class="row"><label><input id="nightLight" type="checkbox"> <span data-t="nightLight"></span></label></div>
       <div class="row"><label><input id="screenOff" type="checkbox"> <span data-t="screenOff"></span></label></div>
@@ -191,6 +192,7 @@ const T = {
     difficultyHint: "Jak rychle dostává hlad a nudí se. Mazlíček nikdy neumře ani neonemocní – jen je smutný.",
     schedule: "Denní režim", wake: "Vstává", bed: "Jde spát", weekday: "Po–Pá", weekend: "So–Ne",
     scheduleHint: "V noci mazlíček spí: jeho potřeby stojí, obrazovka zhasne a na dotyk jen ospale odpoví. 10 minut před spaním zívá.",
+    voice: "Mluví (hlas robota)",
     setNeeds: "Změnit potřeby", set: "Nastavit", allFull: "Vše plné",
     game: "Hra (chytání míčku)", ballSeconds: "Sekund na míček", headMoves: "Hlava se při hře hýbe (krouží, uhýbá ruce)",
     gameHint: "Pro menší děti: víc sekund a hlava v klidu.",
@@ -227,6 +229,7 @@ const T = {
     difficultyHint: "How fast it gets hungry and bored. The pet never dies or gets ill – it only gets sad.",
     schedule: "Daily routine", wake: "Wakes up", bed: "Bedtime", weekday: "Mon–Fri", weekend: "Sat–Sun",
     scheduleHint: "At night the pet sleeps: its needs pause, the screen goes dark and a touch only gets a sleepy answer. It yawns 10 minutes before bedtime.",
+    voice: "Speaks (robot voice)",
     setNeeds: "Change the needs", set: "Set", allFull: "All full",
     game: "Game (catch the ball)", ballSeconds: "Seconds per ball", headMoves: "The head moves in the game (circles, dodges a hand)",
     gameHint: "For small kids: more seconds and a still head.",
@@ -297,6 +300,7 @@ function fill(d) {
   $("nightWake").value = s.night_wake_min;
   $("ballSeconds").value = s.game_ball_seconds; $("headMoves").checked = s.game_head_moves;
   $("drawnFace").checked = s.drawn_face;
+  $("voice").checked = s.voice;
   for (const [k, id] of [["food", "Food"], ["fun", "Fun"], ["energy", "Energy"]]) {
     $("e" + id).value = Math.round(st.stats[k]); $("v" + id).textContent = Math.round(st.stats[k]);
   }
@@ -382,6 +386,7 @@ function collect() {
     night_wake_min: +$("nightWake").value || 0,
     game_ball_seconds: +$("ballSeconds").value || 5, game_head_moves: $("headMoves").checked,
     drawn_face: $("drawnFace").checked,
+    voice: $("voice").checked,
     sounds: $("sounds").checked, volume: +$("volume").value,
     night_light: $("nightLight").checked, screen_off_at_night: $("screenOff").checked,
     foods,

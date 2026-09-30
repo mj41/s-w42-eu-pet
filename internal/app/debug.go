@@ -29,9 +29,13 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Action  string `json:"action"`
-		Food    string `json:"food"`
-		ShotsMs []int  `json:"shots_ms"`
+		Action   string `json:"action"`
+		Food     string `json:"food"`
+		ShotsMs  []int  `json:"shots_ms"`
+		Commands []struct {
+			Command string         `json:"command"`
+			Args    map[string]any `json:"args"`
+		} `json:"commands"` // raw robot commands, sent first
 	}
 	if !readJSON(w, r, &req) {
 		return
@@ -42,6 +46,9 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 	if rb == nil || rb.conn == nil {
 		http.Error(w, "robot offline", http.StatusConflict)
 		return
+	}
+	for _, c := range req.Commands {
+		rb.conn.command(c.Command, c.Args)
 	}
 	now := a.now()
 	var re pet.Reaction
@@ -72,7 +79,12 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 		conn := rb.conn
 		time.AfterFunc(time.Duration(ms)*time.Millisecond, func() { conn.command("screen_snapshot", nil) })
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"reaction": re, "shots": len(req.ShotsMs), "dir": a.cfg.DebugDir})
+	files := 0
+	for range rb.files {
+		files++
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"reaction": re, "shots": len(req.ShotsMs), "dir": a.cfg.DebugDir,
+		"commands": rb.commands, "files": files, "sprites": rb.canSprite(assetDir + "ball.png"), "face": rb.faceShown})
 }
 
 // saveScreen keeps a screen snapshot from the robot (binary 0x07) in DebugDir.

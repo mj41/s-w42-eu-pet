@@ -5,32 +5,32 @@ import (
 	"strings"
 )
 
-// Speech bubble texts. The robot's font has no Czech letters, so the Czech
-// texts are written without diacritics (sayText strips any that slip in).
+// What the pet says, spoken (espeak-ng, voice.go) and shown in the speech bubble.
+// The robot's font has no Czech letters: the bubble gets them folded (asciiOnly).
 // Several variants: one is picked at random so the pet does not sound like a machine.
 var robotTexts = map[string]map[string][]string{
 	"cs": {
-		"eat":         {"Mnam, %s!", "%s! To je dobrota!", "Mnam mnam!"},
-		"full":        {"Uz nemuzu, jsem plny!", "Dekuju, uz mam dost."},
-		"cuddle":      {"To je prijemne!", "Jeste!", "Mrrr...", "Mam te rad!"},
-		"play":        {"Hura, hrajeme!", "Juchuu!", "To je zabava!"},
-		"too_tired":   {"Jsem moc unaveny...", "Nejdriv si odpocinu."},
-		"limit":       {"Dnes uz jsme si hrali dost. Zitra zas!", "Uz si odpocinu. Zitra!"},
-		"nap":         {"Jdu si zdrimnout...", "Chvilku si zdrimnu."},
-		"not_tired":   {"Nejsem unaveny!", "Spat? Ted ne!"},
-		"wake":        {"Uz jsem vzhuru!", "Dobre jsem se vyspal!"},
-		"shake":       {"Juuu!", "Toci se mi hlava!"},
-		"hello":       {"Ahoj!", "Ahoj, rad te vidim!"},
-		"hungry":      {"Mam hlad!", "Dal bych si neco dobreho."},
-		"bored":       {"Pojd si hrat!", "Nudim se..."},
-		"tired":       {"Jsem ospaly...", "Chtel bych si zdrimnout."},
-		"bedtime":     {"Za chvili pujdu spat.", "Uz se mi chce spat..."},
-		"goodnight":   {"Dobrou noc!", "Dobrou noc, sladke sny!"},
-		"morning":     {"Dobre rano!", "Dobre rano! Mam hlad!"},
-		"game":        {"Chyt micek!", "Hrajeme! Chyt micek!"},
-		"night_wake":  {"Uaaa... uz jsem vzhuru.", "Co je? Ja jsem spal..."},
-		"game_over":   {"Hura! %s!", "Super, %s!"},
-		"game_over_0": {"Priste to vyjde!", "Zkusime to znovu?"},
+		"eat":         {"Mňam, %s!", "%s! To je dobrota!", "Mňam mňam!"},
+		"full":        {"Už nemůžu, jsem plný!", "Děkuju, už mám dost."},
+		"cuddle":      {"To je příjemné!", "Ještě!", "Mrrr...", "Mám tě rád!"},
+		"play":        {"Hurá, hrajeme!", "Juchů!", "To je zábava!"},
+		"too_tired":   {"Jsem moc unavený...", "Nejdřív si odpočinu."},
+		"limit":       {"Dnes už jsme si hráli dost. Zítra zas!", "Už si odpočinu. Zítra!"},
+		"nap":         {"Jdu si zdřímnout...", "Chvilku si zdřímnu."},
+		"not_tired":   {"Nejsem unavený!", "Spát? Teď ne!"},
+		"wake":        {"Už jsem vzhůru!", "Dobře jsem se vyspal!"},
+		"shake":       {"Jůůů!", "Točí se mi hlava!"},
+		"hello":       {"Ahoj!", "Ahoj, rád tě vidím!"},
+		"hungry":      {"Mám hlad!", "Mám hlad! Dal bych si něco dobrého."},
+		"bored":       {"Pojď si hrát!", "Nudím se..."},
+		"tired":       {"Jsem ospalý...", "Chtěl bych si zdřímnout."},
+		"bedtime":     {"Za chvíli půjdu spát.", "Už se mi chce spát..."},
+		"goodnight":   {"Dobrou noc!", "Dobrou noc, sladké sny!"},
+		"morning":     {"Dobré ráno!", "Dobré ráno! Mám hlad!"},
+		"game":        {"Chyť míček!", "Hrajeme! Chyť míček!"},
+		"night_wake":  {"Ááá... už jsem vzhůru.", "Co je? Já jsem spal..."},
+		"game_over":   {"Hurá! %s!", "Super, %s!"},
+		"game_over_0": {"Příště to vyjde!", "Zkusíme to znovu?"},
 	},
 	"en": {
 		"eat":         {"Yum, %s!", "%s! Delicious!", "Nom nom!"},
@@ -57,15 +57,15 @@ var robotTexts = map[string]map[string][]string{
 	},
 }
 
-// foodTexts: what the pet says about each food (ASCII; %s is not used).
+// foodTexts: what the pet says about each food.
 var foodTexts = map[string]map[string][]string{
 	"cs": {
-		"apple":  {"Krup krup! Jablicko!", "Jablicko = zdravicko!", "Mnam, jablicko!"},
-		"carrot": {"Mrkvicka! Ted uvidim i potme!", "Krupy krup, mrkvicka!", "Jsem zajicek? Mnam!"},
-		"banana": {"Banan! Opicky by mi zavidely!", "Mnam, banan! U-u-a-a!", "Zlute a sladke!"},
-		"bread":  {"Chlebicek! Krupava kurcicka!", "Mnam, chlebicek!", "Takovy dobry chlebik!"},
-		"milk":   {"Mlicko! Ted mam bily knirek!", "Glo glo glo... mnam!", "Mlicko pro silne roboty!"},
-		"cake":   {"Dortik! Mam dnes narozeniny?", "Sladke! Jeste kousek?", "Mnam! Dortik je nejlepsi!"},
+		"apple":  {"Křup křup! Jablíčko!", "Jablíčko je zdravíčko!", "Mňam, jablíčko!"},
+		"carrot": {"Mrkvička! Teď uvidím i potmě!", "Křupy křup, mrkvička!", "Jsem zajíček? Mňam!"},
+		"banana": {"Banán! Opičky by mi záviděly!", "Mňam, banán! Ú ú á á!", "Žlutý a sladký!"},
+		"bread":  {"Chlebíček! Křupavá kůrčička!", "Mňam, chlebíček!", "Takový dobrý chlebík!"},
+		"milk":   {"Mlíčko! Teď mám bílý knírek!", "Glo glo glo... mňam!", "Mlíčko pro silné roboty!"},
+		"cake":   {"Dortík! Mám dnes narozeniny?", "Sladké! Ještě kousek?", "Mňam! Dortík je nejlepší!"},
 	},
 	"en": {
 		"apple":  {"Crunch crunch! Apple!", "An apple a day!", "Yum, apple!"},
@@ -86,12 +86,12 @@ func foodText(lang, food string) string {
 	if len(variants) == 0 {
 		return text(lang, "eat", foodNames[lang][food])
 	}
-	return asciiOnly(variants[rand.IntN(len(variants))])
+	return variants[rand.IntN(len(variants))]
 }
 
 // foodNames for the general eat line ("Mnam, jablicko!"), for foods without their own lines.
 var foodNames = map[string]map[string]string{
-	"cs": {"apple": "jablicko", "carrot": "mrkvicka", "banana": "banan", "bread": "chlebicek", "milk": "mlicko", "cake": "dortik"},
+	"cs": {"apple": "jablíčko", "carrot": "mrkvička", "banana": "banán", "bread": "chlebíček", "milk": "mlíčko", "cake": "dortík"},
 	"en": {"apple": "apple", "carrot": "carrot", "banana": "banana", "bread": "bread", "milk": "milk", "cake": "cake"},
 }
 
@@ -106,9 +106,10 @@ func text(lang, key, arg string) string {
 	}
 	t := variants[rand.IntN(len(variants))]
 	if strings.HasPrefix(t, "%s") && arg != "" { // capitalize a leading food name
-		arg = strings.ToUpper(arg[:1]) + arg[1:]
+		first := []rune(arg)
+		arg = strings.ToUpper(string(first[:1])) + string(first[1:])
 	}
-	return asciiOnly(strings.ReplaceAll(t, "%s", arg))
+	return strings.ReplaceAll(t, "%s", arg)
 }
 
 var czechFold = strings.NewReplacer(
