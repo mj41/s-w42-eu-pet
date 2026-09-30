@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="21 21.75 86 64.5"><defs>
+<linearGradient id="shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8e2ff"/><stop offset="1" stop-color="#3f95ee"/></linearGradient>
+<linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c3468"/><stop offset="1" stop-color="#0f1328"/></linearGradient>
+<linearGradient id="base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffcb5c"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient>
+<filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.5"/></filter>
+</defs>
+<rect x="0" y="0" width="128" height="128" fill="url(#screen)"/>
+<g filter="url(#glow)" opacity=".55"><path d="M38 53 Q46 42 54 53 M74 53 Q82 42 90 53" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M50 62 Q64 80 78 62 Z" fill="#fff"/><path d="M57 69 Q64 76 71 69 Q64 72 57 69 Z" fill="#ff6f91"/></g><path d="M38 53 Q46 42 54 53 M74 53 Q82 42 90 53" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M50 62 Q64 80 78 62 Z" fill="#fff"/><path d="M57 69 Q64 76 71 69 Q64 72 57 69 Z" fill="#ff6f91"/>
+<ellipse cx="33" cy="63" rx="6" ry="3.5" fill="#ff7aa8" opacity=".9"/><ellipse cx="95" cy="63" rx="6" ry="3.5" fill="#ff7aa8" opacity=".9"/>
+
+</svg>

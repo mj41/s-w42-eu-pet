@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/mj41/stackchan-pet/internal/pet"
 	"github.com/mj41/stackchan-pet/internal/robotpic"
 	"github.com/mj41/stackchan-pet/internal/sound"
 	"github.com/mj41/stackchan-server/wire"
@@ -21,7 +22,7 @@ const assetDir = "pet/"
 // petAssets are the files the pet wants on the robot: its pictures and sounds (WAV).
 func petAssets() map[string][]byte {
 	out := map[string][]byte{}
-	for name, b := range robotpic.PNGs() {
+	for name, b := range robotpic.Files() {
 		out[assetDir+name] = b
 	}
 	for _, name := range sound.Names {
@@ -63,6 +64,7 @@ func (a *App) syncAssets(r *robot, listJSON string) {
 	sort.Strings(names)
 	if len(names) == 0 {
 		a.log.Info("robot files up to date", "robot", r.id, "files", len(want))
+		a.refreshFace(r)
 		return
 	}
 	r.uploading = map[string]uint32{}
@@ -105,6 +107,7 @@ func (a *App) assetSaved(r *robot, name string, crc uint32) {
 	r.files[name] = true
 	if len(r.uploading) == 0 {
 		a.log.Info("pet files uploaded", "robot", r.id)
+		a.refreshFace(r)
 	}
 }
 
@@ -113,8 +116,72 @@ func (r *robot) canSprite(asset string) bool {
 	return r.files[asset] && slices.Contains(r.commands, "sprite")
 }
 
-// sprite sends a "sprite" command (see the firmware's SpriteLayer).
+// sprite sends a "sprite" command (see the firmware's SpriteLayer); the ids are
+// remembered so clearSprites can remove them and keep the drawn face.
 func (a *App) sprite(r *robot, args map[string]any) {
-	r.spritesOn = true
+	if id, _ := args["id"].(string); id != "" && id != faceSprite {
+		if r.spriteIDs == nil {
+			r.spriteIDs = map[string]bool{}
+		}
+		r.spriteIDs[id] = true
+	}
 	r.conn.command("sprite", args)
+}
+
+// clearSprites removes the pet's sprites, except the drawn face.
+func (a *App) clearSprites(r *robot) {
+	for id := range r.spriteIDs {
+		r.conn.command("sprite_hide", map[string]any{"id": id})
+	}
+	r.spriteIDs = nil
+}
+
+// The drawn face (parent setting): a full-screen picture per mood as the bottom sprite,
+// under food, dreams and the ball. It steps aside for speech bubbles and pictures.
+const faceSprite = "face"
+
+var (
+	emotionFace = map[string]string{"happy": "happy", "neutral": "neutral", "sad": "sad", "doubt": "grumpy", "angry": "grumpy", "sleepy": "sleeping"}
+	moodFace    = map[pet.Mood]string{pet.Happy: "happy", pet.OK: "neutral", pet.Hungry: "sad", pet.Bored: "grumpy",
+		pet.Tired: "yawn", pet.Napping: "sleeping", pet.Sleeping: "sleeping"}
+)
+
+// drawnFace shows face-<name>.jpg when the parent chose drawn faces (and the robot has it); else
+// the robot's own face.
+func (a *App) drawnFace(r *robot, name string) {
+	asset := assetDir + "face-" + name + ".jpg"
+	if name == "" || !r.pet.Settings.DrawnFace || !r.canSprite(asset) {
+		if r.faceShown != "" {
+			r.conn.command("sprite_hide", map[string]any{"id": faceSprite})
+			r.faceShown, r.faceHidden = "", false
+		}
+		return
+	}
+	if r.faceShown == name && !r.faceHidden {
+		return
+	}
+	r.conn.command("sprite", map[string]any{"id": faceSprite, "asset": asset, "x": 160, "y": 120, "z": -10, "hidden": false})
+	r.faceShown, r.faceHidden = name, false
+}
+
+// hideFace lets the robot's own face (with its speech bubble) or a picture show for a moment.
+func (a *App) hideFace(r *robot) {
+	if r.faceShown != "" && !r.faceHidden {
+		r.conn.command("sprite", map[string]any{"id": faceSprite, "hidden": true})
+		r.faceHidden = true
+	}
+}
+
+// showPicture covers the face with a full-screen JPEG (the older way, without sprites).
+func (a *App) showPicture(r *robot, jpeg []byte) {
+	a.hideFace(r)
+	r.conn.binary(wire.BinShowJPEG, jpeg)
+	r.pictureOn = true
+}
+
+// refreshFace shows the mood again once the robot's files are known (the drawn face needs them).
+func (a *App) refreshFace(r *robot) {
+	if r.conn != nil && r.game == nil && a.now().After(r.busyUntil) {
+		a.express(r, a.now())
+	}
 }

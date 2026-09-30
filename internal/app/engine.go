@@ -69,10 +69,7 @@ func (a *App) express(r *robot, now time.Time) {
 	mood := r.pet.Mood(now)
 	r.shownMood = mood
 	r.busyUntil = time.Time{}
-	if r.spritesOn {
-		c.command("sprite_clear", nil)
-		r.spritesOn = false
-	}
+	a.clearSprites(r)
 	if r.pictureOn {
 		c.command("face", nil)
 		r.pictureOn = false
@@ -82,6 +79,7 @@ func (a *App) express(r *robot, now time.Time) {
 		r.screenOff = false
 	}
 	c.command("emotion", map[string]any{"name": moodEmotion[mood]})
+	a.drawnFace(r, moodFace[mood])
 	c.command("leds", moodLEDs(r.pet, mood))
 }
 
@@ -106,6 +104,7 @@ func (a *App) begin(r *robot, now time.Time, d time.Duration) {
 
 func (a *App) say(r *robot, key, arg string, seconds float64) {
 	if t := text(r.pet.Settings.Lang, key, arg); t != "" {
+		a.hideFace(r) // the bubble belongs to the robot's own face
 		r.conn.command("say", map[string]any{"text": t, "seconds": seconds})
 	}
 }
@@ -127,6 +126,9 @@ func (a *App) play(r *robot, name string, atNight bool) {
 
 func (a *App) emotion(r *robot, name string) {
 	r.conn.command("emotion", map[string]any{"name": name})
+	if !r.faceHidden {
+		a.drawnFace(r, emotionFace[name])
+	}
 }
 
 func (a *App) sleepScreen(r *robot) {
@@ -158,8 +160,7 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 			a.eatSprite(r, asset, foodNames[lang][re.Food])
 			break
 		}
-		c.binary(wire.BinShowJPEG, robotpic.Food(re.Food))
-		r.pictureOn = true
+		a.showPicture(r, robotpic.Food(re.Food))
 		a.play(r, sound.Munch, false)
 		a.later(r, 2500*time.Millisecond, func() {
 			c.command("face", nil)
@@ -238,8 +239,7 @@ func (a *App) showNeeds(r *robot, now time.Time) {
 	}
 	s := r.pet.Stats
 	a.begin(r, now, 5*time.Second)
-	r.conn.binary(wire.BinShowJPEG, robotpic.Needs(s.Food, s.Fun, s.Energy))
-	r.pictureOn = true
+	a.showPicture(r, robotpic.Needs(s.Food, s.Fun, s.Energy))
 }
 
 // robotEvent handles something that happened on the robot.
@@ -521,8 +521,7 @@ func (a *App) dream(r *robot, now time.Time) {
 			a.later(r, time.Duration(800+i*1200)*time.Millisecond, func() { a.sprite(r, map[string]any{"id": "dream", "y": y, "ms": 1100}) })
 		}
 	} else {
-		r.conn.binary(wire.BinShowJPEG, robotpic.Dream(item))
-		r.pictureOn = true
+		a.showPicture(r, robotpic.Dream(item))
 	}
 	a.later(r, 6*time.Second, func() { a.express(r, a.now()) })
 	if r.pet.Phase(now) == pet.Night { // a daytime nap keeps the screen on
@@ -585,6 +584,7 @@ func (a *App) snore(r *robot, now time.Time) {
 func (a *App) eatSprite(r *robot, asset, foodName string) {
 	c := r.conn
 	a.emotion(r, "happy")
+	a.drawnFace(r, "yum")
 	a.sprite(r, map[string]any{"id": "food", "asset": asset, "x": 160, "y": -60, "scale": 0.8, "z": 1})
 	a.sprite(r, map[string]any{"id": "food", "x": 160, "y": 170, "ms": 700})
 	a.later(r, 750*time.Millisecond, func() {

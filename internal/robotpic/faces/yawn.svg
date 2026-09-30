@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="21 21.75 86 64.5"><defs>
+<linearGradient id="shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8e2ff"/><stop offset="1" stop-color="#3f95ee"/></linearGradient>
+<linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c3468"/><stop offset="1" stop-color="#0f1328"/></linearGradient>
+<linearGradient id="base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffcb5c"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient>
+<filter id="glow" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.5"/></filter>
+</defs>
+<rect x="0" y="0" width="128" height="128" fill="url(#screen)"/>
+<g filter="url(#glow)" opacity=".55"><path d="M38 49 Q46 56 54 49 M74 49 Q82 56 90 49" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><ellipse cx="64" cy="68" rx="7.5" ry="9" fill="#ff6f91" stroke="#fff" stroke-width="3.5"/></g><path d="M38 49 Q46 56 54 49 M74 49 Q82 56 90 49" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><ellipse cx="64" cy="68" rx="7.5" ry="9" fill="#ff6f91" stroke="#fff" stroke-width="3.5"/>
+<path d="M36 55 q3 5 0 7.5 q-3 -2.5 0 -7.5 z" fill="#6ec3ff"/>
+</svg>

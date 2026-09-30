@@ -497,6 +497,41 @@ func (a *App) handleReset(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
+// handleStats lets a parent set the needs: {"food", "fun", "energy"} (0..100; missing ones stay).
+func (a *App) handleStats(w http.ResponseWriter, r *http.Request) {
+	sid := a.sessionID(w, r)
+	var req struct {
+		Food, Fun, Energy *float64
+	}
+	if !readJSON(w, r, &req) {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	rb := a.parentRobot(w, r, sid)
+	if rb == nil {
+		return
+	}
+	now := a.now()
+	p := rb.pet
+	p.Advance(now)
+	set := func(dst *float64, v *float64) {
+		if v != nil {
+			*dst = max(0, min(100, *v))
+		}
+	}
+	set(&p.Stats.Food, req.Food)
+	set(&p.Stats.Fun, req.Fun)
+	set(&p.Stats.Energy, req.Energy)
+	p.Note(now, "parent_stats", fmt.Sprintf("%.0f/%.0f/%.0f", p.Stats.Food, p.Stats.Fun, p.Stats.Energy))
+	a.dirty = true
+	if rb.conn != nil && now.After(rb.busyUntil) && rb.game == nil {
+		a.express(rb, now)
+	}
+	a.publishState(rb)
+	writeJSON(w, http.StatusOK, map[string]any{"stats": p.Stats})
+}
+
 // handleTry lets a parent preview: {"what": "morning|night|needs|sound:<name>"}.
 func (a *App) handleTry(w http.ResponseWriter, r *http.Request) {
 	sid := a.sessionID(w, r)

@@ -33,6 +33,10 @@ type Settings struct {
 	NightLight       bool `json:"night_light"`         // dim warm LEDs at night
 	ScreenOffAtNight bool `json:"screen_off_at_night"` // the robot's screen sleeps at night
 	NightWakeMin     int  `json:"night_wake_min"`      // a hard press at night wakes it this long, 0 = never
+	DrawnFace        bool `json:"drawn_face"`          // the pet's drawn faces on the robot instead of its own
+
+	GameBallSeconds int  `json:"game_ball_seconds"` // time to catch one ball (3..10)
+	GameHeadMoves   bool `json:"game_head_moves"`   // the head circles, wanders and dodges in the game
 
 	Foods map[string]string `json:"foods"` // NFC tag uid -> food key; unknown tags feed an apple
 }
@@ -65,6 +69,8 @@ func DefaultSettings() Settings {
 		NightLight:       true,
 		ScreenOffAtNight: true,
 		NightWakeMin:     5,
+		GameBallSeconds:  5,
+		GameHeadMoves:    true,
 		Foods:            map[string]string{},
 	}
 }
@@ -100,6 +106,7 @@ func (s *Settings) Normalize() {
 	s.PlayLimitMin = max(0, min(600, s.PlayLimitMin))
 	s.Volume = max(0, min(100, s.Volume))
 	s.NightWakeMin = max(0, min(60, s.NightWakeMin))
+	s.GameBallSeconds = max(3, min(10, s.GameBallSeconds))
 	if s.Foods == nil {
 		s.Foods = map[string]string{}
 	}

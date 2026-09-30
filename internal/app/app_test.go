@@ -623,7 +623,7 @@ func TestEatWithSprites(t *testing.T) {
 	kid.pair(r)
 
 	// The robot already has the cake picture (same CRC): no upload, sprites instead of a picture.
-	cake := robotpic.PNGs()["cake.png"]
+	cake := robotpic.Files()["cake.png"]
 	list := fmt.Sprintf(`{"files":[{"name":"pet/cake.png","bytes":%d,"crc":%d}]}`, len(cake), crc32.ChecksumIEEE(cake))
 	r.event("assets", map[string]any{"list": list, "free": 1e6, "total": 2e6})
 	time.Sleep(100 * time.Millisecond)
@@ -678,4 +678,23 @@ func TestGameWithSprites(t *testing.T) {
 		m.frame.Decode(&body)
 		return body.Command == "sprite" && body.Args["asset"] == "pet/star.png"
 	})
+}
+
+func TestParentSetsNeeds(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	parent := e.browser()
+	parent.pair(r)
+	if code, _ := parent.post("/api/parent/stats", map[string]any{"food": 10}); code != http.StatusForbidden {
+		t.Fatalf("locked: %d", code)
+	}
+	parent.post("/api/parent/unlock", map[string]any{"pin": "1234"})
+	if code, out := parent.post("/api/parent/stats", map[string]any{"food": 10, "energy": 150}); code != 200 {
+		t.Fatalf("set: %d %v", code, out)
+	}
+	_, st := parent.get("/api/state")
+	s := stats(t, st)
+	if s["food"] != 10.0 || s["energy"] != 100.0 || s["fun"] != 60.0 || st["mood"] != "hungry" {
+		t.Fatalf("needs after setting: %v, mood %v", s, st["mood"])
+	}
 }

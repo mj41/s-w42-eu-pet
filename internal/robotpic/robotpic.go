@@ -16,7 +16,7 @@ import (
 	"sync"
 )
 
-//go:embed png/*.png
+//go:embed png
 var pngFS embed.FS
 
 // Screen size of the robot.
@@ -254,8 +254,9 @@ func CloudPNG() []byte {
 	return b.Bytes()
 }
 
-// PNGs are the icons as files (name -> PNG bytes), for the robot's file store.
-func PNGs() map[string][]byte {
+// Files are the pictures for the robot's file store (name -> bytes): the icons (PNG),
+// the full-screen faces (face-<mood>.jpg) and the dream cloud.
+func Files() map[string][]byte {
 	out := map[string][]byte{"cloud.png": CloudPNG()}
 	entries, _ := pngFS.ReadDir("png")
 	for _, e := range entries {

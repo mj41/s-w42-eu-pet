@@ -93,7 +93,9 @@ type robot struct {
 	uploading  map[string]uint32 // pet files being uploaded -> their CRC-32 (assets.go)
 	commands   []string          // what this robot's firmware accepts
 	files      map[string]bool   // pet files on the robot, ready to show as sprites
-	spritesOn  bool              // sprites may be on screen: cleared with the mood
+	spriteIDs  map[string]bool   // the pet's sprites on screen (not the face): cleared with the mood
+	faceShown  string            // the drawn face shown as the bottom sprite ("" = the robot's own face)
+	faceHidden bool              // the drawn face steps aside for speech or a full-screen picture
 }
 
 func New(cfg Config) *App {
@@ -146,6 +148,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /api/parent/pin", a.handlePIN)
 	mux.HandleFunc("POST /api/parent/reset", a.handleReset)
 	mux.HandleFunc("POST /api/parent/try", a.handleTry)
+	mux.HandleFunc("POST /api/parent/stats", a.handleStats)
 	mux.Handle("GET /emoji/", http.StripPrefix("/emoji/", a.uiFiles("emoji")))
 	mux.Handle("GET /chan/", http.StripPrefix("/chan/", a.uiFiles("chan")))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })

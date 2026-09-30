@@ -51,6 +51,10 @@ now and then.
 - minutes of play per day (feeding is never limited)
 - sounds and volume, night light, screen off at night
 - food cards: tags seen by the robot, each assigned a food
+- the needs themselves: sliders for food, fun and energy, or all full
+- the game: seconds per ball (3-10) and whether the head moves (circles, dodges)
+- a drawn face on the robot: colourful pictures per mood (`internal/robotpic/faces/`)
+  instead of the robot's own blinking face; they step aside for speech bubbles
 - a log of what happened, previews of the morning and bedtime routines and of every sound
 
 The daily routine: 10 minutes before bedtime the pet yawns. At bedtime it

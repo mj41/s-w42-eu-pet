@@ -150,14 +150,14 @@ func (a *App) nextRound(r *robot, g *game) {
 			a.sprite(r, map[string]any{"id": "ball", "x": x, "y": y, "ms": 300})
 		}
 	} else {
-		r.conn.binary(wire.BinShowJPEG, robotpic.Ball(spot))
-		r.pictureOn = true
+		a.showPicture(r, robotpic.Ball(spot))
 	}
 	r.busyUntil = a.now().Add(time.Minute)
 	a.publishState(r)
 
-	d := a.timing.round
-	if g.round > 1 {
+	settings := r.pet.Settings
+	d := a.timing.round * time.Duration(settings.GameBallSeconds) / 5 // the parent's ball time (default 5 s)
+	if g.round > 1 && settings.GameHeadMoves {
 		d += a.timing.moveExtra
 	}
 	g.deadline = time.Now().Add(d)
@@ -184,7 +184,7 @@ func (a *App) look(r *robot, yaw, pitch float64) {
 // moveHead starts this ball's head movement.
 func (a *App) moveHead(r *robot, g *game, round int) {
 	switch {
-	case round == 1:
+	case round == 1 || !r.pet.Settings.GameHeadMoves:
 		a.look(r, 0, headMidPitch)
 	case round == 2:
 		a.circle(r, g, round, 0)
@@ -218,7 +218,8 @@ func (a *App) wander(r *robot, g *game, round int) {
 
 // dodge turns the head away from a coming hand, then back; a few times per ball.
 func (a *App) dodge(r *robot, g *game, now time.Time) {
-	if g.round < 4 || !g.waiting || g.dodges >= g.round-2 || now.Sub(g.lastDodge) < a.timing.dodgeEvery {
+	if g.round < 4 || !g.waiting || g.dodges >= g.round-2 || now.Sub(g.lastDodge) < a.timing.dodgeEvery ||
+		!r.pet.Settings.GameHeadMoves {
 		return
 	}
 	g.dodges++
@@ -315,7 +316,7 @@ func (a *App) endGame(r *robot, g *game) {
 	a.begin(r, now, 7*time.Second)
 	if star := assetDir + "star.png"; r.canSprite(star) {
 		// One star per ball over the face: bright for a catch, faint for a miss.
-		r.conn.command("sprite_clear", nil)
+		a.clearSprites(r)
 		a.emotion(r, "happy")
 		for i := range pet.GameRounds {
 			opacity := 1.0
@@ -325,8 +326,7 @@ func (a *App) endGame(r *robot, g *game) {
 			a.sprite(r, map[string]any{"id": fmt.Sprintf("star%d", i), "asset": star, "x": 32 + 64*i, "y": 120, "scale": 0.35, "opacity": opacity, "z": 3})
 		}
 	} else {
-		r.conn.binary(wire.BinShowJPEG, robotpic.Stars(g.hits, pet.GameRounds))
-		r.pictureOn = true
+		a.showPicture(r, robotpic.Stars(g.hits, pet.GameRounds))
 	}
 	a.play(r, sound.Tada, false)
 	leds := idleSides(r.pet, r.pet.Mood(now))
@@ -334,8 +334,8 @@ func (a *App) endGame(r *robot, g *game) {
 	r.conn.command("leds", leds)
 	a.later(r, a.timing.stars, func() { // the speech bubble is under pictures and sprites: face first
 		r.conn.command("face", nil)
-		r.conn.command("sprite_clear", nil)
-		r.pictureOn, r.spritesOn = false, false
+		a.clearSprites(r)
+		r.pictureOn = false
 		a.emotion(r, "happy")
 		key, score := "game_over", fmt.Sprintf(map[string]string{"cs": "%d z %d", "en": "%d of %d"}[r.pet.Settings.Lang], g.hits, pet.GameRounds)
 		if g.hits == 0 {
@@ -357,10 +357,7 @@ func (a *App) stopGame(r *robot) {
 	if r.conn != nil {
 		r.conn.command("light_stream", map[string]any{"on": false})
 		r.conn.command("home", nil)
-		if r.spritesOn {
-			r.conn.command("sprite_clear", nil)
-			r.spritesOn = false
-		}
+		a.clearSprites(r)
 	}
 	a.publishState(r)
 }

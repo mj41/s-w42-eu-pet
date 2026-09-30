@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -149,6 +150,10 @@ func (a *App) attach(c *robotConn, commands []string) {
 	r.conn = c
 	r.commands = commands
 	r.files = map[string]bool{} // filled from the robot's "assets" answer
+	r.spriteIDs, r.faceShown, r.faceHidden = nil, "", false
+	if slices.Contains(commands, "sprite") {
+		c.command("sprite_clear", nil) // sprites stay on the robot across servers
+	}
 	r.lastSeen = a.cfg.Now()
 	if old != nil {
 		old.close()
