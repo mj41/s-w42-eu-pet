@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"math"
 	"math/rand/v2"
 	"slices"
@@ -83,7 +84,11 @@ func (a *App) express(r *robot, now time.Time) {
 	}
 	c.command("emotion", map[string]any{"name": moodEmotion[mood]})
 	a.drawnFace(r, moodFace[mood])
-	c.command("leds", moodLEDs(r.pet, mood))
+	if mood == pet.Sleeping {
+		c.command("leds", a.nightLEDs(r, now))
+	} else {
+		c.command("leds", moodLEDs(r.pet, mood))
+	}
 }
 
 // later runs fn after d unless another reaction started meanwhile (or the robot left).
@@ -150,6 +155,28 @@ func (a *App) sleepScreen(r *robot) {
 	if r.pet.Settings.ScreenOffAtNight {
 		r.conn.command("screensaver", map[string]any{"on": true})
 		r.screenOff = true
+	}
+}
+
+// At night the screen is dimmed and goes off nightScreenOn after it was last lit
+// (the good night, a touch, a dream); the Tick turns it off.
+const (
+	nightScreenOn   = 5 * time.Minute
+	nightBrightness = 8 // percent
+)
+
+// dimForNight dims the screen and starts its 5 minutes.
+func (a *App) dimForNight(r *robot, now time.Time) {
+	r.conn.command("brightness", map[string]any{"value": nightBrightness})
+	r.dimmed = true
+	r.screenOnAt = now
+}
+
+// brightAgain gives the screen back its automatic brightness (morning, woken at night).
+func (a *App) brightAgain(r *robot) {
+	if r.dimmed {
+		r.conn.command("brightness", map[string]any{"auto": true})
+		r.dimmed = false
 	}
 }
 
@@ -394,6 +421,15 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		return
 	case "sound_done":
 		return
+	case "screensaver_on":
+		r.screenOff = true
+		return
+	case "screensaver_off": // a touch lit the screen: at night it dims and has its 5 minutes again
+		r.screenOff = false
+		if night {
+			a.dimForNight(r, now)
+		}
+		return
 	case "sprite_error":
 		a.log.Warn("robot could not show a sprite", "robot", id, "id", ev.Data["id"], "reason", ev.Data["reason"])
 		return
@@ -446,7 +482,7 @@ func (a *App) robotOnline(r *robot) {
 	}
 	a.express(r, now)
 	if r.phase == pet.Night && a.viewers(r.id) > 0 { // not while the QR code waits for a scan
-		a.later(r, 20*time.Second, func() { a.sleepScreen(r) })
+		a.dimForNight(r, now)
 	}
 }
 
@@ -472,6 +508,8 @@ func (a *App) Tick() {
 			a.morning(r, now)
 		case phase != pet.Night && now.After(r.busyUntil):
 			a.daytime(r, now)
+		case phase == pet.Night && now.After(r.busyUntil):
+			a.nightFade(r, now)
 		}
 		a.publishState(r)
 	}
@@ -529,8 +567,9 @@ func (a *App) goodnight(r *robot, now time.Time) {
 	a.emotion(r, "sleepy")
 	a.sayLine(r, text(r.pet.Settings.Lang, "goodnight", ""), 6, true)
 	a.play(r, sound.Lullaby, true)
-	r.conn.command("leds", moodLEDs(p, pet.Sleeping))
-	a.later(r, 10*time.Second, func() { a.sleepScreen(r) })
+	r.sleptAt = now // the night light fades from now
+	r.conn.command("leds", a.nightLEDs(r, now))
+	a.dimForNight(r, now) // dark after nightScreenOn
 }
 
 // morning: screen on, a greeting and a sunrise on the LEDs.
@@ -540,6 +579,7 @@ func (a *App) morning(r *robot, now time.Time) {
 	a.begin(r, now, 7*time.Second)
 	r.conn.command("screensaver", map[string]any{"on": false})
 	r.screenOff = false
+	a.brightAgain(r)
 	a.emotion(r, "happy")
 	a.say(r, "morning", "", 5)
 	a.play(r, sound.Morning, false)
@@ -579,7 +619,7 @@ func (a *App) dream(r *robot, now time.Time) {
 	}
 	a.later(r, 6*time.Second, func() { a.express(r, a.now()) })
 	if r.pet.Phase(now) == pet.Night { // a daytime nap keeps the screen on
-		a.later(r, 9*time.Second, func() { a.sleepScreen(r) })
+		a.dimForNight(r, now)
 	}
 }
 
@@ -600,6 +640,7 @@ func (a *App) nightWake(r *robot, now time.Time) {
 	a.begin(r, now, reactionTime)
 	r.conn.command("screensaver", map[string]any{"on": false})
 	r.screenOff = false
+	a.brightAgain(r)
 	if r.pictureOn {
 		r.conn.command("face", nil)
 		r.pictureOn = false
@@ -629,7 +670,7 @@ func (a *App) snore(r *robot, now time.Time) {
 	r.conn.command("say", map[string]any{"text": "Zzz...", "seconds": 2.5})
 	a.later(r, 3*time.Second, func() { a.express(r, a.now()) })
 	if r.pet.Phase(now) == pet.Night {
-		a.later(r, 5*time.Second, func() { a.sleepScreen(r) })
+		a.dimForNight(r, now)
 	}
 }
 
@@ -774,4 +815,43 @@ func (a *App) restoreHead(r *robot) {
 	}
 	r.headBefore = nil
 	r.conn.command("look", map[string]any{"yaw": math.Round(yaw), "pitch": math.Round(pitch)})
+}
+
+// The night light fades out: full at bedtime (or the last good night), off after
+// nightLightFade, in steps of a tenth.
+const nightLightFade = 10 * time.Minute
+
+// nightLevel is the night light's brightness now, 0..1.
+func (a *App) nightLevel(r *robot, now time.Time) float64 {
+	s := r.pet.Settings
+	if !s.NightLight {
+		return 0
+	}
+	since := time.Duration((1440-s.MinutesToBed(now))%1440) * time.Minute // since the scheduled bedtime
+	if !r.sleptAt.IsZero() && now.Sub(r.sleptAt) < since {
+		since = now.Sub(r.sleptAt)
+	}
+	level := 1 - float64(since)/float64(nightLightFade)
+	return max(0, math.Ceil(level*10)/10)
+}
+
+// nightLEDs: the night light at its level now, or off.
+func (a *App) nightLEDs(r *robot, now time.Time) map[string]any {
+	level := a.nightLevel(r, now)
+	r.ledLevel = level
+	if level <= 0 {
+		return map[string]any{"effect": "off"}
+	}
+	c := fmt.Sprintf("#%02x%02x00", int(math.Round(0x18*level)), int(math.Round(0x06*level)))
+	return map[string]any{"left": c, "right": c}
+}
+
+// nightFade updates the night light when its level changed (from the Tick, at night).
+func (a *App) nightFade(r *robot, now time.Time) {
+	if level := a.nightLevel(r, now); level != r.ledLevel {
+		r.conn.command("leds", a.nightLEDs(r, now))
+	}
+	if !r.screenOff && !r.screenOnAt.IsZero() && now.Sub(r.screenOnAt) >= nightScreenOn {
+		a.sleepScreen(r)
+	}
 }

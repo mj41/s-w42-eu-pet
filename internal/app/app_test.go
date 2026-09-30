@@ -831,3 +831,55 @@ func TestMenuOnTheRobot(t *testing.T) {
 		t.Fatal("the menu should close after a choice")
 	}
 }
+
+func TestNightLightFades(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	expectLEDs := func(h, m int, what string, ok func(map[string]any) bool) {
+		t.Helper()
+		e.clock.set(time.Date(2026, 9, 30, h, m, 0, 0, prague))
+		e.app.Tick()
+		r.next(what, func(msg robotMsg) bool {
+			var body wire.RobotCommandBody
+			msg.frame.Decode(&body)
+			return body.Command == "leds" && ok(body.Args)
+		})
+	}
+	expectLEDs(20, 0, "full night light at bedtime", func(a map[string]any) bool { return a["left"] == "#180600" })
+	expectLEDs(20, 5, "half after 5 minutes", func(a map[string]any) bool { return a["left"] == "#0c0300" })
+	expectLEDs(20, 10, "off after 10 minutes", func(a map[string]any) bool { return a["effect"] == "off" })
+}
+
+func TestNightScreenDimsThenSleeps(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	e.clock.set(time.Date(2026, 9, 30, 19, 59, 0, 0, prague))
+	e.app.Tick()
+	e.clock.set(time.Date(2026, 9, 30, 20, 0, 10, 0, prague))
+	e.app.Tick()
+	if b := r.command("brightness"); b["value"] != float64(nightBrightness) {
+		t.Fatalf("good night dims: %v", b)
+	}
+	e.clock.set(time.Date(2026, 9, 30, 20, 3, 0, 0, prague))
+	e.app.Tick()
+	e.app.mu.Lock()
+	off := e.app.robots["robot-1"].screenOff
+	e.app.mu.Unlock()
+	if off {
+		t.Fatal("the screen went off before 5 minutes")
+	}
+	e.clock.set(time.Date(2026, 9, 30, 20, 5, 30, 0, prague))
+	e.app.Tick()
+	if s := r.command("screensaver"); s["on"] != true {
+		t.Fatalf("after 5 minutes: %v", s)
+	}
+	e.clock.set(time.Date(2026, 10, 1, 7, 0, 10, 0, prague))
+	e.app.Tick()
+	if b := r.command("brightness"); b["auto"] != true {
+		t.Fatalf("morning brightness: %v", b)
+	}
+}

@@ -451,7 +451,7 @@ func (a *App) handleSettings(w http.ResponseWriter, r *http.Request) {
 		if now.After(rb.busyUntil) {
 			if rb.phase == pet.Night {
 				a.express(rb, now)
-				a.sleepScreen(rb)
+				a.dimForNight(rb, now)
 			} else {
 				a.express(rb, now)
 			}
