@@ -72,6 +72,10 @@ func (a *App) express(r *robot, now time.Time) {
 	mood := r.pet.Mood(now)
 	r.shownMood = mood
 	r.busyUntil = time.Time{}
+	if r.spritesOn {
+		c.command("sprite_clear", nil)
+		r.spritesOn = false
+	}
 	if r.pictureOn {
 		c.command("face", nil)
 		r.pictureOn = false
@@ -149,6 +153,10 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 		return
 	case pet.KindEat:
 		a.begin(r, now, reactionTime)
+		if asset := assetDir + re.Food + ".png"; r.canSprite(asset) {
+			a.eatSprite(r, asset, foodNames[lang][re.Food])
+			break
+		}
 		c.binary(wire.BinShowJPEG, robotpic.Food(re.Food))
 		r.pictureOn = true
 		a.play(r, sound.Munch, false)
@@ -325,6 +333,9 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		return
 	case "asset_error":
 		a.log.Warn("robot file upload failed", "robot", id, "name", ev.Data["name"], "reason", ev.Data["reason"])
+		return
+	case "sprite_error":
+		a.log.Warn("robot could not show a sprite", "robot", id, "id", ev.Data["id"], "reason", ev.Data["reason"])
 		return
 	default:
 		return
@@ -542,4 +553,23 @@ func (a *App) snore(r *robot, now time.Time) {
 	if r.pet.Phase(now) == pet.Night {
 		a.later(r, 5*time.Second, func() { a.sleepScreen(r) })
 	}
+}
+
+// eatSprite: the food drops in from the top and glides to the mouth over the face,
+// then shrinks bite by bite (munch, nod) and the pet says what it ate.
+func (a *App) eatSprite(r *robot, asset, foodName string) {
+	c := r.conn
+	a.emotion(r, "happy")
+	a.sprite(r, map[string]any{"id": "food", "asset": asset, "x": 160, "y": -60, "scale": 0.8, "z": 1})
+	a.sprite(r, map[string]any{"id": "food", "x": 160, "y": 170, "ms": 700})
+	a.later(r, 750*time.Millisecond, func() {
+		a.play(r, sound.Munch, false)
+		c.command("nod", nil)
+		a.sprite(r, map[string]any{"id": "food", "scale": 0.55})
+	})
+	a.later(r, 1150*time.Millisecond, func() { a.sprite(r, map[string]any{"id": "food", "scale": 0.3}) })
+	a.later(r, 1500*time.Millisecond, func() {
+		c.command("sprite_hide", map[string]any{"id": "food"})
+		a.say(r, "eat", foodName, 3)
+	})
 }

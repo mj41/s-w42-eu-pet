@@ -3,6 +3,8 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"hash/crc32"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -14,6 +16,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/mj41/stackchan-pet/internal/robotpic"
 	"github.com/mj41/stackchan-server/wire"
 )
 
@@ -66,6 +69,12 @@ type robotMsg struct {
 
 func (e *env) connectRobot(id string) *fakeRobot {
 	e.t.Helper()
+	return e.connectRobotWith(id, nil)
+}
+
+// connectRobotWith registers a robot that accepts these commands.
+func (e *env) connectRobotWith(id string, commands []string) *fakeRobot {
+	e.t.Helper()
 	h := http.Header{}
 	h.Set("Authorization", "Bearer "+testToken)
 	h.Set(wire.WorkerIDHeader, id)
@@ -74,7 +83,7 @@ func (e *env) connectRobot(id string) *fakeRobot {
 		e.t.Fatalf("robot dial: %v", err)
 	}
 	e.t.Cleanup(func() { ws.Close() })
-	f, _ := wire.Marshal(wire.KindRegister, wire.Meta{WorkerID: id}, wire.RegisterBody{Class: wire.ClassRobot})
+	f, _ := wire.Marshal(wire.KindRegister, wire.Meta{WorkerID: id}, wire.RegisterBody{Class: wire.ClassRobot, Capabilities: wire.RobotCapabilities{Commands: commands}})
 	ws.WriteMessage(websocket.TextMessage, f)
 	r := &fakeRobot{t: e.t, ws: ws, msgs: make(chan robotMsg, 256)}
 	go func() {
@@ -606,4 +615,30 @@ func alwaysDream(t *testing.T) {
 	saved := dreamShare
 	dreamShare = 1
 	t.Cleanup(func() { dreamShare = saved })
+}
+
+func TestEatWithSprites(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobotWith("robot-1", []string{"sprite", "assets"})
+	kid := e.browser()
+	kid.pair(r)
+
+	// The robot already has the cake picture (same CRC): no upload, sprites instead of a picture.
+	cake := robotpic.PNGs()["cake.png"]
+	list := fmt.Sprintf(`{"files":[{"name":"pet/cake.png","bytes":%d,"crc":%d}]}`, len(cake), crc32.ChecksumIEEE(cake))
+	r.event("assets", map[string]any{"list": list, "free": 1e6, "total": 2e6})
+	time.Sleep(100 * time.Millisecond)
+
+	kid.post("/api/action", map[string]any{"action": "feed", "food": "cake"})
+	first := r.command("sprite")
+	if first["asset"] != "pet/cake.png" || first["id"] != "food" {
+		t.Fatalf("first sprite: %v", first)
+	}
+	if move := r.command("sprite"); move["ms"] == nil {
+		t.Fatalf("the food should glide: %v", move)
+	}
+	r.command("sprite_hide")
+	if say := r.command("say"); !strings.Contains(say["text"].(string), "ortik") && !strings.Contains(say["text"].(string), "Mnam") {
+		t.Fatalf("eat bubble: %v", say)
+	}
 }

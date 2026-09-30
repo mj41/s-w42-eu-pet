@@ -90,6 +90,9 @@ type robot struct {
 	gen        int               // bumped by each reaction; delayed steps of an older one are dropped
 	game       *game             // a game of catch in progress (game.go)
 	uploading  map[string]uint32 // pet files being uploaded -> their CRC-32 (assets.go)
+	commands   []string          // what this robot's firmware accepts
+	files      map[string]bool   // pet files on the robot, ready to show as sprites
+	spritesOn  bool              // sprites may be on screen: cleared with the mood
 }
 
 func New(cfg Config) *App {

@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"hash/crc32"
+	"slices"
 	"sort"
 	"time"
 
@@ -42,6 +43,11 @@ func (a *App) syncAssets(r *robot, listJSON string) {
 		have[f.Name] = f.CRC
 	}
 	want := petAssets()
+	for name, b := range want {
+		if have[name] == crc32.ChecksumIEEE(b) {
+			r.files[name] = true
+		}
+	}
 	names := make([]string, 0, len(want))
 	for name, b := range want {
 		if crc, ok := have[name]; !ok || crc != crc32.ChecksumIEEE(b) {
@@ -90,7 +96,19 @@ func (a *App) assetSaved(r *robot, name string, crc uint32) {
 		a.log.Warn("robot file differs after upload", "robot", r.id, "name", name, "crc", crc, "want", want)
 		return
 	}
+	r.files[name] = true
 	if len(r.uploading) == 0 {
 		a.log.Info("pet files uploaded", "robot", r.id)
 	}
+}
+
+// canSprite: the robot shows stored pictures and has this one.
+func (r *robot) canSprite(asset string) bool {
+	return r.files[asset] && slices.Contains(r.commands, "sprite")
+}
+
+// sprite sends a "sprite" command (see the firmware's SpriteLayer).
+func (a *App) sprite(r *robot, args map[string]any) {
+	r.spritesOn = true
+	r.conn.command("sprite", args)
 }

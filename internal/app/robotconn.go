@@ -110,7 +110,7 @@ func (a *App) handleRobotConnect(w http.ResponseWriter, r *http.Request) {
 	a.log.Info("robot connected", "robot", id, "firmware", reg.Capabilities.Firmware)
 	defer a.log.Info("robot disconnected", "robot", id)
 
-	a.attach(c)
+	a.attach(c, reg.Capabilities.Commands)
 	defer a.detach(c)
 	go a.writeLoop(c)
 	a.readLoop(c)
@@ -141,12 +141,14 @@ func readRegister(ws *websocket.Conn, id string) (wire.RegisterBody, string) {
 }
 
 // attach makes c the robot's connection: accepted, a pairing code, and the pet's face.
-func (a *App) attach(c *robotConn) {
+func (a *App) attach(c *robotConn, commands []string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	r := a.robotFor(c.id)
 	old := r.conn
 	r.conn = c
+	r.commands = commands
+	r.files = map[string]bool{} // filled from the robot's "assets" answer
 	r.lastSeen = a.cfg.Now()
 	if old != nil {
 		old.close()
