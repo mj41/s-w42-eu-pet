@@ -29,8 +29,12 @@ from the robot show on the page too.
 the robot's screen shows a ball in one of its four quarters, and the kid taps
 it on the robot. Five balls, about five seconds each; a tap on the wrong
 quarter is just ignored, and a ball not caught flies on to the next place.
-Every catch chirps and blinks green; at the end the robot shows one star per
-catch and says the score. More catches, more fun. The page shows the stars as
+The head makes each ball harder: ball 1 it keeps still, ball 2 it circles,
+ball 3 it moves at random, and balls 4 and 5 it dodges a hand that comes
+close (seen by the light sensor next to the screen: proximity rises or the
+hand's shadow darkens the light, streamed at 20 samples/s with `light_stream`;
+each dodge adds a second). Every catch chirps and blinks green; at the end the
+robot shows one star per catch and says the score. More catches, more fun. The page shows the stars as
 they come. Without the robot connected, play is a short dance on the page.
 
 Needs: food, fun and energy go from 0 to 100 and drop while the pet is awake.

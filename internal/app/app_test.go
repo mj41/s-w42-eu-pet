@@ -396,7 +396,7 @@ func TestStateSurvivesRestart(t *testing.T) {
 }
 
 func TestCatchTheBall(t *testing.T) {
-	gameRoundTime, gameGap, gameIntro, gameStars = 300*time.Millisecond, 50*time.Millisecond, 50*time.Millisecond, 100*time.Millisecond
+	fastGame(t, 300*time.Millisecond)
 	e := newEnv(t, "")
 	r := e.connectRobot("robot-1")
 	kid := e.browser()
@@ -406,6 +406,11 @@ func TestCatchTheBall(t *testing.T) {
 	if code != 200 || out["reaction"].(map[string]any)["kind"] != "game" {
 		t.Fatalf("play: %d %v", code, out)
 	}
+	r.next("light stream on", func(m robotMsg) bool { // (connecting turned it off first)
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		return body.Command == "light_stream" && body.Args["on"] == true
+	})
 	if say := r.command("say"); !strings.Contains(say["text"].(string), "micek") {
 		t.Fatalf("game intro: %v", say)
 	}
@@ -437,5 +442,76 @@ func TestCatchTheBall(t *testing.T) {
 	e.app.mu.Unlock()
 	if l := last[len(last)-1]; l.Kind != "play" || l.Detail != "1/5" {
 		t.Fatalf("log: %+v", l)
+	}
+}
+
+// fastGame shortens the game's timing for a test.
+func fastGame(t *testing.T, round time.Duration) {
+	saved := []time.Duration{gameRoundTime, gameMoveExtra, gameGap, gameIntro, gameStars}
+	gameRoundTime, gameMoveExtra, gameGap, gameIntro, gameStars = round, 0, 50*time.Millisecond, 50*time.Millisecond, 100*time.Millisecond
+	t.Cleanup(func() {
+		gameRoundTime, gameMoveExtra, gameGap, gameIntro, gameStars = saved[0], saved[1], saved[2], saved[3], saved[4]
+	})
+}
+
+// lightMsg is a light stream message with n samples of the same values.
+func lightMsg(n int, ps, ch0 uint16) []byte {
+	b := []byte{wire.BinLight, byte(n), 0}
+	for i := 0; i < n; i++ {
+		b = append(b, 0, 0, 0, 0, byte(ps), byte(ps>>8), byte(ch0), byte(ch0>>8), 10, 0)
+	}
+	return b
+}
+
+func TestHeadDodgesAHand(t *testing.T) {
+	fastGame(t, 2*time.Second)
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	kid.post("/api/action", map[string]any{"action": "play"})
+
+	round := func() int {
+		e.app.mu.Lock()
+		defer e.app.mu.Unlock()
+		if g := e.app.robots["robot-1"].game; g != nil {
+			return g.round
+		}
+		return -1
+	}
+	// Catch balls 1-3 quickly (the head keeps still, circles, wanders), up to ball 4.
+	for round() < 4 {
+		e.app.mu.Lock()
+		g := e.app.robots["robot-1"].game
+		spot, waiting := g.spot, g.waiting
+		e.app.mu.Unlock()
+		if waiting {
+			x, y := 80+160*float64(spot%2), 60+120*float64(spot/2)
+			r.event("screen_tap", map[string]any{"x": x, "y": y})
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	// Nobody near: no dodge. Then a hand: proximity jumps.
+	r.ws.WriteMessage(websocket.BinaryMessage, lightMsg(6, 20, 300))
+	time.Sleep(100 * time.Millisecond)
+	e.app.mu.Lock()
+	dodges := e.app.robots["robot-1"].game.dodges
+	e.app.mu.Unlock()
+	if dodges != 0 {
+		t.Fatalf("dodged with nobody near: %d", dodges)
+	}
+	r.ws.WriteMessage(websocket.BinaryMessage, lightMsg(2, 400, 300))
+	look := r.next("dodge", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		yaw, _ := body.Args["yaw"].(float64)
+		return body.Command == "look" && (yaw == dodgeYaw || yaw == -dodgeYaw)
+	})
+	_ = look
+	e.app.mu.Lock()
+	dodges = e.app.robots["robot-1"].game.dodges
+	e.app.mu.Unlock()
+	if dodges != 1 {
+		t.Fatalf("dodges: %d", dodges)
 	}
 }

@@ -152,6 +152,7 @@ func (a *App) attach(c *robotConn) {
 		old.close()
 	}
 	c.frame(wire.KindAccepted, nil)
+	c.command("light_stream", map[string]any{"on": false}) // in case a game was cut short
 	c.frame(wire.KindPairCode, a.issueCode(c.id))
 	// Browsers paired before: the robot starts with its face, not the QR screen.
 	if n := a.viewers(c.id); n > 0 {
@@ -169,7 +170,7 @@ func (a *App) detach(c *robotConn) {
 		return
 	}
 	r.conn = nil
-	r.game = nil
+	r.game = nil // the robot drops its streams when it switches servers or reconnects
 	for code, pc := range a.codes {
 		if pc.robotID == c.id {
 			delete(a.codes, code)
@@ -227,6 +228,9 @@ func (a *App) readLoop(c *robotConn) {
 		}
 		resetDeadline()
 		if kind == websocket.BinaryMessage {
+			if len(data) > 1 && data[0] == wire.BinLight { // the game's hand detection
+				a.lightSamples(c.id, data[1:])
+			}
 			continue // the pet asks for no camera or microphone
 		}
 		frames, err := wire.Parse(data)
