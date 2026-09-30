@@ -242,3 +242,15 @@ func fillCircle(dst *image.RGBA, cx, cy, r int, c color.RGBA) {
 		}
 	}
 }
+
+// PNGs are the icons as files (name -> PNG bytes), for the robot's file store.
+func PNGs() map[string][]byte {
+	out := map[string][]byte{}
+	entries, _ := pngFS.ReadDir("png")
+	for _, e := range entries {
+		if b, err := pngFS.ReadFile("png/" + e.Name()); err == nil {
+			out[e.Name()] = b
+		}
+	}
+	return out
+}

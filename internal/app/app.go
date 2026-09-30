@@ -82,13 +82,14 @@ type robot struct {
 	phase      pet.Phase
 	lastNag    time.Time
 	lastHello  time.Time
-	bedWarned  string    // the date of the last "bedtime soon" warning
-	lastAsleep time.Time // last sleepy answer at night, to not repeat it on every touch
-	pictureOn  bool      // a picture covers the face
-	screenOff  bool      // the pet turned the robot's screen off for the night
-	busyUntil  time.Time // a reaction shows until then; the mood waits
-	gen        int       // bumped by each reaction; delayed steps of an older one are dropped
-	game       *game     // a game of catch in progress (game.go)
+	bedWarned  string            // the date of the last "bedtime soon" warning
+	lastAsleep time.Time         // last sleepy answer at night, to not repeat it on every touch
+	pictureOn  bool              // a picture covers the face
+	screenOff  bool              // the pet turned the robot's screen off for the night
+	busyUntil  time.Time         // a reaction shows until then; the mood waits
+	gen        int               // bumped by each reaction; delayed steps of an older one are dropped
+	game       *game             // a game of catch in progress (game.go)
+	uploading  map[string]uint32 // pet files being uploaded -> their CRC-32 (assets.go)
 }
 
 func New(cfg Config) *App {

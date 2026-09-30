@@ -517,6 +517,7 @@ func TestHeadDodgesAHand(t *testing.T) {
 }
 
 func TestNightDreamsAndWake(t *testing.T) {
+	alwaysDream(t)
 	e := newEnv(t, "")
 	e.clock.set(time.Date(2026, 9, 30, 21, 0, 0, 0, prague)) // Wednesday night
 	r := e.connectRobot("robot-1")
@@ -570,6 +571,7 @@ func TestNightDreamsAndWake(t *testing.T) {
 }
 
 func TestNapDreamsUntilThePalm(t *testing.T) {
+	alwaysDream(t)
 	e := newEnv(t, "")
 	r := e.connectRobot("robot-1")
 	kid := e.browser()
@@ -597,4 +599,11 @@ func TestNapDreamsUntilThePalm(t *testing.T) {
 	if _, st := kid.get("/api/state"); st["mood"] == "napping" {
 		t.Fatalf("still napping")
 	}
+}
+
+// alwaysDream makes every touch while asleep a dream (not the random "Zzz").
+func alwaysDream(t *testing.T) {
+	saved := dreamShare
+	dreamShare = 1
+	t.Cleanup(func() { dreamShare = saved })
 }

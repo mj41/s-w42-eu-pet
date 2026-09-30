@@ -25,6 +25,10 @@ var moodColor = map[pet.Mood]string{
 	pet.Tired: "#1a0030", pet.Napping: "#0a0018",
 }
 
+// dreamShare is how often a touch while asleep shows a dream; otherwise a sleepy "Zzz".
+// A variable so tests can make it certain.
+var dreamShare = 0.4
+
 const (
 	hardPressZone   = 3 // all three head zones at full (0-3): the whole palm; one finger only dreams
 	dreamEvery      = 8 * time.Second
@@ -136,8 +140,12 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 	p := r.pet
 	lang := p.Settings.Lang
 	switch re.Kind {
-	case pet.KindAsleep: // a touch at night: a dream, then dark again
-		a.dream(r, now)
+	case pet.KindAsleep: // a touch while asleep: mostly a sleepy "Zzz", sometimes a dream
+		if rand.Float64() < dreamShare {
+			a.dream(r, now)
+		} else {
+			a.snore(r, now)
+		}
 		return
 	case pet.KindEat:
 		a.begin(r, now, reactionTime)
@@ -302,6 +310,21 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		re = p.Shake(now)
 	case "proximity_near":
 		a.hello(r, now)
+		return
+	case "assets": // the robot's file store
+		list, _ := ev.Data["list"].(string)
+		free, _ := ev.Data["free"].(float64)
+		total, _ := ev.Data["total"].(float64)
+		a.log.Info("robot files", "robot", id, "free_kb", int(free/1024), "total_kb", int(total/1024))
+		a.syncAssets(r, list)
+		return
+	case "asset_saved":
+		name, _ := ev.Data["name"].(string)
+		crc, _ := ev.Data["crc"].(float64)
+		a.assetSaved(r, name, uint32(crc))
+		return
+	case "asset_error":
+		a.log.Warn("robot file upload failed", "robot", id, "name", ev.Data["name"], "reason", ev.Data["reason"])
 		return
 	default:
 		return
@@ -495,4 +518,28 @@ func (a *App) nightWake(r *robot, now time.Time) {
 	a.emotion(r, "sleepy")
 	a.say(r, "night_wake", "", 4)
 	a.publishState(r)
+}
+
+// snore: the sleepy face murmurs "Zzz..." and sleeps on (a touch while asleep).
+func (a *App) snore(r *robot, now time.Time) {
+	if r.conn == nil || now.Sub(r.lastAsleep) < 3*time.Second {
+		return
+	}
+	r.lastAsleep = now
+	r.gen++
+	r.busyUntil = now.Add(4 * time.Second)
+	if r.screenOff {
+		r.conn.command("screensaver", map[string]any{"on": false}) // the touch woke the screen anyway
+		r.screenOff = false
+	}
+	if r.pictureOn {
+		r.conn.command("face", nil)
+		r.pictureOn = false
+	}
+	a.emotion(r, "sleepy")
+	r.conn.command("say", map[string]any{"text": "Zzz...", "seconds": 2.5})
+	a.later(r, 3*time.Second, func() { a.express(r, a.now()) })
+	if r.pet.Phase(now) == pet.Night {
+		a.later(r, 5*time.Second, func() { a.sleepScreen(r) })
+	}
 }

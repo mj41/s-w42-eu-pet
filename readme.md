@@ -55,8 +55,8 @@ now and then.
 
 The daily routine: 10 minutes before bedtime the pet yawns. At bedtime it
 plays a lullaby, says good night, dims the LEDs to a night light and turns the
-screen off. At night a light touch on the head (one finger, or a tap on the screen) shows
-a dream on the robot's screen, silently; the whole palm on the head (all three
+screen off. At night a light touch on the head (one finger, or a tap on the screen) gets a
+sleepy "Zzz..." or, now and then, a dream on the robot's screen, silently; the whole palm on the head (all three
 touch zones at full, 3,3,3) wakes the pet quietly for a few minutes (parent
 setting, 0 = never), then it falls asleep again with the lullaby. In the morning it
 wakes the screen, greets and plays a tune. Needs pause at night and during
@@ -108,6 +108,11 @@ which asks for that credit where users see it (the pages show it).
 Other pictures are [Fluent Emoji Flat](https://github.com/microsoft/fluentui-emoji)
 (MIT, `internal/app/ui/emoji/LICENSE`); `internal/robotpic/render-icons.sh`
 renders the PNGs for the robot's screen.
+
+The pet keeps its pictures in the robot's file store (folder `pet/`): at
+connect it asks for the robot's file list and uploads what is missing or
+changed (compared by CRC-32), so later it can show them without sending them
+again.
 
 ## Development
 
