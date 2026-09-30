@@ -1,80 +1,66 @@
 package app
 
 import (
+	"embed"
+	"fmt"
 	"math/rand/v2"
 	"strings"
 )
 
-// What the pet says, spoken (espeak-ng, voice.go) and shown in the speech bubble.
-// The robot's font has no Czech letters: the bubble gets them folded (asciiOnly).
-// Several variants: one is picked at random so the pet does not sound like a machine.
-var robotTexts = map[string]map[string][]string{
-	"cs": {
-		"eat":         {"Mňam, %s!", "%s! To je dobrota!", "Mňam mňam!"},
-		"full":        {"Už nemůžu, jsem plný!", "Děkuju, už mám dost."},
-		"cuddle":      {"To je příjemné!", "Ještě!", "Mrrr...", "Mám tě rád!"},
-		"play":        {"Hurá, hrajeme!", "Juchů!", "To je zábava!"},
-		"too_tired":   {"Jsem moc unavený...", "Nejdřív si odpočinu."},
-		"limit":       {"Dnes už jsme si hráli dost. Zítra zas!", "Už si odpočinu. Zítra!"},
-		"nap":         {"Jdu si zdřímnout...", "Chvilku si zdřímnu."},
-		"not_tired":   {"Nejsem unavený!", "Spát? Teď ne!"},
-		"wake":        {"Už jsem vzhůru!", "Dobře jsem se vyspal!"},
-		"shake":       {"Jůůů!", "Točí se mi hlava!"},
-		"hello":       {"Ahoj!", "Ahoj, rád tě vidím!"},
-		"hungry":      {"Mám hlad!", "Mám hlad! Dal bych si něco dobrého."},
-		"bored":       {"Pojď si hrát!", "Nudím se..."},
-		"tired":       {"Jsem ospalý...", "Chtěl bych si zdřímnout."},
-		"bedtime":     {"Za chvíli půjdu spát.", "Už se mi chce spát..."},
-		"goodnight":   {"Dobrou noc!", "Dobrou noc, sladké sny!"},
-		"morning":     {"Dobré ráno!", "Dobré ráno! Mám hlad!"},
-		"game":        {"Chyť míček!", "Hrajeme! Chyť míček!"},
-		"night_wake":  {"Ááá... už jsem vzhůru.", "Co je? Já jsem spal..."},
-		"game_over":   {"Hurá! %s!", "Super, %s!"},
-		"game_over_0": {"Příště to vyjde!", "Zkusíme to znovu?"},
-	},
-	"en": {
-		"eat":         {"Yum, %s!", "%s! Delicious!", "Nom nom!"},
-		"full":        {"I'm full!", "Thanks, that's enough."},
-		"cuddle":      {"That's nice!", "More!", "Purr...", "I love you!"},
-		"play":        {"Yay, let's play!", "Wheee!", "So much fun!"},
-		"too_tired":   {"I'm too tired...", "I need a rest first."},
-		"limit":       {"Enough play for today. Tomorrow!", "Time to rest. Tomorrow!"},
-		"nap":         {"Time for a nap...", "Just a little nap."},
-		"not_tired":   {"I'm not tired!", "Sleep? Not now!"},
-		"wake":        {"I'm awake!", "What a nice nap!"},
-		"shake":       {"Wheee!", "I'm dizzy!"},
-		"hello":       {"Hi!", "Hi, nice to see you!"},
-		"hungry":      {"I'm hungry!", "Something yummy, please?"},
-		"bored":       {"Let's play!", "I'm bored..."},
-		"tired":       {"I'm sleepy...", "I'd like a nap."},
-		"bedtime":     {"Bedtime soon.", "I'm getting sleepy..."},
-		"goodnight":   {"Good night!", "Good night, sweet dreams!"},
-		"morning":     {"Good morning!", "Good morning! I'm hungry!"},
-		"game":        {"Catch the ball!", "Let's play catch!"},
-		"night_wake":  {"Yaaawn... I'm awake.", "What is it? I was sleeping..."},
-		"game_over":   {"Yay! %s!", "Great, %s!"},
-		"game_over_0": {"Next time!", "Let's try again?"},
-	},
+// What the pet says: lines/<lang>.txt (one file per language, easy to read and edit).
+// Spoken by the voice (voice.go) and shown in the speech bubble, which folds the
+// Czech letters for the robot's font (asciiOnly).
+//
+//	[key]          when it is said; each line below is one variant (picked at random)
+//	[food <food>]  what it says about a food
+//	[names]        food = name, for the %s in [eat]
+//	# comment
+//
+//go:embed lines/*.txt
+var linesFS embed.FS
+
+var (
+	robotTexts = map[string]map[string][]string{} // lang -> key -> variants
+	foodTexts  = map[string]map[string][]string{} // lang -> food -> variants
+	foodNames  = map[string]map[string]string{}   // lang -> food -> name
+)
+
+func init() {
+	files, _ := linesFS.ReadDir("lines")
+	for _, f := range files {
+		b, _ := linesFS.ReadFile("lines/" + f.Name())
+		if err := parseLines(strings.TrimSuffix(f.Name(), ".txt"), string(b)); err != nil {
+			panic("lines/" + f.Name() + ": " + err.Error())
+		}
+	}
 }
 
-// foodTexts: what the pet says about each food.
-var foodTexts = map[string]map[string][]string{
-	"cs": {
-		"apple":  {"Křup křup! Jablíčko!", "Jablíčko je zdravíčko!", "Mňam, jablíčko!"},
-		"carrot": {"Mrkvička! Teď uvidím i potmě!", "Křupy křup, mrkvička!", "Jsem zajíček? Mňam!"},
-		"banana": {"Banán! Opičky by mi záviděly!", "Mňam, banán! Ú ú á á!", "Žlutý a sladký!"},
-		"bread":  {"Chlebíček! Křupavá kůrčička!", "Mňam, chlebíček!", "Takový dobrý chlebík!"},
-		"milk":   {"Mlíčko! Teď mám bílý knírek!", "Glo glo glo... mňam!", "Mlíčko pro silné roboty!"},
-		"cake":   {"Dortík! Mám dnes narozeniny?", "Sladké! Ještě kousek?", "Mňam! Dortík je nejlepší!"},
-	},
-	"en": {
-		"apple":  {"Crunch crunch! Apple!", "An apple a day!", "Yum, apple!"},
-		"carrot": {"Carrot! Now I can see in the dark!", "Crunchy carrot!", "Am I a bunny? Yum!"},
-		"banana": {"Banana! The monkeys are jealous!", "Yum, banana! Ooh-ooh-aah!", "Yellow and sweet!"},
-		"bread":  {"Bread! Crunchy crust!", "Yum, bread!", "Such good bread!"},
-		"milk":   {"Milk! Now I have a white moustache!", "Glug glug glug... yum!", "Milk for strong robots!"},
-		"cake":   {"Cake! Is it my birthday?", "Sweet! One more piece?", "Yum! Cake is the best!"},
-	},
+// parseLines reads one language's lines file.
+func parseLines(lang, text string) error {
+	robotTexts[lang], foodTexts[lang], foodNames[lang] = map[string][]string{}, map[string][]string{}, map[string]string{}
+	section := ""
+	for n, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		switch {
+		case line == "" || strings.HasPrefix(line, "#"):
+		case strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]"):
+			section = strings.TrimSpace(line[1 : len(line)-1])
+		case section == "":
+			return fmt.Errorf("line %d: text before the first [section]", n+1)
+		case section == "names":
+			food, name, ok := strings.Cut(line, "=")
+			if !ok {
+				return fmt.Errorf("line %d: want food = name", n+1)
+			}
+			foodNames[lang][strings.TrimSpace(food)] = strings.TrimSpace(name)
+		case strings.HasPrefix(section, "food "):
+			food := strings.TrimSpace(strings.TrimPrefix(section, "food "))
+			foodTexts[lang][food] = append(foodTexts[lang][food], line)
+		default:
+			robotTexts[lang][section] = append(robotTexts[lang][section], line)
+		}
+	}
+	return nil
 }
 
 // foodText picks what the pet says about a food.
@@ -87,12 +73,6 @@ func foodText(lang, food string) string {
 		return text(lang, "eat", foodNames[lang][food])
 	}
 	return variants[rand.IntN(len(variants))]
-}
-
-// foodNames for the general eat line ("Mnam, jablicko!"), for foods without their own lines.
-var foodNames = map[string]map[string]string{
-	"cs": {"apple": "jablíčko", "carrot": "mrkvička", "banana": "banán", "bread": "chlebíček", "milk": "mlíčko", "cake": "dortík"},
-	"en": {"apple": "apple", "carrot": "carrot", "banana": "banana", "bread": "bread", "milk": "milk", "cake": "cake"},
 }
 
 // text picks a variant for key in lang, with %s replaced by arg.

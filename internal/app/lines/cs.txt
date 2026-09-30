@@ -1,0 +1,153 @@
+# Co mazlíček říká (česky). Hlas je z Edge (Antonín), bublina na robotovi je bez
+# háčků a čárek (jeho písmo je nemá).
+#
+# [sekce] = kdy se to říká. Každý řádek pod ní je jedna varianta: vybírá se
+# náhodně. %s doplní program (jídlo nebo skóre). Řádky s # jsou poznámky.
+# Po úpravě: ./pet-bg.sh restart (hlas nových řádků se vyrobí sám).
+
+# Snědl jídlo (když jídlo nemá vlastní řádky níže). %s = jméno jídla.
+[eat]
+Mňam, %s!
+%s! To je dobrota!
+Mňam mňam!
+
+# Nechce jíst, je plný.
+[full]
+Už nemůžu, jsem plný!
+Děkuju, už mám dost.
+
+# Pohlazení (hlava, tlačítko Pohladit).
+[cuddle]
+To je příjemné!
+Ještě!
+Hihi, to lechtá!
+Mám tě rád!
+
+# Hra (tanec, když robot není připojený).
+[play]
+Hurá, hrajeme!
+Juchů!
+To je zábava!
+
+# Chce si hrát, ale nemá energii.
+[too_tired]
+Jsem moc unavený...
+Nejdřív si odpočinu.
+
+# Dnešní čas na hraní je vyčerpaný.
+[limit]
+Dnes už jsme si hráli dost. Zítra zas!
+Už si odpočinu. Zítra!
+
+# Jde si zdřímnout (tlačítko Spinkat).
+[nap]
+Jdu si zdřímnout...
+Chvilku si zdřímnu.
+
+# Nechce spát, není unavený.
+[not_tired]
+Nejsem unavený!
+Spát? Teď ne!
+
+# Probudil se ze zdřímnutí.
+[wake]
+Už jsem vzhůru!
+Dobře jsem se vyspal!
+
+# Někdo robotem zatřásl.
+[shake]
+Jůůů!
+Točí se mi hlava!
+
+# Někdo přišel blízko.
+[hello]
+Ahoj!
+Ahoj, rád tě vidím!
+
+# Připomínky, když něco potřebuje (nejvýš jednou za 30 minut).
+[hungry]
+Mám hlad!
+Mám hlad! Dal bych si něco dobrého.
+
+[bored]
+Pojď si hrát!
+Nudím se...
+
+[tired]
+Jsem ospalý...
+Chtěl bych si zdřímnout.
+
+# 10 minut před spaním.
+[bedtime]
+Za chvíli půjdu spát.
+Už se mi chce spát...
+
+# Usíná (večer).
+[goodnight]
+Dobrou noc!
+Dobrou noc, sladké sny!
+
+# Ráno se vzbudil.
+[morning]
+Dobré ráno!
+Dobré ráno! Mám hlad!
+
+# Začíná hra na chytání míčku.
+[game]
+Chyť míček!
+Hrajeme! Chyť míček!
+
+# V noci ho vzbudila celá dlaň na hlavě.
+[night_wake]
+Ááá... už jsem vzhůru.
+Co je? Já jsem spal...
+
+# Konec hry. %s = skóre, např. "3 z 5".
+[game_over]
+Hurá! %s!
+Super, %s!
+
+# Konec hry, nechytil ani jeden míček.
+[game_over_0]
+Příště to vyjde!
+Zkusíme to znovu?
+
+# Jména jídel (pro [eat]): klíč = jméno.
+[names]
+apple = jablíčko
+carrot = mrkvička
+banana = banán
+bread = chlebíček
+milk = mlíčko
+cake = dortík
+
+# Co říká ke každému jídlu.
+[food apple]
+Křup křup! Jablíčko!
+Jablíčko je zdravíčko!
+Mňam, jablíčko!
+
+[food carrot]
+Mrkvička! Teď uvidím i potmě!
+Křupy křup, mrkvička!
+Jsem zajíček? Mňam!
+
+[food banana]
+Banán! Opičky by mi záviděly!
+Mňam, banán! Ú ú á á!
+Žlutý a sladký!
+
+[food bread]
+Chlebíček! Křupavá kůrčička!
+Mňam, chlebíček!
+Takový dobrý chlebík!
+
+[food milk]
+Mlíčko! Teď mám bílý knírek!
+Glo glo glo... mňam!
+Mlíčko pro silné roboty!
+
+[food cake]
+Dortík! Mám dnes narozeniny?
+Sladké! Ještě kousek?
+Mňam! Dortík je nejlepší!

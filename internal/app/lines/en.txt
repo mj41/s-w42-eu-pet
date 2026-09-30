@@ -1,0 +1,132 @@
+# What the pet says (English). The voice is Edge's Ana.
+#
+# [section] = when it is said. Each line below is one variant, picked at random.
+# %s is filled in (a food or the score). Lines starting with # are comments.
+# After editing: ./pet-bg.sh restart (the voice of new lines is made by itself).
+# The sections are the same as in cs.txt, which describes each one.
+
+[eat]
+Yum, %s!
+%s! Delicious!
+Nom nom!
+
+[full]
+I'm full!
+Thanks, that's enough.
+
+[cuddle]
+That's nice!
+More!
+Hehe, that tickles!
+I love you!
+
+[play]
+Yay, let's play!
+Wheee!
+So much fun!
+
+[too_tired]
+I'm too tired...
+I need a rest first.
+
+[limit]
+Enough play for today. Tomorrow!
+Time to rest. Tomorrow!
+
+[nap]
+Time for a nap...
+Just a little nap.
+
+[not_tired]
+I'm not tired!
+Sleep? Not now!
+
+[wake]
+I'm awake!
+What a nice nap!
+
+[shake]
+Wheee!
+I'm dizzy!
+
+[hello]
+Hi!
+Hi, nice to see you!
+
+[hungry]
+I'm hungry!
+Something yummy, please?
+
+[bored]
+Let's play!
+I'm bored...
+
+[tired]
+I'm sleepy...
+I'd like a nap.
+
+[bedtime]
+Bedtime soon.
+I'm getting sleepy...
+
+[goodnight]
+Good night!
+Good night, sweet dreams!
+
+[morning]
+Good morning!
+Good morning! I'm hungry!
+
+[game]
+Catch the ball!
+Let's play catch!
+
+[night_wake]
+Yaaawn... I'm awake.
+What is it? I was sleeping...
+
+[game_over]
+Yay! %s!
+Great, %s!
+
+[game_over_0]
+Next time!
+Let's try again?
+
+[names]
+apple = apple
+carrot = carrot
+banana = banana
+bread = bread
+milk = milk
+cake = cake
+
+[food apple]
+Crunch crunch! Apple!
+An apple a day!
+Yum, apple!
+
+[food carrot]
+Carrot! Now I can see in the dark!
+Crunchy carrot!
+Am I a bunny? Yum!
+
+[food banana]
+Banana! The monkeys are jealous!
+Yum, banana! Ooh-ooh-aah!
+Yellow and sweet!
+
+[food bread]
+Bread! Crunchy crust!
+Yum, bread!
+Such good bread!
+
+[food milk]
+Milk! Now I have a white moustache!
+Glug glug glug... yum!
+Milk for strong robots!
+
+[food cake]
+Cake! Is it my birthday?
+Sweet! One more piece?
+Yum! Cake is the best!
