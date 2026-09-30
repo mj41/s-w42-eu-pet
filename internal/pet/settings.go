@@ -1,6 +1,7 @@
 package pet
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -34,6 +35,18 @@ type Settings struct {
 	NightWakeMin     int  `json:"night_wake_min"`      // a hard press at night wakes it this long, 0 = never
 
 	Foods map[string]string `json:"foods"` // NFC tag uid -> food key; unknown tags feed an apple
+}
+
+// UnmarshalJSON reads settings over the defaults, so a setting added later
+// gets its default in a saved pet, not a zero value.
+func (s *Settings) UnmarshalJSON(b []byte) error {
+	type plain Settings // without this method
+	v := plain(DefaultSettings())
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	*s = Settings(v)
+	return nil
 }
 
 // DefaultSettings for a new pet.

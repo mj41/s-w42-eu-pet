@@ -1,6 +1,7 @@
 package pet
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -239,5 +240,15 @@ func TestWakeAtNight(t *testing.T) {
 	p.Settings.NightWakeMin = 0
 	if r := p.WakeAtNight(at(0, 22, 0)); r.Kind != KindAsleep {
 		t.Fatalf("waking disabled: %+v", r)
+	}
+}
+
+func TestSettingsLoadOverDefaults(t *testing.T) {
+	var s Settings
+	if err := json.Unmarshal([]byte(`{"name":"Robík","volume":10}`), &s); err != nil {
+		t.Fatal(err)
+	}
+	if s.Name != "Robík" || s.Volume != 10 || s.NightWakeMin != 5 || !s.Sounds || s.Weekday.Bed != "20:00" {
+		t.Fatalf("loaded: %+v", s)
 	}
 }

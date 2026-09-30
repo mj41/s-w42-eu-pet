@@ -531,7 +531,7 @@ func TestNightDreamsAndWake(t *testing.T) {
 	}
 
 	// The whole palm: awake for a few minutes, quietly.
-	e.clock.set(e.clock.now().Add(10 * time.Second)) // dreams come at most every 8 s
+	e.clock.set(e.clock.now().Add(10 * time.Second))                 // dreams come at most every 8 s
 	r.event("head_press", map[string]any{"z0": 3, "z1": 2, "z2": 3}) // not quite the whole palm: a dream
 	r.binary(wire.BinShowJPEG)
 	e.clock.set(e.clock.now().Add(10 * time.Second)) // dreams come at most every 8 s
@@ -566,5 +566,35 @@ func TestNightDreamsAndWake(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	if _, st := kid.get("/api/state"); st["phase"] != "night" {
 		t.Fatalf("one finger held: %v", st["phase"])
+	}
+}
+
+func TestNapDreamsUntilThePalm(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	e.app.mu.Lock()
+	e.app.robots["robot-1"].pet.Stats.Energy = 30
+	e.app.mu.Unlock()
+	if _, out := kid.post("/api/action", map[string]any{"action": "nap"}); out["reaction"].(map[string]any)["kind"] != "nap" {
+		t.Fatalf("nap: %v", out)
+	}
+	for _, z := range []map[string]any{{"z0": 0, "z1": 2, "z2": 0}, {"z0": 3, "z1": 3, "z2": 1}} {
+		e.clock.set(e.clock.now().Add(10 * time.Second))
+		r.event("head_press", z)
+		r.binary(wire.BinShowJPEG) // a dream
+		if _, st := kid.get("/api/state"); st["mood"] != "napping" {
+			t.Fatalf("after %v: %v", z, st["mood"])
+		}
+	}
+	r.event("head_swipe_forward", nil)
+	e.clock.set(e.clock.now().Add(10 * time.Second))
+	r.event("head_press", map[string]any{"z0": 3, "z1": 3, "z2": 3})
+	if say := r.command("say"); !strings.Contains(say["text"].(string), "vzhuru") && !strings.Contains(say["text"].(string), "vyspal") {
+		t.Fatalf("palm wakes: %v", say)
+	}
+	if _, st := kid.get("/api/state"); st["mood"] == "napping" {
+		t.Fatalf("still napping")
 	}
 }

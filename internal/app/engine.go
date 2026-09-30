@@ -240,28 +240,37 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		return
 	}
 	night := p.Phase(now) == pet.Night
+	asleep := night || p.Napping(now) // the night, or a daytime nap
 	var re pet.Reaction
 	switch ev.Name {
 	case "screen_long_press": // hold a finger on the screen: a game of catch
 		re = a.playAction(r, now)
 	case "head_press":
-		if !night {
+		if !asleep {
 			re = p.Cuddle(now)
 			break
 		}
-		// At night a light touch (one finger) shows a dream; the whole palm (3,3,3) wakes the pet.
+		// Asleep, a light touch (one finger) shows a dream; the whole palm (3,3,3) wakes the pet.
 		zones := [3]float64{}
 		for i, k := range []string{"z0", "z1", "z2"} {
 			zones[i], _ = ev.Data[k].(float64)
 		}
-		a.log.Info("head press at night", "robot", id, "zones", zones) // to tune "hard"
-		if min(zones[0], zones[1], zones[2]) >= hardPressZone {
+		a.log.Info("head press while asleep", "robot", id, "zones", zones, "night", night) // to tune "hard"
+		switch {
+		case min(zones[0], zones[1], zones[2]) < hardPressZone:
+			re = pet.Reaction{Kind: pet.KindAsleep}
+		case night:
 			a.nightWake(r, now)
 			return
+		default:
+			re = p.Wake(now)
 		}
-		re = pet.Reaction{Kind: pet.KindAsleep}
 	case "head_swipe_forward", "head_swipe_backward":
-		re = p.Cuddle(now)
+		if asleep {
+			re = pet.Reaction{Kind: pet.KindAsleep} // a stroke while asleep: a dream
+		} else {
+			re = p.Cuddle(now)
+		}
 	case "nfc_tag": // a food card
 		uid, _ := ev.Data["uid"].(string)
 		food, ok := p.Settings.Foods[uid]
@@ -278,8 +287,8 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		switch {
 		case night:
 			re = pet.Reaction{Kind: pet.KindAsleep}
-		case p.Napping(now):
-			re = p.Wake(now)
+		case p.Napping(now): // a tap does not wake a napping pet: a dream (the palm on the head does)
+			re = pet.Reaction{Kind: pet.KindAsleep}
 		case r.pictureOn: // tap again: back to the face
 			a.express(r, now)
 			return
@@ -445,8 +454,8 @@ func (a *App) morning(r *robot, now time.Time) {
 	r.conn.command("leds", leds)
 }
 
-// dream shows what the sleeping pet dreams of: a light touch at night. No sound;
-// the sleepy face comes back and the screen goes dark again.
+// dream shows what the sleeping pet dreams of: a light touch at night or during
+// a nap. No sound; the sleepy face comes back (and at night the screen goes dark).
 func (a *App) dream(r *robot, now time.Time) {
 	if r.conn == nil || now.Sub(r.lastAsleep) < dreamEvery {
 		return
@@ -457,7 +466,9 @@ func (a *App) dream(r *robot, now time.Time) {
 	r.conn.binary(wire.BinShowJPEG, robotpic.Dream(robotpic.Dreams[rand.IntN(len(robotpic.Dreams))]))
 	r.pictureOn = true
 	a.later(r, 6*time.Second, func() { a.express(r, a.now()) })
-	a.later(r, 9*time.Second, func() { a.sleepScreen(r) })
+	if r.pet.Phase(now) == pet.Night { // a daytime nap keeps the screen on
+		a.later(r, 9*time.Second, func() { a.sleepScreen(r) })
+	}
 }
 
 // nightWake: a hard press at night wakes the pet for a few minutes (quietly);
