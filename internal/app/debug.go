@@ -65,6 +65,8 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 		a.dream(rb, now)
 	case "express":
 		a.express(rb, now)
+	case "menu":
+		a.openMenu(rb, now)
 	default:
 		http.Error(w, "unknown action", http.StatusBadRequest)
 		return
