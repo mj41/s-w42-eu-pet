@@ -26,8 +26,7 @@ var moodColor = map[pet.Mood]string{
 }
 
 const (
-	hardPressZone   = 2    // all three head zones at least this (0-3): a whole palm
-	hardPressMs     = 1500 // or a touch held this long
+	hardPressZone   = 3 // all three head zones at full (0-3): the whole palm; one finger only dreams
 	dreamEvery      = 8 * time.Second
 	nightLightColor = "#180600"
 	reactionTime    = 4 * time.Second  // how long a reaction shows before the mood comes back
@@ -250,7 +249,7 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 			re = p.Cuddle(now)
 			break
 		}
-		// At night a light touch shows a dream; a hard press (the whole palm) wakes the pet.
+		// At night a light touch (one finger) shows a dream; the whole palm (3,3,3) wakes the pet.
 		zones := [3]float64{}
 		for i, k := range []string{"z0", "z1", "z2"} {
 			zones[i], _ = ev.Data[k].(float64)
@@ -261,12 +260,6 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 			return
 		}
 		re = pet.Reaction{Kind: pet.KindAsleep}
-	case "head_release": // held long at night: a hard press too
-		ms, _ := ev.Data["ms"].(float64)
-		if night && ms >= hardPressMs {
-			a.nightWake(r, now)
-		}
-		return
 	case "head_swipe_forward", "head_swipe_backward":
 		re = p.Cuddle(now)
 	case "nfc_tag": // a food card

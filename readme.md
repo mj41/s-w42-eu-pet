@@ -55,10 +55,10 @@ now and then.
 
 The daily routine: 10 minutes before bedtime the pet yawns. At bedtime it
 plays a lullaby, says good night, dims the LEDs to a night light and turns the
-screen off. At night a light touch on the head (or a tap on the screen) shows a dream
-on the robot's screen, silently; a hard press (the whole palm on the head, or
-a touch held 1.5 s) wakes the pet quietly for a few minutes (parent setting,
-0 = never), then it falls asleep again with the lullaby. In the morning it
+screen off. At night a light touch on the head (one finger, or a tap on the screen) shows
+a dream on the robot's screen, silently; the whole palm on the head (all three
+touch zones at full, 3,3,3) wakes the pet quietly for a few minutes (parent
+setting, 0 = never), then it falls asleep again with the lullaby. In the morning it
 wakes the screen, greets and plays a tune. Needs pause at night and during
 school hours, so the pet never suffers while the kid sleeps or is away.
 

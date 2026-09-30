@@ -531,7 +531,11 @@ func TestNightDreamsAndWake(t *testing.T) {
 	}
 
 	// The whole palm: awake for a few minutes, quietly.
-	r.event("head_press", map[string]any{"z0": 3, "z1": 2, "z2": 3})
+	e.clock.set(e.clock.now().Add(10 * time.Second)) // dreams come at most every 8 s
+	r.event("head_press", map[string]any{"z0": 3, "z1": 2, "z2": 3}) // not quite the whole palm: a dream
+	r.binary(wire.BinShowJPEG)
+	e.clock.set(e.clock.now().Add(10 * time.Second)) // dreams come at most every 8 s
+	r.event("head_press", map[string]any{"z0": 3, "z1": 3, "z2": 3})
 	if on := r.command("screensaver"); on["on"] != false {
 		t.Fatalf("wake screen: %v", on)
 	}
@@ -555,11 +559,12 @@ func TestNightDreamsAndWake(t *testing.T) {
 		return body.Command == "say" && strings.Contains(text, "Dobrou noc")
 	})
 
-	// A touch held long counts as a hard press too.
+	// A long one-finger touch is not a hard press.
 	e.clock.set(time.Date(2026, 9, 30, 22, 0, 0, 0, prague))
-	r.event("head_release", map[string]any{"ms": 2000})
-	r.command("screensaver")
-	if _, st := kid.get("/api/state"); st["phase"] != "awake" {
-		t.Fatalf("held long: %v", st["phase"])
+	r.event("head_press", map[string]any{"z0": 0, "z1": 3, "z2": 0})
+	r.event("head_release", map[string]any{"ms": 3000})
+	time.Sleep(100 * time.Millisecond)
+	if _, st := kid.get("/api/state"); st["phase"] != "night" {
+		t.Fatalf("one finger held: %v", st["phase"])
 	}
 }
