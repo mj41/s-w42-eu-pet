@@ -119,6 +119,7 @@ func (a *App) startGame(r *robot, now time.Time) {
 		r.pictureOn = false
 	}
 	r.conn.command("light_stream", map[string]any{"on": true})
+	a.rememberHead(r)
 	a.emotion(r, "happy")
 	a.say(r, "game", "", 2)
 	a.play(r, sound.Hello, false)
@@ -308,7 +309,7 @@ func (a *App) endGame(r *robot, g *game) {
 	now := a.now()
 	r.game = nil
 	r.conn.command("light_stream", map[string]any{"on": false})
-	r.conn.command("home", nil)
+	a.restoreHead(r)
 	a.log.Info("game over", "robot", r.id, "hits", g.hits, "dodges", g.allDodges, "light_samples", g.samples,
 		"proximity", fmt.Sprintf("%.0f..%.0f", g.psMin, g.psMax), "light_ch0", fmt.Sprintf("%.0f..%.0f", g.ch0Min, g.ch0Max))
 	re := r.pet.FinishGame(now, g.hits)
@@ -356,7 +357,7 @@ func (a *App) stopGame(r *robot) {
 	r.game = nil
 	if r.conn != nil {
 		r.conn.command("light_stream", map[string]any{"on": false})
-		r.conn.command("home", nil)
+		a.restoreHead(r)
 		a.clearSprites(r)
 	}
 	a.publishState(r)

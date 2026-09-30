@@ -103,6 +103,8 @@ type robot struct {
 	lastCard   time.Time         // the last food card: head touches around it are not cuddles
 	cuddleGen  int               // bumped by a card: a waiting head touch is dropped
 	voiceGen   int               // bumped by each spoken line: an older one stops
+	head       *[2]float64       // yaw, pitch (degrees) from the robot's telemetry; nil until known
+	headBefore *[2]float64       // where the head was before a game or dance: it goes back there
 }
 
 func New(cfg Config) *App {

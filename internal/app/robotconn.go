@@ -250,8 +250,15 @@ func (a *App) readLoop(c *robotConn) {
 			continue
 		}
 		for _, f := range frames {
+			if f.Kind == wire.KindRobotTelemetry {
+				var t wire.RobotTelemetryBody
+				if f.Decode(&t) == nil {
+					a.telemetry(c.id, t.Measurements)
+				}
+				continue
+			}
 			if f.Kind != wire.KindRobotEvent {
-				continue // heartbeats, telemetry: the socket being alive is enough
+				continue // heartbeats: the socket being alive is enough
 			}
 			var ev wire.RobotEventBody
 			if err := f.Decode(&ev); err != nil || ev.Name == "" {

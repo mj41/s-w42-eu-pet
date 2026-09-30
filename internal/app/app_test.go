@@ -736,3 +736,22 @@ func TestFoodCardIsNotACuddle(t *testing.T) {
 		t.Fatalf("log: %+v", log)
 	}
 }
+
+func TestHeadGoesBackAfterTheGame(t *testing.T) {
+	e := newEnv(t, "")
+	e.fastGame(200 * time.Millisecond)
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	f, _ := wire.Marshal(wire.KindRobotTelemetry, wire.Meta{}, wire.RobotTelemetryBody{
+		Measurements: map[string]float64{"head_yaw_deg": 10, "head_pitch_deg": 30}})
+	r.ws.WriteMessage(websocket.TextMessage, f)
+	time.Sleep(100 * time.Millisecond)
+
+	kid.post("/api/action", map[string]any{"action": "play"})
+	r.next("head back where it was", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		return body.Command == "look" && body.Args["yaw"] == 10.0 && body.Args["pitch"] == 30.0
+	})
+}

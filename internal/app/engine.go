@@ -1,6 +1,7 @@
 package app
 
 import (
+	"math"
 	"math/rand/v2"
 	"slices"
 	"time"
@@ -207,10 +208,11 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 		c.command("leds", leds)
 		a.say(r, "play", "", 3)
 		a.play(r, sound.Tada, false)
-		// a little dance: look left, right, back
-		c.command("look", map[string]any{"yaw": -25, "pitch": 10})
-		a.later(r, 700*time.Millisecond, func() { c.command("look", map[string]any{"yaw": 25, "pitch": 10}) })
-		a.later(r, 1400*time.Millisecond, func() { c.command("home", nil) })
+		// a little dance: look left, right, back to where the head was
+		a.rememberHead(r)
+		c.command("look", map[string]any{"yaw": -25, "pitch": 15})
+		a.later(r, 700*time.Millisecond, func() { c.command("look", map[string]any{"yaw": 25, "pitch": 15}) })
+		a.later(r, 1400*time.Millisecond, func() { a.restoreHead(r) })
 	case pet.KindTooTired, pet.KindLimit:
 		a.begin(r, now, reactionTime)
 		a.emotion(r, "sleepy")
@@ -637,4 +639,37 @@ func (a *App) cuddleSoon(r *robot, now time.Time) {
 		a.publishReaction(r, re)
 		a.publishState(r)
 	})
+}
+
+// telemetry keeps the robot's head angles (sent every 2 s).
+func (a *App) telemetry(id string, m map[string]float64) {
+	yaw, okYaw := m["head_yaw_deg"]
+	pitch, okPitch := m["head_pitch_deg"]
+	if !okYaw || !okPitch {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if r := a.robots[id]; r != nil {
+		r.head = &[2]float64{yaw, pitch}
+	}
+}
+
+// rememberHead notes where the head is before the pet moves it (a game, a dance).
+func (a *App) rememberHead(r *robot) {
+	if r.head != nil {
+		h := *r.head
+		r.headBefore = &h
+	}
+}
+
+// restoreHead turns the head back to where it was; unknown: straight ahead, a little up.
+// (Not "home": that is pitch 0, the head looking down.)
+func (a *App) restoreHead(r *robot) {
+	yaw, pitch := 0.0, float64(headMidPitch)
+	if h := r.headBefore; h != nil {
+		yaw, pitch = h[0], max(h[1], 5) // "look" takes pitch 5..85
+	}
+	r.headBefore = nil
+	r.conn.command("look", map[string]any{"yaw": math.Round(yaw), "pitch": math.Round(pitch)})
 }
