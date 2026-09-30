@@ -27,6 +27,9 @@ var moodColor = map[pet.Mood]string{
 }
 
 const (
+	cuddleWait = 800 * time.Millisecond // a head touch waits this long: a food card may follow
+	cardQuiet  = 2 * time.Second        // head touches this soon after a card are the card
+
 	hardPressZone   = 3 // all three head zones at full (0-3): the whole palm; one finger only dreams
 	dreamEvery      = 8 * time.Second
 	nightLightColor = "#180600"
@@ -103,7 +106,11 @@ func (a *App) begin(r *robot, now time.Time, d time.Duration) {
 }
 
 func (a *App) say(r *robot, key, arg string, seconds float64) {
-	if t := text(r.pet.Settings.Lang, key, arg); t != "" {
+	a.sayText(r, text(r.pet.Settings.Lang, key, arg), seconds)
+}
+
+func (a *App) sayText(r *robot, t string, seconds float64) {
+	if t != "" {
 		a.hideFace(r) // the bubble belongs to the robot's own face
 		r.conn.command("say", map[string]any{"text": t, "seconds": seconds})
 	}
@@ -157,7 +164,7 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 	case pet.KindEat:
 		a.begin(r, now, reactionTime)
 		if asset := assetDir + re.Food + ".png"; r.canSprite(asset) {
-			a.eatSprite(r, asset, foodNames[lang][re.Food])
+			a.eatSprite(r, asset, foodText(lang, re.Food))
 			break
 		}
 		a.showPicture(r, robotpic.Food(re.Food))
@@ -166,7 +173,7 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 			c.command("face", nil)
 			r.pictureOn = false
 			a.emotion(r, "happy")
-			a.say(r, "eat", foodNames[lang][re.Food], 3)
+			a.sayText(r, foodText(lang, re.Food), 3)
 			c.command("nod", nil)
 		})
 	case pet.KindFull:
@@ -264,8 +271,8 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		re = a.playAction(r, now)
 	case "head_press":
 		if !asleep {
-			re = p.Cuddle(now)
-			break
+			a.cuddleSoon(r, now)
+			return
 		}
 		// Asleep, a light touch (one finger) shows a dream; the whole palm (3,3,3) wakes the pet.
 		zones := [3]float64{}
@@ -283,12 +290,14 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 			re = p.Wake(now)
 		}
 	case "head_swipe_forward", "head_swipe_backward":
-		if asleep {
-			re = pet.Reaction{Kind: pet.KindAsleep} // a stroke while asleep: a dream
-		} else {
-			re = p.Cuddle(now)
+		if !asleep {
+			a.cuddleSoon(r, now)
+			return
 		}
+		re = pet.Reaction{Kind: pet.KindAsleep} // a stroke while asleep: a dream
 	case "nfc_tag": // a food card
+		r.lastCard = now
+		r.cuddleGen++ // the card touched the head on its way: not a cuddle
 		uid, _ := ev.Data["uid"].(string)
 		food, ok := p.Settings.Foods[uid]
 		if !ok {
@@ -581,7 +590,7 @@ func (a *App) snore(r *robot, now time.Time) {
 
 // eatSprite: the food drops in from the top and glides to the mouth over the face,
 // then shrinks bite by bite (munch, nod) and the pet says what it ate.
-func (a *App) eatSprite(r *robot, asset, foodName string) {
+func (a *App) eatSprite(r *robot, asset, line string) {
 	c := r.conn
 	a.emotion(r, "happy")
 	a.drawnFace(r, "yum")
@@ -595,6 +604,29 @@ func (a *App) eatSprite(r *robot, asset, foodName string) {
 	a.later(r, 1150*time.Millisecond, func() { a.sprite(r, map[string]any{"id": "food", "scale": 0.3}) })
 	a.later(r, 1500*time.Millisecond, func() {
 		c.command("sprite_hide", map[string]any{"id": "food"})
-		a.say(r, "eat", foodName, 3)
+		a.sayText(r, line, 3)
+	})
+}
+
+// cuddleSoon turns a head touch into a cuddle after a short wait: holding a food card
+// to the robot touches its head too, and the card (read a moment later) must win.
+func (a *App) cuddleSoon(r *robot, now time.Time) {
+	if now.Sub(r.lastCard) < cardQuiet {
+		return
+	}
+	r.cuddleGen++
+	gen := r.cuddleGen
+	time.AfterFunc(cuddleWait, func() {
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		now := a.now()
+		if r.cuddleGen != gen || r.conn == nil || r.game != nil || now.Sub(r.lastCard) < cardQuiet {
+			return
+		}
+		re := r.pet.Cuddle(now)
+		a.dirty = true
+		a.react(r, re, now)
+		a.publishReaction(r, re)
+		a.publishState(r)
 	})
 }

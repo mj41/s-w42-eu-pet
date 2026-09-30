@@ -264,7 +264,7 @@ func TestPairAndPlay(t *testing.T) {
 		t.Fatalf("munch: %d bytes", len(pcm))
 	}
 	r.command("face") // after the picture
-	if say := r.command("say"); !strings.Contains(say["text"].(string), "ortik") && !strings.Contains(say["text"].(string), "Mnam") {
+	if say := r.command("say"); !isFoodLine("cake", say["text"]) {
 		t.Fatalf("eat bubble: %v", say)
 	}
 
@@ -332,7 +332,7 @@ func TestFoodCardsAndParent(t *testing.T) {
 	}
 	e.clock.set(e.clock.now().Add(time.Hour)) // hungry enough to eat again
 	r.event("nfc_tag", map[string]any{"uid": "04A1B2C3"})
-	if say := r.command("say"); !strings.Contains(say["text"].(string), "ilk") && !strings.Contains(say["text"].(string), "om") && !strings.Contains(say["text"].(string), "elicious") {
+	if say := r.command("say"); !isFoodLine("milk", say["text"]) {
 		t.Fatalf("milk bubble: %v", say)
 	}
 
@@ -637,7 +637,7 @@ func TestEatWithSprites(t *testing.T) {
 		t.Fatalf("the food should glide: %v", move)
 	}
 	r.command("sprite_hide")
-	if say := r.command("say"); !strings.Contains(say["text"].(string), "ortik") && !strings.Contains(say["text"].(string), "Mnam") {
+	if say := r.command("say"); !isFoodLine("cake", say["text"]) {
 		t.Fatalf("eat bubble: %v", say)
 	}
 }
@@ -696,5 +696,43 @@ func TestParentSetsNeeds(t *testing.T) {
 	s := stats(t, st)
 	if s["food"] != 10.0 || s["energy"] != 100.0 || s["fun"] != 60.0 || st["mood"] != "hungry" {
 		t.Fatalf("needs after setting: %v, mood %v", s, st["mood"])
+	}
+}
+
+// isFoodLine: the text is one of the pet's lines about that food.
+func isFoodLine(food string, text any) bool {
+	for _, lang := range []string{"cs", "en"} {
+		for _, v := range foodTexts[lang][food] {
+			if asciiOnly(v) == text {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func TestFoodCardIsNotACuddle(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	e.app.mu.Lock()
+	e.app.robots["robot-1"].pet.Stats.Food = 30
+	e.app.mu.Unlock()
+
+	r.event("head_press", map[string]any{"z0": 2, "z1": 1, "z2": 0}) // the card touches the head first
+	r.event("nfc_tag", map[string]any{"uid": "04AABBCC"})
+	r.event("head_press", map[string]any{"z0": 1, "z1": 0, "z2": 0}) // and again while lifted
+	time.Sleep(cuddleWait + 300*time.Millisecond)
+	e.app.mu.Lock()
+	log := e.app.robots["robot-1"].pet.Log
+	e.app.mu.Unlock()
+	for _, l := range log {
+		if l.Kind == "cuddle" {
+			t.Fatalf("a food card counted as a cuddle: %+v", log)
+		}
+	}
+	if l := log[len(log)-1]; l.Kind != "feed" {
+		t.Fatalf("log: %+v", log)
 	}
 }

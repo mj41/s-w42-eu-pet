@@ -36,6 +36,7 @@ func main() {
 		tz        = flag.String("tz", "", "the family's time zone for the schedule, e.g. Europe/Prague (default: this machine's)")
 		uiDir     = flag.String("ui-dir", "", "development: serve the pages from this directory (e.g. internal/app/ui), so edits need only a reload")
 		debug     = flag.Bool("debug", false, "debug logging")
+		debugDir  = flag.String("debug-dir", defaultCacheDir("screens"), "where screen snapshots from the robot are saved (POST /api/debug/{id}/run)")
 	)
 	flag.Parse()
 
@@ -72,6 +73,7 @@ func main() {
 		UIDir:      *uiDir,
 		Location:   loc,
 		Log:        log,
+		DebugDir:   *debugDir,
 	})
 	srv := &http.Server{Addr: *listen, Handler: a.Handler(), ReadHeaderTimeout: 10 * time.Second}
 
@@ -105,6 +107,15 @@ func defaultStateFile() string {
 		dir = filepath.Join(home, ".local", "state")
 	}
 	return filepath.Join(dir, "stackchan-pet", "state.json")
+}
+
+// defaultCacheDir is name in $XDG_CACHE_HOME/stackchan-pet (or ~/.cache).
+func defaultCacheDir(name string) string {
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(dir, "stackchan-pet", name)
 }
 
 func defaultConfigFile(app, name string) string {

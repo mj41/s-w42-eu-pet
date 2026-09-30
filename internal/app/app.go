@@ -37,6 +37,7 @@ type Config struct {
 	Location   *time.Location // the family's time zone for the schedule; default time.Local
 	Log        *slog.Logger
 	Now        func() time.Time // tests; default time.Now
+	DebugDir   string           // where screen snapshots from the robot are saved (debug.go); "" = not saved
 }
 
 // App holds all state. One mutex guards everything; robot sockets only queue messages.
@@ -96,6 +97,8 @@ type robot struct {
 	spriteIDs  map[string]bool   // the pet's sprites on screen (not the face): cleared with the mood
 	faceShown  string            // the drawn face shown as the bottom sprite ("" = the robot's own face)
 	faceHidden bool              // the drawn face steps aside for speech or a full-screen picture
+	lastCard   time.Time         // the last food card: head touches around it are not cuddles
+	cuddleGen  int               // bumped by a card: a waiting head touch is dropped
 }
 
 func New(cfg Config) *App {
@@ -149,6 +152,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /api/parent/reset", a.handleReset)
 	mux.HandleFunc("POST /api/parent/try", a.handleTry)
 	mux.HandleFunc("POST /api/parent/stats", a.handleStats)
+	mux.HandleFunc("POST /api/debug/{id}/run", a.handleDebugRun)
 	mux.Handle("GET /emoji/", http.StripPrefix("/emoji/", a.uiFiles("emoji")))
 	mux.Handle("GET /chan/", http.StripPrefix("/chan/", a.uiFiles("chan")))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })

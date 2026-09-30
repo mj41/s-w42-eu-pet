@@ -57,7 +57,39 @@ var robotTexts = map[string]map[string][]string{
 	},
 }
 
-// foodNames for the speech bubble ("Mnam, jablicko!").
+// foodTexts: what the pet says about each food (ASCII; %s is not used).
+var foodTexts = map[string]map[string][]string{
+	"cs": {
+		"apple":  {"Krup krup! Jablicko!", "Jablicko = zdravicko!", "Mnam, jablicko!"},
+		"carrot": {"Mrkvicka! Ted uvidim i potme!", "Krupy krup, mrkvicka!", "Jsem zajicek? Mnam!"},
+		"banana": {"Banan! Opicky by mi zavidely!", "Mnam, banan! U-u-a-a!", "Zlute a sladke!"},
+		"bread":  {"Chlebicek! Krupava kurcicka!", "Mnam, chlebicek!", "Takovy dobry chlebik!"},
+		"milk":   {"Mlicko! Ted mam bily knirek!", "Glo glo glo... mnam!", "Mlicko pro silne roboty!"},
+		"cake":   {"Dortik! Mam dnes narozeniny?", "Sladke! Jeste kousek?", "Mnam! Dortik je nejlepsi!"},
+	},
+	"en": {
+		"apple":  {"Crunch crunch! Apple!", "An apple a day!", "Yum, apple!"},
+		"carrot": {"Carrot! Now I can see in the dark!", "Crunchy carrot!", "Am I a bunny? Yum!"},
+		"banana": {"Banana! The monkeys are jealous!", "Yum, banana! Ooh-ooh-aah!", "Yellow and sweet!"},
+		"bread":  {"Bread! Crunchy crust!", "Yum, bread!", "Such good bread!"},
+		"milk":   {"Milk! Now I have a white moustache!", "Glug glug glug... yum!", "Milk for strong robots!"},
+		"cake":   {"Cake! Is it my birthday?", "Sweet! One more piece?", "Yum! Cake is the best!"},
+	},
+}
+
+// foodText picks what the pet says about a food.
+func foodText(lang, food string) string {
+	variants := foodTexts[lang][food]
+	if len(variants) == 0 {
+		variants = foodTexts["en"][food]
+	}
+	if len(variants) == 0 {
+		return text(lang, "eat", foodNames[lang][food])
+	}
+	return asciiOnly(variants[rand.IntN(len(variants))])
+}
+
+// foodNames for the general eat line ("Mnam, jablicko!"), for foods without their own lines.
 var foodNames = map[string]map[string]string{
 	"cs": {"apple": "jablicko", "carrot": "mrkvicka", "banana": "banan", "bread": "chlebicek", "milk": "mlicko", "cake": "dortik"},
 	"en": {"apple": "apple", "carrot": "carrot", "banana": "banana", "bread": "bread", "milk": "milk", "cake": "cake"},
