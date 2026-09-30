@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stack-chan Pet – rodiče</title>
+<style>
+  :root { --bg: #f6f4ef; --card: #fff; --ink: #2d2a26; --muted: #7b746b; --line: #e6e0d6; --accent: #3f7be0; --danger: #c62828; --ok: #2e7d32; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17181b; --card: #222428; --ink: #ecebe8; --muted: #a09c95; --line: #34363b; --accent: #7aa7ff; --danger: #ff6b6b; --ok: #7bd389; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, sans-serif; padding: 16px; }
+  main { max-width: 640px; margin: 0 auto; display: grid; gap: 16px; }
+  header { display: flex; align-items: center; gap: 12px; }
+  header { flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; flex: 1 1 100%; }
+  a { color: var(--accent); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  section h2 { font-size: 16px; margin: 0 0 12px; }
+  .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  .row input[type=text] { flex: 1; }
+  .row input[type=password] { width: 130px; }
+  .row > label:first-child:not(:has(input)) { min-width: 110px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+  .grid input { width: 100%; }
+  input, select { max-width: 100%; }
+  section, main > div { min-width: 0; }
+  .grid .h { color: var(--muted); font-size: 14px; }
+  input, select, button { font: inherit; color: inherit; }
+  input[type=text], input[type=time], input[type=number], input[type=password], select {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; min-width: 0; }
+  input[type=number] { width: 90px; }
+  input[type=range] { flex: 1; min-width: 140px; }
+  button { background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 8px 14px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.danger { color: var(--danger); border-color: var(--danger); }
+  .hint { color: var(--muted); font-size: 14px; margin: 4px 0 0; }
+  .saved { color: var(--ok); font-weight: 600; opacity: 0; transition: opacity .3s; }
+  .saved.on { opacity: 1; }
+  .err { color: var(--danger); }
+  .lock { text-align: center; }
+  .lock input { font-size: 28px; letter-spacing: 8px; text-align: center; width: 200px; }
+  .stats { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; align-items: center; }
+  .stats img { width: 26px; }
+  .bar { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: middle; }
+  td img { width: 22px; vertical-align: middle; }
+  .mono { font-family: ui-monospace, monospace; font-size: 13px; }
+  .log { max-height: 320px; overflow: auto; }
+  .tries { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hidden { display: none !important; }
+  .save-bar { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0; display: flex; gap: 12px; align-items: center; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 data-t="title"></h1>
+    <a href="/" data-t="toKid"></a>
+    <button id="lockBtn" class="hidden" data-t="lock"></button>
+  </header>
+
+  <section id="notPaired" class="hidden"><p data-t="notPaired"></p></section>
+
+  <section id="lock" class="lock hidden">
+    <h2 id="lockTitle"></h2>
+    <form id="pinForm">
+      <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" pattern="[0-9]*">
+      <p><button class="primary" data-t="unlock"></button></p>
+      <p id="pinErr" class="err"></p>
+      <p class="hint" id="pinHint"></p>
+    </form>
+  </section>
+
+  <div id="panel" class="hidden" style="display:grid;gap:16px">
+    <section>
+      <h2 data-t="today"></h2>
+      <div class="stats">
+        <img src="/emoji/apple.svg" alt=""><div class="bar"><i id="sFood"></i></div><span id="nFood"></span>
+        <img src="/emoji/heart.svg" alt=""><div class="bar"><i id="sFun"></i></div><span id="nFun"></span>
+        <img src="/emoji/battery.svg" alt=""><div class="bar"><i id="sEnergy"></i></div><span id="nEnergy"></span>
+      </div>
+      <p class="hint" id="todayText"></p>
+    </section>
+
+    <section>
+      <h2 data-t="pet"></h2>
+      <div class="row"><label for="name" data-t="name"></label><input id="name" type="text" maxlength="24"></div>
+      <div class="row"><label for="lang" data-t="lang"></label>
+        <select id="lang"><option value="cs">Čeština</option><option value="en">English</option></select></div>
+      <div class="row"><label for="difficulty" data-t="difficulty"></label>
+        <select id="difficulty"><option value="easy" data-t="easy"></option><option value="normal" data-t="normal"></option><option value="hard" data-t="hard"></option></select></div>
+      <p class="hint" data-t="difficultyHint"></p>
+    </section>
+
+    <section>
+      <h2 data-t="schedule"></h2>
+      <div class="grid">
+        <span></span><span class="h" data-t="wake"></span><span class="h" data-t="bed"></span>
+        <span data-t="weekday"></span><input id="wdWake" type="time"><input id="wdBed" type="time">
+        <span data-t="weekend"></span><input id="weWake" type="time"><input id="weBed" type="time">
+      </div>
+      <p class="hint" data-t="scheduleHint"></p>
+      <div class="row"><label><input id="school" type="checkbox"> <span data-t="school"></span></label></div>
+      <div class="row"><input id="schoolFrom" type="time"> – <input id="schoolTo" type="time"></div>
+      <p class="hint" data-t="schoolHint"></p>
+    </section>
+
+    <section>
+      <h2 data-t="limits"></h2>
+      <div class="row"><label for="playLimit" data-t="playLimit"></label><input id="playLimit" type="number" min="0" max="600" step="5"></div>
+      <p class="hint" data-t="minutes"></p>
+      <p class="hint" data-t="playLimitHint"></p>
+    </section>
+
+    <section>
+      <h2 data-t="robot"></h2>
+      <div class="row"><label><input id="sounds" type="checkbox"> <span data-t="sounds"></span></label></div>
+      <div class="row"><label for="volume" data-t="volume"></label><input id="volume" type="range" min="0" max="100"><span id="volumeN" style="min-width:2.5em"></span></div>
+      <div class="row"><label><input id="nightLight" type="checkbox"> <span data-t="nightLight"></span></label></div>
+      <div class="row"><label><input id="screenOff" type="checkbox"> <span data-t="screenOff"></span></label></div>
+    </section>
+
+    <section>
+      <h2 data-t="cards"></h2>
+      <p class="hint" data-t="cardsHint"></p>
+      <table id="cards"></table>
+    </section>
+
+    <div class="save-bar">
+      <button class="primary" id="save" data-t="save"></button>
+      <span class="saved" id="saved" data-t="saved"></span>
+      <span class="err" id="saveErr"></span>
+    </div>
+
+    <section>
+      <h2 data-t="try"></h2>
+      <div class="tries" id="tries"></div>
+      <p class="hint" data-t="tryHint"></p>
+    </section>
+
+    <section>
+      <h2 data-t="log"></h2>
+      <div class="log"><table id="log"></table></div>
+    </section>
+
+    <section>
+      <h2 data-t="advanced"></h2>
+      <div class="row"><label for="newPin" data-t="newPin"></label>
+        <input id="newPin" type="password" inputmode="numeric" maxlength="8" pattern="[0-9]*"><button id="pinSave" data-t="change"></button><span id="pinSaved" class="saved" data-t="saved"></span></div>
+      <div class="row"><button class="danger" id="reset" data-t="reset"></button></div>
+      <p class="hint" data-t="resetHint"></p>
+    </section>
+  </div>
+</main>
+
+<script>
+const T = {
+  cs: {
+    title: "Nastavení pro rodiče", toKid: "Zpět k mazlíčkovi", lock: "Zamknout",
+    notPaired: "Nejdřív naskenuj QR kód na robotovi, pak otevři tuto stránku znovu.",
+    setPin: "Zvol PIN (4–8 číslic)", enterPin: "Zadej PIN", unlock: "Odemknout",
+    setPinHint: "Tímto PINem se bude stránka pro rodiče odemykat. Dítě ho nemá znát.",
+    wrong_pin: "Špatný PIN.", wait: "Příliš mnoho pokusů, zkus to za minutu.", pin_format: "PIN má 4 až 8 číslic.",
+    today: "Dnes", pet: "Mazlíček", name: "Jméno", lang: "Jazyk", difficulty: "Náročnost",
+    easy: "Snadná", normal: "Běžná", hard: "Těžká",
+    difficultyHint: "Jak rychle dostává hlad a nudí se. Mazlíček nikdy neumře ani neonemocní – jen je smutný.",
+    schedule: "Denní režim", wake: "Vstává", bed: "Jde spát", weekday: "Po–Pá", weekend: "So–Ne",
+    scheduleHint: "V noci mazlíček spí: jeho potřeby stojí, obrazovka zhasne a na dotyk jen ospale odpoví. 10 minut před spaním zívá.",
+    school: "Škola / školka (Po–Pá)", schoolHint: "Během školy potřeby stojí, aby mazlíček netrpěl, když dítě není doma.",
+    limits: "Omezení", playLimit: "Hraní denně", minutes: "Minut za den, 0 = bez omezení.",
+    playLimitHint: "Po vyčerpání je mazlíček unavený a chce si odpočinout do zítřka. Krmit jde vždy.",
+    robot: "Robot", sounds: "Zvuky", volume: "Hlasitost", nightLight: "Noční světýlko (tlumené LED)", screenOff: "V noci vypnout obrazovku",
+    cards: "Kartičky s jídlem (NFC)", cardsHint: "Přilož kartičku k robotovi – objeví se tady a můžeš jí vybrat jídlo. Neznámá kartička dá jablko.",
+    noCards: "Zatím žádné kartičky.", unknown: "nová", remove: "Odebrat",
+    save: "Uložit", saved: "Uloženo ✓",
+    try: "Vyzkoušet", tryHint: "Ukáže to na robotovi hned, bez čekání na večer.",
+    morning: "Ráno", night: "Dobrou noc", needs: "Potřeby na displeji", sound: "Zvuk",
+    log: "Co se dělo", advanced: "Další", newPin: "Nový PIN", change: "Změnit",
+    reset: "Nový mazlíček", resetConfirm: "Opravdu začít s novým mazlíčkem? Potřeby a věk se vynulují, nastavení zůstane.",
+    resetHint: "Začne znovu od nuly, nastavení zůstane.",
+    todayText: (m, left, mood, phase) => `Hraní dnes: ${m} min${left >= 0 ? `, zbývá ${left} min` : ""}. Nálada: ${mood}. ${phase}`,
+    moods: { happy: "šťastný", ok: "v pohodě", hungry: "hladový", bored: "nudí se", tired: "unavený", napping: "dřímá", sleeping: "spí" },
+    phases: { awake: "", night: "Je noc.", school: "Je škola – potřeby stojí." },
+    kinds: { feed: "Jídlo", full: "Nechtěl jíst (plný)", cuddle: "Pohlazení", play: "Hraní", nap: "Zdřímnutí", morning: "Ráno – vstal", night: "Večer – usnul", reset: "Nový mazlíček" },
+    foods: { apple: "jablko", carrot: "mrkev", banana: "banán", bread: "chleba", milk: "mléko", cake: "dort" },
+    offline: "Robot není připojený.",
+  },
+  en: {
+    title: "Parent settings", toKid: "Back to the pet", lock: "Lock",
+    notPaired: "Scan the QR code on the robot first, then open this page again.",
+    setPin: "Choose a PIN (4–8 digits)", enterPin: "Enter the PIN", unlock: "Unlock",
+    setPinHint: "This PIN unlocks the parent page. Keep it from the kid.",
+    wrong_pin: "Wrong PIN.", wait: "Too many tries, wait a minute.", pin_format: "The PIN has 4 to 8 digits.",
+    today: "Today", pet: "Pet", name: "Name", lang: "Language", difficulty: "Difficulty",
+    easy: "Easy", normal: "Normal", hard: "Hard",
+    difficultyHint: "How fast it gets hungry and bored. The pet never dies or gets ill – it only gets sad.",
+    schedule: "Daily routine", wake: "Wakes up", bed: "Bedtime", weekday: "Mon–Fri", weekend: "Sat–Sun",
+    scheduleHint: "At night the pet sleeps: its needs pause, the screen goes dark and a touch only gets a sleepy answer. It yawns 10 minutes before bedtime.",
+    school: "School / kindergarten (Mon–Fri)", schoolHint: "During school the needs pause, so the pet does not suffer while the kid is away.",
+    limits: "Limits", playLimit: "Play per day", minutes: "Minutes per day, 0 = no limit.",
+    playLimitHint: "When it is used up, the pet is tired and rests until tomorrow. Feeding always works.",
+    robot: "Robot", sounds: "Sounds", volume: "Volume", nightLight: "Night light (dim LEDs)", screenOff: "Screen off at night",
+    cards: "Food cards (NFC)", cardsHint: "Hold a card to the robot – it shows up here and you can pick its food. An unknown card feeds an apple.",
+    noCards: "No cards yet.", unknown: "new", remove: "Remove",
+    save: "Save", saved: "Saved ✓",
+    try: "Try it", tryHint: "Shows it on the robot now, without waiting for the evening.",
+    morning: "Morning", night: "Good night", needs: "Needs on the screen", sound: "Sound",
+    log: "What happened", advanced: "More", newPin: "New PIN", change: "Change",
+    reset: "New pet", resetConfirm: "Really start with a new pet? Needs and age reset, the settings stay.",
+    resetHint: "Starts again from zero; the settings stay.",
+    todayText: (m, left, mood, phase) => `Played today: ${m} min${left >= 0 ? `, ${left} min left` : ""}. Mood: ${mood}. ${phase}`,
+    moods: { happy: "happy", ok: "fine", hungry: "hungry", bored: "bored", tired: "tired", napping: "napping", sleeping: "asleep" },
+    phases: { awake: "", night: "It is night.", school: "School time – needs paused." },
+    kinds: { feed: "Food", full: "Refused food (full)", cuddle: "Cuddle", play: "Play", nap: "Nap", morning: "Morning – woke up", night: "Evening – fell asleep", reset: "New pet" },
+    foods: { apple: "apple", carrot: "carrot", banana: "banana", bread: "bread", milk: "milk", cake: "cake" },
+    offline: "The robot is not connected.",
+  },
+};
+const kindIcon = { feed: "plate", full: "grumpy", cuddle: "hug", play: "ball", nap: "zzz", morning: "sun", night: "moon", reset: "party" };
+const SOUNDS = ["chirp", "munch", "tada", "no", "yawn", "morning", "lullaby", "hello", "whee"];
+const FOODS = ["apple", "carrot", "banana", "bread", "milk", "cake"];
+const $ = id => document.getElementById(id);
+let lang = "cs", data = null, cardFoods = {};
+
+const t = k => T[lang][k] ?? T.cs[k] ?? k;
+function texts() { document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t)); document.documentElement.lang = lang; }
+const show = (id, on) => $(id).classList.toggle("hidden", !on);
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  let out = {};
+  try { out = await res.json(); } catch (e) {}
+  return { ok: res.ok, status: res.status, out };
+}
+
+async function load() {
+  const { status, out } = await api("/api/parent");
+  lang = out.lang || lang;
+  texts();
+  show("notPaired", status === 404);
+  if (status === 404) { show("lock", false); show("panel", false); return; }
+  data = out;
+  show("lockBtn", out.unlocked);
+  show("lock", !out.unlocked);
+  show("panel", out.unlocked);
+  if (!out.unlocked) {
+    $("lockTitle").textContent = out.has_pin ? t("enterPin") : t("setPin");
+    $("pinHint").textContent = out.has_pin ? "" : t("setPinHint");
+    $("pin").focus();
+    return;
+  }
+  fill(out);
+}
+
+function fill(d) {
+  const s = d.settings, st = d.state;
+  $("name").value = s.name; $("lang").value = s.lang; $("difficulty").value = s.difficulty;
+  $("wdWake").value = s.weekday.wake; $("wdBed").value = s.weekday.bed;
+  $("weWake").value = s.weekend.wake; $("weBed").value = s.weekend.bed;
+  $("school").checked = s.school; $("schoolFrom").value = s.school_from; $("schoolTo").value = s.school_to;
+  $("playLimit").value = s.play_limit_min;
+  $("sounds").checked = s.sounds; $("volume").value = s.volume; $("volumeN").textContent = s.volume;
+  $("nightLight").checked = s.night_light; $("screenOff").checked = s.screen_off_at_night;
+  cardFoods = { ...s.foods };
+  for (const tag of d.unknown_tags || []) if (!(tag.uid in cardFoods)) cardFoods[tag.uid] = "";
+  renderCards(d.unknown_tags);
+  renderToday(d);
+  renderLog(d.log);
+  renderTries();
+}
+
+function renderToday(d) {
+  const st = d.state;
+  for (const [k, id] of [["food", "Food"], ["fun", "Fun"], ["energy", "Energy"]]) {
+    $("s" + id).style.width = st.stats[k] + "%"; $("n" + id).textContent = Math.round(st.stats[k]);
+  }
+  const left = st.play_left < 0 ? -1 : Math.round(st.play_left);
+  $("todayText").textContent = t("todayText")(Math.round(d.played_today), left, T[lang].moods[st.mood] || st.mood, T[lang].phases[st.phase] || "")
+    + (st.online ? "" : " " + t("offline"));
+}
+
+function renderCards(unknown) {
+  const tbl = $("cards");
+  tbl.innerHTML = "";
+  const seen = Object.fromEntries(unknown.map(u => [u.uid, u.seen]));
+  const uids = Object.keys(cardFoods);
+  if (!uids.length) { tbl.innerHTML = `<tr><td class="hint">${t("noCards")}</td></tr>`; return; }
+  for (const uid of uids) {
+    const tr = document.createElement("tr");
+    const sel = document.createElement("select");
+    sel.innerHTML = `<option value="">–</option>` + FOODS.map(f => `<option value="${f}">${T[lang].foods[f]}</option>`).join("");
+    sel.value = cardFoods[uid];
+    const img = document.createElement("img");
+    const setImg = () => { img.src = cardFoods[uid] ? `/emoji/${cardFoods[uid]}.svg` : "/emoji/apple.svg"; img.style.opacity = cardFoods[uid] ? 1 : .3; };
+    sel.onchange = () => { cardFoods[uid] = sel.value; setImg(); };
+    setImg();
+    const rm = document.createElement("button");
+    rm.textContent = t("remove");
+    rm.onclick = () => { delete cardFoods[uid]; tr.remove(); };
+    const c1 = document.createElement("td"); c1.appendChild(img);
+    const c2 = document.createElement("td"); c2.className = "mono"; c2.textContent = uid + (seen[uid] && !data.settings.foods[uid] ? ` (${t("unknown")})` : "");
+    const c3 = document.createElement("td"); c3.appendChild(sel);
+    const c4 = document.createElement("td"); c4.appendChild(rm);
+    tr.append(c1, c2, c3, c4);
+    tbl.appendChild(tr);
+  }
+}
+
+function renderLog(log) {
+  const tbl = $("log");
+  tbl.innerHTML = "";
+  const fmt = new Intl.DateTimeFormat(lang, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+  for (const e of log || []) {
+    const tr = document.createElement("tr");
+    const detail = e.detail ? ` – ${T[lang].foods[e.detail] || e.detail}` : "";
+    tr.innerHTML = `<td>${fmt.format(new Date(e.at))}</td><td><img src="/emoji/${kindIcon[e.kind] || "neutral"}.svg" alt=""></td><td></td>`;
+    tr.lastChild.textContent = (T[lang].kinds[e.kind] || e.kind) + detail;
+    tbl.appendChild(tr);
+  }
+}
+
+function renderTries() {
+  const box = $("tries");
+  if (box.children.length) return;
+  const add = (label, what) => { const b = document.createElement("button"); b.textContent = label; b.onclick = () => api("/api/parent/try", { what }); box.appendChild(b); };
+  add(t("morning"), "morning"); add(t("night"), "night"); add(t("needs"), "needs");
+  for (const s of SOUNDS) add(`${t("sound")}: ${s}`, "sound:" + s);
+}
+
+function collect() {
+  const foods = {};
+  for (const [uid, f] of Object.entries(cardFoods)) if (f) foods[uid] = f;
+  return {
+    name: $("name").value, lang: $("lang").value, difficulty: $("difficulty").value,
+    weekday: { wake: $("wdWake").value, bed: $("wdBed").value },
+    weekend: { wake: $("weWake").value, bed: $("weBed").value },
+    school: $("school").checked, school_from: $("schoolFrom").value, school_to: $("schoolTo").value,
+    play_limit_min: +$("playLimit").value || 0,
+    sounds: $("sounds").checked, volume: +$("volume").value,
+    night_light: $("nightLight").checked, screen_off_at_night: $("screenOff").checked,
+    foods,
+  };
+}
+
+function flash(id) { const el = $(id); el.classList.add("on"); setTimeout(() => el.classList.remove("on"), 1800); }
+
+$("pinForm").onsubmit = async e => {
+  e.preventDefault();
+  const { ok, out } = await api("/api/parent/unlock", { pin: $("pin").value });
+  $("pin").value = "";
+  $("pinErr").textContent = ok ? "" : t(out.error || "wrong_pin");
+  if (ok) load();
+};
+$("lockBtn").onclick = async () => { await api("/api/parent/lock", {}); load(); };
+$("volume").oninput = () => $("volumeN").textContent = $("volume").value;
+$("save").onclick = async () => {
+  const { ok, status } = await api("/api/parent/settings", collect());
+  $("saveErr").textContent = ok ? "" : status === 403 ? t("enterPin") : "!";
+  if (ok) { flash("saved"); const was = lang; await load(); if (was !== lang) texts(); }
+  else if (status === 403) load();
+};
+$("pinSave").onclick = async () => {
+  const { ok, out } = await api("/api/parent/pin", { pin: $("newPin").value });
+  $("newPin").value = "";
+  if (ok) flash("pinSaved"); else alert(t(out.error || "pin_format"));
+};
+$("reset").onclick = async () => { if (confirm(t("resetConfirm"))) { await api("/api/parent/reset", {}); load(); } };
+
+texts();
+load();
+setInterval(async () => { // keep "today" and the log fresh while the page is open
+  if (!data?.unlocked) return;
+  const { status, out } = await api("/api/parent");
+  if (status === 200 && out.unlocked) { data = out; renderToday(out); renderLog(out.log); }
+  else if (status === 200) load();
+}, 30000);
+</script>
+</body>
+</html>

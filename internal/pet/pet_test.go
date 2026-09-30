@@ -1,0 +1,198 @@
+package pet
+
+import (
+	"testing"
+	"time"
+)
+
+var prague = mustLoc("Europe/Prague")
+
+func mustLoc(name string) *time.Location {
+	l, err := time.LoadLocation(name)
+	if err != nil {
+		panic(err)
+	}
+	return l
+}
+
+// at is a time on Wednesday 2026-09-30 (a weekday) in Prague, or dayOffset days later.
+func at(dayOffset, h, m int) time.Time {
+	return time.Date(2026, 9, 30+dayOffset, h, m, 0, 0, prague)
+}
+
+func TestPhase(t *testing.T) {
+	s := DefaultSettings() // weekday 07:00-20:00, weekend 08:00-20:30
+	s.School = true        // 08:00-15:00
+	cases := []struct {
+		t    time.Time
+		want Phase
+	}{
+		{at(0, 6, 59), Night},
+		{at(0, 7, 0), Awake},
+		{at(0, 8, 0), School},
+		{at(0, 14, 59), School},
+		{at(0, 15, 0), Awake},
+		{at(0, 19, 59), Awake},
+		{at(0, 20, 0), Night},
+		{at(3, 7, 30), Night},  // Saturday: wake at 08:00, no school
+		{at(3, 9, 0), Awake},   // Saturday
+		{at(3, 20, 15), Awake}, // Saturday: bed at 20:30
+	}
+	for _, c := range cases {
+		if got := s.PhaseAt(c.t); got != c.want {
+			t.Errorf("%s: phase %s, want %s", c.t.Format("Mon 15:04"), got, c.want)
+		}
+	}
+
+	s.Weekday.Bed = "00:30" // after midnight
+	if got := s.PhaseAt(at(0, 23, 0)); got != Awake {
+		t.Errorf("late bedtime 23:00: %s, want awake", got)
+	}
+	if got := s.PhaseAt(at(0, 1, 0)); got != Night {
+		t.Errorf("late bedtime 01:00: %s, want night", got)
+	}
+}
+
+func TestAdvanceFollowsSchedule(t *testing.T) {
+	s := DefaultSettings()
+	s.School = true
+	p := New(at(0, 7, 0), s)
+	p.Stats = Stats{Food: 100, Fun: 100, Energy: 50}
+
+	p.Advance(at(0, 8, 0)) // one awake hour
+	if p.Stats.Food != 88 || p.Stats.Fun != 85 || p.Stats.Energy != 43 {
+		t.Fatalf("after an awake hour: %+v", p.Stats)
+	}
+	p.Advance(at(0, 15, 0)) // school: paused
+	if p.Stats.Food != 88 || p.Stats.Fun != 85 {
+		t.Fatalf("school should pause needs: %+v", p.Stats)
+	}
+	p.Advance(at(1, 6, 0)) // 15:00-20:00 awake, then night: energy comes back, food and fun wait
+	if p.Stats.Food != 28 || p.Stats.Fun != 10 || p.Stats.Energy != 100 {
+		t.Fatalf("after an evening and a night: %+v", p.Stats)
+	}
+	if m := p.Mood(at(1, 6, 0)); m != Sleeping {
+		t.Fatalf("mood at night: %s", m)
+	}
+	if m := p.Mood(at(1, 7, 0)); m != Bored {
+		t.Fatalf("mood in the morning: %s", m)
+	}
+}
+
+func TestAdvanceCatchUpIsLimited(t *testing.T) {
+	p := New(at(0, 7, 0), DefaultSettings())
+	p.Advance(at(30, 12, 0))
+	if p.Stats.Food != 0 || p.Updated != at(30, 12, 0) {
+		t.Fatalf("after a month: %+v updated %s", p.Stats, p.Updated)
+	}
+	if m := p.Mood(at(30, 12, 0)); m != Hungry {
+		t.Fatalf("mood: %s", m) // sad, never dead
+	}
+}
+
+func TestFeed(t *testing.T) {
+	p := New(at(0, 9, 0), DefaultSettings())
+	p.Stats.Food = 50
+	if r := p.Feed(at(0, 9, 0), "cake"); r.Kind != KindEat || p.Stats.Food != 65 || p.Stats.Fun != 75 {
+		t.Fatalf("cake: %+v %+v", r, p.Stats)
+	}
+	if r := p.Feed(at(0, 9, 0), "stone"); r.Food != "apple" || p.Stats.Food != 85 {
+		t.Fatalf("unknown food: %+v %+v", r, p.Stats)
+	}
+	p.Stats.Food = 95
+	if r := p.Feed(at(0, 9, 0), "bread"); r.Kind != KindFull || r.Changed {
+		t.Fatalf("full: %+v", r)
+	}
+	if r := p.Feed(at(0, 22, 0), "bread"); r.Kind != KindAsleep {
+		t.Fatalf("at night: %+v", r)
+	}
+}
+
+func TestPlayAndLimit(t *testing.T) {
+	s := DefaultSettings()
+	s.PlayLimitMin = 1
+	p := New(at(0, 9, 0), s)
+	p.Stats = Stats{Food: 80, Fun: 10, Energy: 80}
+
+	if r := p.Play(at(0, 9, 0)); r.Kind != KindPlay || p.Stats.Fun != 30 || p.Stats.Energy != 72 {
+		t.Fatalf("play: %+v %+v", r, p.Stats)
+	}
+	// Cuddles a few seconds apart count as continuous play time.
+	now := at(0, 9, 0)
+	for i := 0; i < 20; i++ {
+		now = now.Add(3 * time.Second)
+		p.Cuddle(now)
+	}
+	if r := p.Cuddle(now.Add(time.Second)); r.Kind != KindLimit {
+		t.Fatalf("after the limit: %+v, played %.2f min", r, p.PlayMin)
+	}
+	if r := p.Feed(now, "apple"); r.Kind != KindEat {
+		t.Fatalf("feeding is never limited: %+v", r)
+	}
+	if left := p.PlayLeft(at(1, 9, 0)); left != 1 {
+		t.Fatalf("next day play left %.2f", left)
+	}
+
+	p.Advance(at(1, 9, 0)) // the night refills energy, so drain it afterwards
+	p.Stats.Energy = 10
+	if r := p.Play(at(1, 9, 0)); r.Kind != KindTooTired {
+		t.Fatalf("tired: %+v", r)
+	}
+}
+
+func TestCuddleCooldown(t *testing.T) {
+	p := New(at(0, 9, 0), DefaultSettings())
+	p.Stats.Fun = 50
+	p.Cuddle(at(0, 9, 0))
+	p.Cuddle(at(0, 9, 0).Add(time.Second))
+	if p.Stats.Fun != 56 {
+		t.Fatalf("held stroke should count once: fun %.1f", p.Stats.Fun)
+	}
+}
+
+func TestNap(t *testing.T) {
+	p := New(at(0, 13, 0), DefaultSettings())
+	p.Stats = Stats{Food: 80, Fun: 80, Energy: 90}
+	if r := p.Nap(at(0, 13, 0)); r.Kind != KindNotTired {
+		t.Fatalf("rested pet: %+v", r)
+	}
+	p.Stats.Energy = 30
+	if r := p.Nap(at(0, 13, 0)); r.Kind != KindNap || p.Mood(at(0, 13, 1)) != Napping {
+		t.Fatalf("nap: %+v", r)
+	}
+	p.Advance(at(0, 13, 30))
+	if p.Napping(at(0, 13, 30)) || p.Stats.Energy < 40 {
+		t.Fatalf("after the nap: napping %v, %+v", p.Napping(at(0, 13, 30)), p.Stats)
+	}
+	p.Nap(at(0, 14, 0))
+	if r := p.Cuddle(at(0, 14, 1)); r.Kind != KindCuddle || p.Napping(at(0, 14, 2)) {
+		t.Fatalf("a cuddle wakes it: %+v", r)
+	}
+}
+
+func TestSettingsNormalize(t *testing.T) {
+	s := Settings{Name: "  ", Lang: "de", Weekday: DaySchedule{Wake: "7:5", Bed: "25:00"},
+		Volume: 300, Foods: map[string]string{"04AABB": "cake", "x": "stone"}}
+	s.Normalize()
+	if s.Name != "Čenda" || s.Lang != "cs" || s.Weekday.Wake != "07:05" || s.Weekday.Bed != "20:00" ||
+		s.Volume != 100 || len(s.Foods) != 1 || s.Difficulty != "normal" {
+		t.Fatalf("normalized: %+v", s)
+	}
+}
+
+func TestMinutesToBed(t *testing.T) {
+	s := DefaultSettings()
+	if m := s.MinutesToBed(at(0, 19, 50)); m != 10 {
+		t.Fatalf("minutes to bed: %d", m)
+	}
+}
+
+func TestNextWake(t *testing.T) {
+	s := DefaultSettings()
+	if w := s.NextWake(at(0, 6, 0)); w != "07:00" { // Wednesday early morning
+		t.Errorf("before wake: %s", w)
+	}
+	if w := s.NextWake(at(2, 21, 0)); w != "08:00" { // Friday evening: Saturday's
+		t.Errorf("Friday evening: %s", w)
+	}
+}
