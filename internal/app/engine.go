@@ -457,9 +457,10 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 			return
 		}
 		r.screenOff = true
+		r.screenManual = ev.Data["manual"] == 1.0
 		return
 	case "screensaver_off": // a touch lit the screen: at night it dims and has its 5 minutes again
-		r.screenOff = false
+		r.screenOff, r.screenManual = false, false
 		if night {
 			a.dimForNight(r, now)
 		}
@@ -971,6 +972,7 @@ func (a *App) Pulse() {
 		} else if r.conn != nil && now.After(r.busyUntil) && r.game == nil && r.menu == "" && p.Phase(now) != pet.Night {
 			a.demoCheck(r, now) // demo mode: a full need drops back within seconds
 		}
+		a.watchdog(r, now)
 		if a.watched(r.id) {
 			a.publishState(r)
 		}

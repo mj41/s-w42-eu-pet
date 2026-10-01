@@ -121,6 +121,10 @@ type robot struct {
 	headWant      float64            // the pitch the pet last put the head at (0 = headRestPitch)
 	lastLift      time.Time          // the last time it lifted a sunken head
 	headBefore    *[2]float64        // where the head was before a game or dance: it goes back there
+	screenManual  bool               // the screen was blanked on purpose (a double tap, the night): no keep-alive
+	sentSeen      uint64             // the connection's sent count the watchdog saw last
+	droppedSeen   uint64
+	quietSince    time.Time // nothing was sent to the robot since then
 }
 
 func New(cfg Config) *App {

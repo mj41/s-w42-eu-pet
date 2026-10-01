@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -43,6 +44,8 @@ type robotConn struct {
 
 	closeOnce sync.Once
 	done      chan struct{}
+
+	sent, dropped atomic.Uint64 // messages queued, and dropped because the queue was full (watchdog.go)
 }
 
 func (c *robotConn) close() {
@@ -57,8 +60,10 @@ func (c *robotConn) queue(m outMsg) bool {
 	case <-c.done:
 		return false
 	case c.send <- m:
+		c.sent.Add(1)
 		return true
 	default:
+		c.dropped.Add(1)
 		return false
 	}
 }
