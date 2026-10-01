@@ -135,6 +135,9 @@ func (a *App) play(r *robot, name string, atNight bool) {
 	if !s.Sounds || (!atNight && s.PhaseAt(a.now()) == pet.Night) {
 		return
 	}
+	if time.Now().Before(r.speakingUntil) {
+		return // the robot plays one queue: a sound during speech would chop both into noise
+	}
 	if asset := soundAsset(name); r.files[asset] && slices.Contains(r.commands, "play") {
 		r.conn.command("play", map[string]any{"asset": asset}) // stored on the robot: nothing to send
 		return

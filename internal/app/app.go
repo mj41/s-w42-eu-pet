@@ -82,43 +82,44 @@ type robot struct {
 	lastSeen time.Time
 
 	// What the robot shows (not saved): the engine compares and reacts on changes.
-	shownMood   pet.Mood
-	phase       pet.Phase
-	lastNag     time.Time
-	lastHello   time.Time
-	bedWarned   string            // the date of the last "bedtime soon" warning
-	lastAsleep  time.Time         // last sleepy answer at night, to not repeat it on every touch
-	pictureOn   bool              // a picture covers the face
-	screenOff   bool              // the pet turned the robot's screen off for the night
-	busyUntil   time.Time         // a reaction shows until then; the mood waits
-	gen         int               // bumped by each reaction; delayed steps of an older one are dropped
-	game        *game             // a game of catch in progress (game.go)
-	uploading   map[string]uint32 // pet files being uploaded -> their CRC-32 (assets.go)
-	commands    []string          // what this robot's firmware accepts
-	files       map[string]bool   // pet files on the robot, ready to show as sprites
-	spriteIDs   map[string]bool   // the pet's sprites on screen (not the face): cleared with the mood
-	faceShown   string            // the drawn face shown as the bottom sprite ("" = the robot's own face)
-	faceHidden  bool              // the drawn face steps aside for speech or a full-screen picture
-	lastCard    time.Time         // the last food card: head touches around it are not cuddles
-	cuddleGen   int               // bumped by a card or a newer touch: a waiting touch is dropped
-	touchAt     time.Time         // the head touch going on (engine.go), zero when none
-	touchZone   float64           // its strongest zone (0-3) at the start
-	touchSeen   bool              // it was already reacted to (a long touch, scratching)
-	touchID     int
-	strokes     []time.Time // recent head swipes
-	lastScratch time.Time
-	menu        string    // the menu on the robot's screen ("" = none; menu.go)
-	sleptAt     time.Time // the last good night: the night light fades from there
-	ledLevel    float64   // the night light's level last sent
-	dimmed      bool      // the pet dimmed the screen for the night
-	screenOnAt  time.Time // the screen was last lit at night: off nightScreenOn later
-	menuID      int
-	voiceGen    int                // bumped by each spoken line: an older one stops
-	head        *[2]float64        // yaw, pitch (degrees) from the robot's telemetry; nil until known
-	telemetry   map[string]float64 // the robot's last telemetry (every 2 s)
-	headWant    float64            // the pitch the pet last put the head at (0 = headRestPitch)
-	lastLift    time.Time          // the last time it lifted a sunken head
-	headBefore  *[2]float64        // where the head was before a game or dance: it goes back there
+	shownMood     pet.Mood
+	phase         pet.Phase
+	lastNag       time.Time
+	lastHello     time.Time
+	bedWarned     string            // the date of the last "bedtime soon" warning
+	lastAsleep    time.Time         // last sleepy answer at night, to not repeat it on every touch
+	pictureOn     bool              // a picture covers the face
+	screenOff     bool              // the pet turned the robot's screen off for the night
+	busyUntil     time.Time         // a reaction shows until then; the mood waits
+	gen           int               // bumped by each reaction; delayed steps of an older one are dropped
+	game          *game             // a game of catch in progress (game.go)
+	uploading     map[string]uint32 // pet files being uploaded -> their CRC-32 (assets.go)
+	commands      []string          // what this robot's firmware accepts
+	files         map[string]bool   // pet files on the robot, ready to show as sprites
+	spriteIDs     map[string]bool   // the pet's sprites on screen (not the face): cleared with the mood
+	faceShown     string            // the drawn face shown as the bottom sprite ("" = the robot's own face)
+	faceHidden    bool              // the drawn face steps aside for speech or a full-screen picture
+	lastCard      time.Time         // the last food card: head touches around it are not cuddles
+	cuddleGen     int               // bumped by a card or a newer touch: a waiting touch is dropped
+	touchAt       time.Time         // the head touch going on (engine.go), zero when none
+	touchZone     float64           // its strongest zone (0-3) at the start
+	touchSeen     bool              // it was already reacted to (a long touch, scratching)
+	touchID       int
+	strokes       []time.Time // recent head swipes
+	lastScratch   time.Time
+	menu          string    // the menu on the robot's screen ("" = none; menu.go)
+	sleptAt       time.Time // the last good night: the night light fades from there
+	ledLevel      float64   // the night light's level last sent
+	dimmed        bool      // the pet dimmed the screen for the night
+	screenOnAt    time.Time // the screen was last lit at night: off nightScreenOn later
+	menuID        int
+	voiceGen      int                // bumped by each spoken line: an older one stops
+	speakingUntil time.Time          // a line is being spoken: effect sounds wait (one speaker queue)
+	head          *[2]float64        // yaw, pitch (degrees) from the robot's telemetry; nil until known
+	telemetry     map[string]float64 // the robot's last telemetry (every 2 s)
+	headWant      float64            // the pitch the pet last put the head at (0 = headRestPitch)
+	lastLift      time.Time          // the last time it lifted a sunken head
+	headBefore    *[2]float64        // where the head was before a game or dance: it goes back there
 }
 
 func New(cfg Config) *App {

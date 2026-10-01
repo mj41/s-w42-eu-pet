@@ -27,6 +27,7 @@ func (a *App) speak(r *robot, line string, atNight bool) {
 		return
 	}
 	r.voiceGen++
+	r.speakingUntil = time.Now().Add(3 * time.Second) // until the speech's length is known
 	gen, c, lang := r.voiceGen, r.conn, s.Lang
 	go func() {
 		pcm, err := a.cfg.Voice.Speak(context.Background(), line, lang)
@@ -34,6 +35,11 @@ func (a *App) speak(r *robot, line string, atNight bool) {
 			a.log.Warn("voice", "err", err)
 			return
 		}
+		a.mu.Lock()
+		if r.voiceGen == gen {
+			r.speakingUntil = time.Now().Add(time.Second * time.Duration(len(pcm)) / sound.Rate)
+		}
+		a.mu.Unlock()
 		for off, n := 0, 0; off < len(pcm); off, n = off+voiceChunk, n+1 {
 			if n >= voiceAhead {
 				time.Sleep(time.Second * voiceChunk / sound.Rate)
