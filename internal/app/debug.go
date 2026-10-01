@@ -66,6 +66,11 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 		a.dream(rb, now)
 	case "express":
 		a.express(rb, now)
+	case "say": // a spoken line (even at night), e.g. to watch the robot's memory
+		saved := rb.pet.Settings.Sounds
+		rb.pet.Settings.Sounds = true
+		a.sayLine(rb, text(rb.pet.Settings.Lang, "hungry", ""), 3, true)
+		rb.pet.Settings.Sounds = saved
 	case "menu":
 		if _, ok := menus[req.Menu]; !ok {
 			req.Menu = "main"
