@@ -56,7 +56,7 @@ func TestColorGame(t *testing.T) {
 		var body wire.RobotCommandBody
 		m.frame.Decode(&body)
 		text, _ := body.Args["text"].(string)
-		return body.Command == "say" && strings.Contains(text, "Hotovo za") && strings.Contains(text, "sekund")
+		return body.Command == "say" && strings.Contains(text, "otovo za") && strings.Contains(text, "sekund")
 	})
 	e.robotState("robot-1", func(rb *robot) {
 		if rb.game != nil || rb.pet.ColorsBestMs == 0 {
