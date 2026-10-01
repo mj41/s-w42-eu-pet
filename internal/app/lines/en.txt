@@ -165,6 +165,23 @@ During school I rest.
 Gently and briefly, please. My face is sensitive.
 Gently and briefly, please. My screen is sensitive.
 
+[color_game]
+Show me the same color!
+Press the same color as me!
+
+[color_done]
+Done in %s!
+Great, done in %s!
+
+[color_record]
+A new record! Only %s!
+
+[colors]
+red = red
+yellow = yellow
+green = green
+blue = blue
+
 [names]
 apple = apple
 carrot = carrot

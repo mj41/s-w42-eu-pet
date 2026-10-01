@@ -262,6 +262,9 @@ func Files() map[string][]byte {
 	for _, t := range menuTilesList() {
 		out[t.name+".png"] = menuTile(t)
 	}
+	for _, c := range Colors {
+		out["color-"+c+".png"] = ColorButton(c)
+	}
 	entries, _ := pngFS.ReadDir("png")
 	for _, e := range entries {
 		if b, err := pngFS.ReadFile("png/" + e.Name()); err == nil {
@@ -294,7 +297,7 @@ const (
 	MainTile  = 84 // main menu: square
 	FoodTileW = 92 // food menu
 	FoodTileH = 76
-	PlayTileW = 120 // play menu
+	PlayTileW = 96 // play menu (three tiles)
 	PlayTileH = 110
 	BackTileW = 120 // the back button at the bottom
 	BackTileH = 44
@@ -309,6 +312,7 @@ func menuTilesList() []tile {
 		{"menu-back", "back", tileGrey, BackTileW, BackTileH},
 		{"menu-catch", "ball", tileGreen, PlayTileW, PlayTileH},
 		{"menu-dance", "party", tileBlue, PlayTileW, PlayTileH},
+		{"menu-colors", "colors", tileCream, PlayTileW, PlayTileH},
 	}
 	for _, f := range []string{"apple", "carrot", "banana", "bread", "milk", "cake"} {
 		t = append(t, tile{"menu-food-" + f, f, tileCream, FoodTileW, FoodTileH})
@@ -323,6 +327,10 @@ func menuTile(t tile) []byte {
 	cx, cy := t.w/2, t.h/2
 	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	switch t.icon {
+	case "colors": // the color game: its four colors as dots
+		for i, name := range Colors {
+			fillCircle(img, cx+(i%2*2-1)*t.w/5, cy+(i/2*2-1)*t.h/5, t.w/6, ColorRGBA[name])
+		}
 	case "needs": // the needs picture in small: three icons with their bars
 		k := func(v int) int { return v * t.h / 96 } // drawn for 96 px
 		for i, n := range []struct {
@@ -403,4 +411,26 @@ func DemoReset(need string) []byte {
 	low.Max.X = bar.Min.X + max(bar.Dy(), bar.Dx()/10)
 	fillRound(img, low, red)
 	return encode(img)
+}
+
+// The color game's colors (the robot's LEDs show the same).
+var (
+	Colors    = []string{"red", "yellow", "green", "blue"}
+	ColorRGBA = map[string]color.RGBA{
+		"red":    {0xe5, 0x39, 0x35, 0xff},
+		"yellow": {0xfd, 0xd8, 0x35, 0xff},
+		"green":  {0x43, 0xa0, 0x47, 0xff},
+		"blue":   {0x1e, 0x88, 0xe5, 0xff},
+	}
+)
+
+// Color button size: four fit on the screen in two rows, below a strip for the colors to press.
+const ColorButtonW, ColorButtonH = 140, 80
+
+// ColorButton is one big rounded button of a color (PNG, white rim).
+func ColorButton(name string) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, ColorButtonW, ColorButtonH))
+	fillRoundRect(img, img.Bounds(), 18, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	fillRoundRect(img, image.Rect(5, 5, ColorButtonW-5, ColorButtonH-5), 14, ColorRGBA[name])
+	return encodePNG(img)
 }

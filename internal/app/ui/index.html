@@ -251,6 +251,7 @@ function react(r) {
     case "school": fx("/emoji/zzz.svg"); faceAnim("shake", "sleeping"); break; // it rests during school
     case "demo_reset": fx("/emoji/refresh.svg"); fx(`/emoji/${{ food: "apple", fun: "heart", energy: "zzz" }[r.need] || "apple"}.svg`); faceAnim("shake", "sad"); break;
     case "game_over": if (r.hits) fx("/emoji/star.svg", r.hits); faceAnim("jump", "happy"); break;
+    case "colors_over": fx(r.record ? "/emoji/party.svg" : "/emoji/star.svg", r.record ? 3 : Math.max(1, r.hits)); faceAnim("jump", "happy"); break;
   }
 }
 

@@ -196,6 +196,25 @@ Během školy já odpočívám.
 Jemně a krátce, prosím. Můj obličej je citlivý.
 Jemně a krátce, prosím. Moje obrazovka je citlivá.
 
+# Hra s barvami: začátek, konec (%s = čas, např. "14 sekund"), nový rekord.
+[color_game]
+Ukaž mi stejnou barvu!
+Zmáčkni stejnou barvu jako já!
+
+[color_done]
+Hotovo za %s!
+Paráda, hotovo za %s!
+
+[color_record]
+Nový rekord! Jen %s!
+
+# Barvy pro hru (říká je, když ukáže barvu): klíč = jméno.
+[colors]
+red = červená
+yellow = žlutá
+green = zelená
+blue = modrá
+
 # Jména jídel (pro [eat]): klíč = jméno.
 [names]
 apple = jablíčko

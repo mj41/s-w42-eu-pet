@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	"github.com/mj41/stackchan-pet/internal/pet"
+	"github.com/mj41/stackchan-pet/internal/robotpic"
 )
 
 // The keys the code says (text(lang, key, ...)).
 var lineKeys = []string{"eat", "full", "cuddle", "play", "too_tired", "limit", "nap", "not_tired", "wake", "shake",
 	"hello", "hungry", "bored", "tired", "bedtime", "goodnight", "morning", "game", "night_wake", "game_over", "game_over_0", "school", "long_press",
+	"color_game", "color_done", "color_record",
 	"tickle", "long_cuddle", "scratch", "game_over_all", "demo_food", "demo_fun", "demo_energy", "picky", "eat_again", "dream_food"}
 
 func TestLinesFilesAreComplete(t *testing.T) {
@@ -20,7 +22,8 @@ func TestLinesFilesAreComplete(t *testing.T) {
 				t.Errorf("lines/%s.txt: no [%s]", lang, key)
 			}
 			for _, v := range robotTexts[lang][key] {
-				if strings.Contains(v, "%s") != (key == "eat" && strings.Contains(v, "%s") || key == "game_over") {
+				filled := key == "game_over" || key == "color_done" || key == "color_record"
+				if strings.Contains(v, "%s") != (key == "eat" && strings.Contains(v, "%s") || filled) {
 					t.Errorf("lines/%s.txt [%s]: %%s where it is not filled in (or missing): %q", lang, key, v)
 				}
 			}
@@ -37,6 +40,11 @@ func TestLinesFilesAreComplete(t *testing.T) {
 		for hits := 1; hits <= pet.GameRounds; hits++ {
 			if scoreTexts[lang][fmt.Sprint(hits)] == "" {
 				t.Errorf("lines/%s.txt [score]: no %d", lang, hits)
+			}
+		}
+		for _, c := range robotpic.Colors {
+			if colorNames[lang][c] == "" {
+				t.Errorf("lines/%s.txt [colors]: no %s", lang, c)
 			}
 		}
 		for _, food := range pet.FoodOrder {

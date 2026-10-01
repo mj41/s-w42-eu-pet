@@ -384,3 +384,19 @@ func TestNapUpTo90(t *testing.T) {
 		t.Fatalf("energy 85 should nap: %+v", r)
 	}
 }
+
+func TestColorsBestTime(t *testing.T) {
+	p := New(at(0, 13, 0), DefaultSettings())
+	if re := p.FinishColors(at(0, 13, 1), GameRounds, 20*time.Second); re.Record || p.ColorsBestMs != 20000 {
+		t.Fatalf("first game: %+v best %d", re, p.ColorsBestMs)
+	}
+	if re := p.FinishColors(at(0, 13, 2), GameRounds, 25*time.Second); re.Record || p.ColorsBestMs != 20000 {
+		t.Fatalf("slower: %+v best %d", re, p.ColorsBestMs)
+	}
+	if re := p.FinishColors(at(0, 13, 3), GameRounds-1, 10*time.Second); re.Record {
+		t.Fatalf("a round not done is no record: %+v", re)
+	}
+	if re := p.FinishColors(at(0, 13, 4), GameRounds, 15*time.Second); !re.Record || p.ColorsBestMs != 15000 {
+		t.Fatalf("faster: %+v best %d", re, p.ColorsBestMs)
+	}
+}

@@ -80,6 +80,8 @@ type game struct {
 	dodges          int // this ball
 	lastDodge       time.Time
 	side            float64 // the last dodge direction, +1 or -1
+
+	colors *colorGame // the color game (colorgame.go); nil for catch
 }
 
 // gameView is the game as the kid's page shows it.
@@ -375,6 +377,11 @@ func (a *App) gameEvent(r *robot, ev wire.RobotEventBody, now time.Time) bool {
 	}
 	switch ev.Name {
 	case "screen_tap":
+		if g.colors != nil {
+			sprite, _ := ev.Data["sprite"].(string)
+			a.colorTap(r, g, sprite)
+			break
+		}
 		x, _ := ev.Data["x"].(float64)
 		y, _ := ev.Data["y"].(float64)
 		a.gameTap(r, g, x, y, now)

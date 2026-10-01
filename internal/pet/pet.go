@@ -69,10 +69,11 @@ type Pet struct {
 	LastFoodAt  time.Time `json:"last_food_at,omitzero"`
 	FoodRepeats int       `json:"food_repeats,omitempty"`
 
-	PlayDay    string    `json:"play_day"` // the local date PlayMin counts, "2006-01-02"
-	PlayMin    float64   `json:"play_min"` // play and cuddle time on PlayDay
-	LastPlayAt time.Time `json:"last_play_at,omitzero"`
-	LastCuddle time.Time `json:"last_cuddle,omitzero"`
+	PlayDay      string    `json:"play_day"` // the local date PlayMin counts, "2006-01-02"
+	PlayMin      float64   `json:"play_min"` // play and cuddle time on PlayDay
+	LastPlayAt   time.Time `json:"last_play_at,omitzero"`
+	ColorsBestMs int64     `json:"colors_best_ms,omitempty"` // the color game's best time (every round done)
+	LastCuddle   time.Time `json:"last_cuddle,omitzero"`
 
 	Log []Entry `json:"log"`
 }
@@ -281,34 +282,37 @@ func (p *Pet) Note(now time.Time, kind, detail string) { p.log(now, kind, detail
 
 // Reaction is what an action did; the caller shows it on the robot and the page.
 type Reaction struct {
-	Kind    string `json:"kind"`            // see the Kind* constants
-	Food    string `json:"food,omitempty"`  // for KindEat
-	Hits    int    `json:"hits,omitempty"`  // for KindGameOver
-	Touch   string `json:"touch,omitempty"` // for KindCuddle: tickle, cuddle, long, scratch
-	Need    string `json:"need,omitempty"`  // for KindDemoReset: food, fun or energy
-	Changed bool   `json:"changed"`         // the needs changed
+	Kind    string `json:"kind"`             // see the Kind* constants
+	Food    string `json:"food,omitempty"`   // for KindEat
+	Hits    int    `json:"hits,omitempty"`   // for KindGameOver
+	Ms      int64  `json:"ms,omitempty"`     // for KindColorsOver: the time over all rounds
+	Record  bool   `json:"record,omitempty"` // for KindColorsOver: the best time so far
+	Touch   string `json:"touch,omitempty"`  // for KindCuddle: tickle, cuddle, long, scratch
+	Need    string `json:"need,omitempty"`   // for KindDemoReset: food, fun or energy
+	Changed bool   `json:"changed"`          // the needs changed
 }
 
 const (
-	KindEat       = "eat"
-	KindFull      = "full"      // not hungry: refuses food
-	KindCuddle    = "cuddle"    // head stroke or the cuddle button
-	KindPlay      = "play"      // a game
-	KindTooTired  = "too_tired" // no energy to play
-	KindLimit     = "limit"     // today's play time is used up
-	KindNap       = "nap"
-	KindNotTired  = "not_tired"  // refuses a nap
-	KindWake      = "wake"       // woken from a nap
-	KindAsleep    = "asleep"     // it is night: only a sleepy answer (a dream on the robot)
-	KindNightWake = "night_wake" // woken at night by a hard press
-	KindDemoReset = "demo_reset" // demo mode set a full need back to 10%
-	KindSchool    = "school"     // school hours: the pet rests and says only that
-	KindPicky     = "picky"      // the same food again: "Nemáš něco jiného?"
-	KindEatAgain  = "eat_again"  // the same food a third time: eaten after all, for 80%
-	KindDreamFood = "dream_food" // a food card while asleep: a dream of it (Changed: a sleep boost)
-	KindShake     = "shake"      // the robot was shaken
-	KindGame      = "game"       // a game of catch starts on the robot
-	KindGameOver  = "game_over"  // the game ended; Hits balls caught
+	KindEat        = "eat"
+	KindFull       = "full"      // not hungry: refuses food
+	KindCuddle     = "cuddle"    // head stroke or the cuddle button
+	KindPlay       = "play"      // a game
+	KindTooTired   = "too_tired" // no energy to play
+	KindLimit      = "limit"     // today's play time is used up
+	KindNap        = "nap"
+	KindNotTired   = "not_tired"   // refuses a nap
+	KindWake       = "wake"        // woken from a nap
+	KindAsleep     = "asleep"      // it is night: only a sleepy answer (a dream on the robot)
+	KindNightWake  = "night_wake"  // woken at night by a hard press
+	KindDemoReset  = "demo_reset"  // demo mode set a full need back to 10%
+	KindSchool     = "school"      // school hours: the pet rests and says only that
+	KindColorsOver = "colors_over" // the color game ended; Hits rounds done, Ms the time
+	KindPicky      = "picky"       // the same food again: "Nemáš něco jiného?"
+	KindEatAgain   = "eat_again"   // the same food a third time: eaten after all, for 80%
+	KindDreamFood  = "dream_food"  // a food card while asleep: a dream of it (Changed: a sleep boost)
+	KindShake      = "shake"       // the robot was shaken
+	KindGame       = "game"        // a game of catch starts on the robot
+	KindGameOver   = "game_over"   // the game ended; Hits balls caught
 )
 
 // awake is the common start of an action: needs up to date, night answers
@@ -463,12 +467,34 @@ func (p *Pet) FinishGame(now time.Time, hits int) Reaction {
 	p.Advance(now)
 	hits = max(0, min(GameRounds, hits))
 	p.countPlay(now)
-	p.Stats.Fun += 8 + 4*float64(hits)
+	p.reward(hits)
+	p.log(now, "play", fmt.Sprintf("%d/%d", hits, GameRounds))
+	return Reaction{Kind: KindGameOver, Hits: hits, Changed: true}
+}
+
+// reward is a game's effect: more fun for more rounds won; playing makes hungry and tired.
+func (p *Pet) reward(won int) {
+	p.Stats.Fun += 8 + 4*float64(won)
 	p.Stats.Energy -= 8
 	p.Stats.Food -= 4
 	p.clamp()
-	p.log(now, "play", fmt.Sprintf("%d/%d", hits, GameRounds))
-	return Reaction{Kind: KindGameOver, Hits: hits, Changed: true}
+}
+
+// FinishColors ends the color game: done rounds of GameRounds, in total time (the
+// rounds not done count with their full time). A game with every round done can
+// set the best time.
+func (p *Pet) FinishColors(now time.Time, done int, total time.Duration) Reaction {
+	p.Advance(now)
+	done = max(0, min(GameRounds, done))
+	p.countPlay(now)
+	p.reward(done)
+	re := Reaction{Kind: KindColorsOver, Hits: done, Ms: total.Milliseconds(), Changed: true}
+	if done == GameRounds && (p.ColorsBestMs == 0 || re.Ms < p.ColorsBestMs) {
+		re.Record = p.ColorsBestMs != 0 // the first game is not a record yet
+		p.ColorsBestMs = re.Ms
+	}
+	p.log(now, "colors", fmt.Sprintf("%d/%d %.1f s", done, GameRounds, total.Seconds()))
+	return re
 }
 
 // NapLength is how long a daytime nap lasts unless the kid wakes the pet; DemoNapLength

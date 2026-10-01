@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"strings"
+	"time"
 )
 
 // What the pet says: lines/<lang>.txt (one file per language, easy to read and edit).
@@ -14,6 +15,7 @@ import (
 //	[key]          when it is said; each line below is one variant (picked at random)
 //	[food <food>]  what it says about a food
 //	[names]        food = name, for the %s in [eat]
+//	[colors]       color = name, for the color game
 //	# comment
 //
 //go:embed lines/*.txt
@@ -24,6 +26,7 @@ var (
 	foodTexts  = map[string]map[string][]string{} // lang -> food -> variants
 	foodNames  = map[string]map[string]string{}   // lang -> food -> name
 	scoreTexts = map[string]map[string]string{}   // lang -> balls caught -> "tři z pěti"
+	colorNames = map[string]map[string]string{}   // lang -> color -> name
 )
 
 func init() {
@@ -36,6 +39,7 @@ func init() {
 			panic("lines/" + f.Name() + ": " + err.Error())
 		}
 		robotTexts[lang], foodTexts[lang], foodNames[lang], scoreTexts[lang] = l.texts, l.foods, l.names, l.scores
+		colorNames[lang] = l.colors
 	}
 }
 
@@ -45,11 +49,13 @@ type lines struct {
 	foods  map[string][]string // food -> variants
 	names  map[string]string   // food -> name
 	scores map[string]string   // balls caught -> words
+	colors map[string]string   // color -> name
 }
 
 // parseLines reads one language's lines file.
 func parseLines(text string) (lines, error) {
-	l := lines{texts: map[string][]string{}, foods: map[string][]string{}, names: map[string]string{}, scores: map[string]string{}}
+	l := lines{texts: map[string][]string{}, foods: map[string][]string{}, names: map[string]string{}, scores: map[string]string{},
+		colors: map[string]string{}}
 	section := ""
 	for n, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)
@@ -59,15 +65,12 @@ func parseLines(text string) (lines, error) {
 			section = strings.TrimSpace(line[1 : len(line)-1])
 		case section == "":
 			return l, fmt.Errorf("line %d: text before the first [section]", n+1)
-		case section == "names" || section == "score":
+		case section == "names" || section == "score" || section == "colors":
 			key, value, ok := strings.Cut(line, "=")
 			if !ok {
 				return l, fmt.Errorf("line %d: want key = text", n+1)
 			}
-			m := l.names
-			if section == "score" {
-				m = l.scores
-			}
+			m := map[string]map[string]string{"names": l.names, "score": l.scores, "colors": l.colors}[section]
 			m[strings.TrimSpace(key)] = strings.TrimSpace(value)
 		case strings.HasPrefix(section, "food "):
 			food := strings.TrimSpace(strings.TrimPrefix(section, "food "))
@@ -130,4 +133,37 @@ func asciiOnly(s string) string {
 		}
 		return r
 	}, s)
+}
+
+// colorPrompt names the colors to press: "Červená a modrá!".
+func colorPrompt(lang string, seq []string) string {
+	names := make([]string, len(seq))
+	for i, c := range seq {
+		names[i] = colorNames[lang][c]
+	}
+	and := map[string]string{"cs": " a ", "en": " and "}[lang]
+	s := names[len(names)-1]
+	if len(names) > 1 {
+		s = strings.Join(names[:len(names)-1], ", ") + and + s
+	}
+	r := []rune(s)
+	return strings.ToUpper(string(r[:1])) + string(r[1:]) + "!"
+}
+
+// secondsText is a time in whole seconds, after "za" / "in": "14 sekund", "1 second".
+func secondsText(lang string, d time.Duration) string {
+	n := int(d.Round(time.Second) / time.Second)
+	if lang != "cs" {
+		if n == 1 {
+			return "1 second"
+		}
+		return fmt.Sprintf("%d seconds", n)
+	}
+	switch {
+	case n == 1:
+		return "1 sekundu"
+	case n >= 2 && n <= 4:
+		return fmt.Sprintf("%d sekundy", n)
+	}
+	return fmt.Sprintf("%d sekund", n)
 }

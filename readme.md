@@ -18,7 +18,7 @@ All requirements, with ids and the open decisions, are in
 |---|---|
 | Stroke or press the head | Tickle, cuddle, long cuddle or scratch: each its own line and fun |
 | Hold an NFC card to it | Eats the card's food (it glides into the mouth); asleep, it dreams of the food, and more cards help it sleep (+15% energy each) |
-| Tap the screen | A menu: food, play (catch the ball, dance), nap, needs; a back arrow at the bottom |
+| Tap the screen | A menu: food, play (catch the ball, the color game, dance), nap, needs; a back arrow at the bottom |
 | Shake it | "Wheee!", dizzy |
 | Come close (proximity) | Says hello now and then |
 
