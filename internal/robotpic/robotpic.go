@@ -420,12 +420,12 @@ func DemoReset(need string) []byte {
 
 // The color game's colors (the robot's LEDs show the same).
 var (
-	Colors    = []string{"red", "yellow", "green", "cyan", "blue", "purple"}
-	ColorRGBA = map[string]color.RGBA{ // the screen's colors; the LEDs show ColorLED
+	Colors    = []string{"red", "yellow", "green", "white", "blue", "purple"} // white, not cyan: on the LEDs cyan looked like blue
+	ColorRGBA = map[string]color.RGBA{                                        // the screen's colors; the LEDs show ColorLED
 		"red":    {0xe5, 0x39, 0x35, 0xff},
 		"yellow": {0xfd, 0xd8, 0x35, 0xff},
 		"green":  {0x43, 0xa0, 0x47, 0xff},
-		"cyan":   {0x26, 0xc6, 0xda, 0xff},
+		"white":  {0xf5, 0xf5, 0xf5, 0xff},
 		"blue":   {0x1e, 0x5b, 0xe5, 0xff},
 		"purple": {0x9c, 0x27, 0xb0, 0xff},
 	}
@@ -439,7 +439,11 @@ const ColorButtonW, ColorButtonH = 96, 104
 // ColorButton is one big rounded button of a color (PNG, white rim).
 func ColorButton(name string) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, ColorButtonW, ColorButtonH))
-	fillRoundRect(img, img.Bounds(), 18, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	rim := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	if name == "white" {
+		rim = color.RGBA{0x9e, 0x9e, 0x9e, 0xff}
+	}
+	fillRoundRect(img, img.Bounds(), 18, rim)
 	fillRoundRect(img, image.Rect(5, 5, ColorButtonW-5, ColorButtonH-5), 14, ColorRGBA[name])
 	return encodePNG(img)
 }

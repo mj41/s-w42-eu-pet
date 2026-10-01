@@ -163,7 +163,8 @@ there, instead of flipping the behaviour back and forth.
   near the light sensor must not dim it. Auto brightness returns after the game.
 - **G5** Without the robot connected, play is a short dance on the page.
 - **G6** The color game (robot menu: Play → the color-dots tile): six color
-  buttons (red, yellow, green, cyan, blue, purple), three by two, in a new order
+  buttons (red, yellow, green, white, blue, purple; not cyan, which looked like
+  blue on the LEDs), three by two, in a new order
   every round. The robot's LED strips show the colors to press, in reading
   order: 1 color the left strip (right dark); 2 colors left, then right; 3 colors
   the left strip's half near the kid (the screen), its far half, then the right
