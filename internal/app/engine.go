@@ -402,7 +402,7 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		} else {
 			re = p.Feed(now, food)
 		}
-		a.log.Info("food card", "robot", id, "uid", uid, "food", food, "reaction", re.Kind)
+		a.log.Info("food card", "robot", id, "uid", uid, "food", food, "reaction", re.Kind, "read_ms", ev.Data["read_ms"])
 	case "screen_tap":
 		if r.menu != "" {
 			sprite, _ := ev.Data["sprite"].(string)
@@ -755,6 +755,7 @@ const (
 )
 
 func (a *App) touchStart(r *robot, now time.Time, zones [3]float64) {
+	a.log.Info("head touch", "robot", r.id, "zones", zones)
 	r.touchAt, r.touchZone, r.touchSeen = now, max(zones[0], zones[1], zones[2]), false
 	r.touchID++
 	id := r.touchID
