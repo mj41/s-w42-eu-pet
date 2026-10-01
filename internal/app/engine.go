@@ -314,6 +314,10 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 	}
 	night := p.Phase(now) == pet.Night
 	asleep := night || p.Napping(now) // the night, or a daytime nap
+	if ev.Name == "screen_tap" || ev.Name == "screen_long_press" {
+		a.log.Info("screen touch", "robot", id, "event", ev.Name, "x", ev.Data["x"], "y", ev.Data["y"],
+			"sprite", ev.Data["sprite"], "menu", r.menu, "can_menu", r.canMenu(), "asleep", asleep, "game", r.game != nil)
+	}
 	var re pet.Reaction
 	switch ev.Name {
 	case "screen_long_press": // hold a finger on the screen: the menu (or a game without one)
