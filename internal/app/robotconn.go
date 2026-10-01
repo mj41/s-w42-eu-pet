@@ -252,7 +252,9 @@ func (a *App) readLoop(c *robotConn) {
 		for _, f := range frames {
 			if f.Kind == wire.KindRobotTelemetry {
 				var t wire.RobotTelemetryBody
-				if f.Decode(&t) == nil {
+				if err := f.Decode(&t); err != nil {
+					a.log.Debug("bad telemetry", "robot", c.id, "err", err, "body", string(f.Body))
+				} else {
 					a.telemetry(c.id, t.Measurements)
 				}
 				continue

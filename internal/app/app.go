@@ -113,9 +113,12 @@ type robot struct {
 	dimmed      bool      // the pet dimmed the screen for the night
 	screenOnAt  time.Time // the screen was last lit at night: off nightScreenOn later
 	menuID      int
-	voiceGen    int         // bumped by each spoken line: an older one stops
-	head        *[2]float64 // yaw, pitch (degrees) from the robot's telemetry; nil until known
-	headBefore  *[2]float64 // where the head was before a game or dance: it goes back there
+	voiceGen    int                // bumped by each spoken line: an older one stops
+	head        *[2]float64        // yaw, pitch (degrees) from the robot's telemetry; nil until known
+	telemetry   map[string]float64 // the robot's last telemetry (every 2 s)
+	headWant    float64            // the pitch the pet last put the head at (0 = headRestPitch)
+	lastLift    time.Time          // the last time it lifted a sunken head
+	headBefore  *[2]float64        // where the head was before a game or dance: it goes back there
 }
 
 func New(cfg Config) *App {

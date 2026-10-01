@@ -800,18 +800,44 @@ func (a *App) touchSoon(r *robot, now time.Time, kind string, wait time.Duration
 	})
 }
 
-// telemetry keeps the robot's head angles (sent every 2 s).
+// telemetry keeps the robot's last telemetry (sent every 2 s) and its head angles.
 func (a *App) telemetry(id string, m map[string]float64) {
-	yaw, okYaw := m["head_yaw_deg"]
-	pitch, okPitch := m["head_pitch_deg"]
-	if !okYaw || !okPitch {
-		return
-	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if r := a.robots[id]; r != nil {
-		r.head = &[2]float64{yaw, pitch}
+	r := a.robots[id]
+	if r == nil {
+		return
 	}
+	r.telemetry = m
+	yaw, okYaw := m["head_yaw_deg"]
+	pitch, okPitch := m["head_pitch_deg"]
+	if okYaw && okPitch {
+		r.head = &[2]float64{yaw, pitch}
+		a.liftHead(r, a.now(), yaw, pitch)
+	}
+}
+
+// The firmware lets go of the servos when the head rests (no torque), so the head
+// slowly sinks under its weight. By day the pet lifts it back to where it last put it.
+const (
+	headRestPitch = 25               // where the head rests by day, when the pet set nothing else
+	headSag       = 8                // degrees below that count as sunk
+	headLiftEvery = 20 * time.Second // at most this often (a hand may hold it down)
+)
+
+func (a *App) liftHead(r *robot, now time.Time, yaw, pitch float64) {
+	want := r.headWant
+	if want == 0 {
+		want = headRestPitch
+	}
+	p := r.pet
+	if r.conn == nil || r.game != nil || r.menu != "" || now.Before(r.busyUntil) || p.Phase(now) == pet.Night ||
+		p.Napping(now) || pitch >= want-headSag || now.Sub(r.lastLift) < headLiftEvery {
+		return // asleep the head may droop: that is the sleeping pose
+	}
+	r.lastLift = now
+	r.conn.command("look", map[string]any{"yaw": math.Round(yaw), "pitch": want})
+	a.log.Debug("head lifted", "robot", r.id, "from", pitch, "to", want)
 }
 
 // rememberHead notes where the head is before the pet moves it (a game, a dance).
@@ -830,6 +856,7 @@ func (a *App) restoreHead(r *robot) {
 		yaw, pitch = h[0], max(h[1], 5) // "look" takes pitch 5..85
 	}
 	r.headBefore = nil
+	r.headWant = math.Round(pitch)
 	r.conn.command("look", map[string]any{"yaw": math.Round(yaw), "pitch": math.Round(pitch)})
 }
 

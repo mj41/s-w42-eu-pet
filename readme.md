@@ -52,6 +52,8 @@ now and then.
 - sounds and volume, night light, screen off at night
 - food cards: tags seen by the robot, each assigned a food
 - the needs themselves: sliders for food, fun and energy, or all full
+- demo mode: a need at 90% drops back to 10% (a reset picture and a line on the
+  robot), and a nap lasts 2 minutes and refills energy fast
 - the game: seconds per ball (3-10) and whether the head moves (circles, dodges)
 - a drawn face on the robot: colourful pictures per mood (`internal/robotpic/faces/`)
   instead of the robot's own blinking face; they step aside for speech bubbles
@@ -66,6 +68,10 @@ touch zones at full, 3,3,3) wakes the pet quietly for a few minutes (parent
 setting, 0 = never), then it falls asleep again with the lullaby. In the morning it
 wakes the screen, greets and plays a tune. Needs pause at night and during
 school hours, so the pet never suffers while the kid sleeps or is away.
+
+The firmware lets go of the head servos at rest, so the head slowly sinks; by
+day the pet lifts it back (from the robot's telemetry) to where it last put it.
+At night and during naps it may droop.
 
 ## Running
 

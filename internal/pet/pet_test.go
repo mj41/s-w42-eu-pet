@@ -287,3 +287,20 @@ func TestDemoReset(t *testing.T) {
 		t.Fatalf("log: %+v", l)
 	}
 }
+
+func TestDemoNap(t *testing.T) {
+	s := DefaultSettings()
+	s.Demo = true
+	p := New(at(0, 13, 0), s)
+	p.Stats = Stats{Food: 50, Fun: 50, Energy: 10}
+	if r := p.Nap(at(0, 13, 0)); r.Kind != KindNap || !p.NapUntil.Equal(at(0, 13, 2)) {
+		t.Fatalf("demo nap: %+v until %v", r, p.NapUntil)
+	}
+	if reset := p.DemoReset(at(0, 13, 1)); reset != nil || p.Stats.Energy < 45 {
+		t.Fatalf("during the nap: reset %v, energy %.0f", reset, p.Stats.Energy)
+	}
+	p.Advance(at(0, 13, 2))
+	if p.Stats.Energy < 89 {
+		t.Fatalf("after a 2 minute demo nap: energy %.0f", p.Stats.Energy)
+	}
+}

@@ -363,6 +363,9 @@ func (a *App) handleParent(w http.ResponseWriter, r *http.Request) {
 		out["unknown_tags"] = tags
 		out["born"] = p.Born
 		out["unlocked_until"] = s.parentUntil
+		if rb.head != nil {
+			out["head"] = map[string]float64{"yaw": rb.head[0], "pitch": rb.head[1]}
+		}
 	}
 	writeJSON(w, http.StatusOK, out)
 }

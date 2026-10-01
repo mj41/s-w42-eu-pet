@@ -929,3 +929,31 @@ func TestDemoModeOnTheRobot(t *testing.T) {
 		t.Fatalf("food after the demo reset: %.1f", food)
 	}
 }
+
+func TestSunkenHeadIsLifted(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	tele := func(pitch float64) {
+		f, _ := wire.Marshal(wire.KindRobotTelemetry, wire.Meta{}, wire.RobotTelemetryBody{
+			Measurements: map[string]float64{"head_yaw_deg": 4, "head_pitch_deg": pitch}})
+		r.ws.WriteMessage(websocket.TextMessage, f)
+	}
+	tele(22) // a little low: fine
+	tele(12) // sunk: lifted back to the rest pitch
+	r.next("the head lifted", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		return body.Command == "look" && body.Args["pitch"] == float64(headRestPitch) && body.Args["yaw"] == 4.0
+	})
+	e.clock.set(time.Date(2026, 9, 30, 22, 0, 0, 0, prague)) // at night it may droop
+	tele(5)
+	time.Sleep(200 * time.Millisecond)
+	e.app.mu.Lock()
+	last := e.app.robots["robot-1"].lastLift
+	e.app.mu.Unlock()
+	if last.After(time.Date(2026, 9, 30, 21, 0, 0, 0, prague)) {
+		t.Fatal("the head was lifted at night")
+	}
+}

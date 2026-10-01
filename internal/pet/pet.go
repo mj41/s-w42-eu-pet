@@ -91,6 +91,9 @@ func (s *Settings) rates() rates {
 	r.food *= f
 	r.fun *= f
 	r.energy *= f
+	if s.Demo { // a demo nap refills energy in a couple of minutes
+		r.napEnergy *= 40
+	}
 	return r
 }
 
@@ -404,8 +407,12 @@ func (p *Pet) FinishGame(now time.Time, hits int) Reaction {
 	return Reaction{Kind: KindGameOver, Hits: hits, Changed: true}
 }
 
-// NapLength is how long a daytime nap lasts unless the kid wakes the pet.
-const NapLength = 15 * time.Minute
+// NapLength is how long a daytime nap lasts unless the kid wakes the pet; DemoNapLength
+// in demo mode.
+const (
+	NapLength     = 15 * time.Minute
+	DemoNapLength = 2 * time.Minute
+)
 
 // Nap puts the pet to sleep for NapLength during the day.
 func (p *Pet) Nap(now time.Time) Reaction {
@@ -418,7 +425,11 @@ func (p *Pet) Nap(now time.Time) Reaction {
 	case p.Stats.Energy >= 80:
 		return Reaction{Kind: KindNotTired}
 	}
-	p.NapUntil = now.Add(NapLength)
+	length := NapLength
+	if p.Settings.Demo {
+		length = DemoNapLength
+	}
+	p.NapUntil = now.Add(length)
 	p.log(now, "nap", "")
 	return Reaction{Kind: KindNap, Changed: true}
 }
@@ -476,6 +487,9 @@ func (p *Pet) DemoReset(now time.Time) []string {
 		return nil
 	}
 	p.Advance(now)
+	if p.Napping(now) {
+		return nil // let it sleep: the reset comes when it wakes up (rested)
+	}
 	var reset []string
 	for _, need := range Needs {
 		v := p.need(need)

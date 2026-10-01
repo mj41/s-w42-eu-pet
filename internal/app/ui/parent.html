@@ -195,6 +195,7 @@ const T = {
     schedule: "Denní režim", wake: "Vstává", bed: "Jde spát", weekday: "Po–Pá", weekend: "So–Ne",
     scheduleHint: "V noci mazlíček spí: jeho potřeby stojí, obrazovka zhasne a na dotyk jen ospale odpoví. 10 minut před spaním zívá.",
     voice: "Mluví (hlas robota)",
+    head: (p, y) => `Hlava: sklon ${p}°, otočení ${y}°.`,
     demo: "Ukázkový režim (demo)",
     demoHint: "Když je jídlo, zábava nebo energie na 90 %, spadne zpátky na 10 %: mazlíček pořád něco potřebuje. Na robotovi se ukáže obrázek s šipkami a věta.",
     setNeeds: "Změnit potřeby", set: "Nastavit", allFull: "Vše plné",
@@ -234,6 +235,7 @@ const T = {
     schedule: "Daily routine", wake: "Wakes up", bed: "Bedtime", weekday: "Mon–Fri", weekend: "Sat–Sun",
     scheduleHint: "At night the pet sleeps: its needs pause, the screen goes dark and a touch only gets a sleepy answer. It yawns 10 minutes before bedtime.",
     voice: "Speaks (robot voice)",
+    head: (p, y) => `Head: tilt ${p}°, turn ${y}°.`,
     demo: "Demo mode",
     demoHint: "When food, fun or energy reaches 90%, it drops back to 10%: the pet always needs something. The robot shows a reset picture and says so.",
     setNeeds: "Change the needs", set: "Set", allFull: "All full",
@@ -330,7 +332,8 @@ function renderToday(d) {
   }
   const left = st.play_left < 0 ? -1 : Math.round(st.play_left);
   $("todayText").textContent = t("todayText")(Math.round(d.played_today), left, T[lang].moods[st.mood] || st.mood, T[lang].phases[st.phase] || "")
-    + (st.online ? "" : " " + t("offline"));
+    + (st.online ? "" : " " + t("offline"))
+    + (d.head ? " " + t("head")(Math.round(d.head.pitch), Math.round(d.head.yaw)) : "");
 }
 
 function renderCards(unknown) {
