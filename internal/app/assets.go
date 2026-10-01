@@ -5,6 +5,7 @@ import (
 	"hash/crc32"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/mj41/stackchan-pet/internal/pet"
@@ -53,6 +54,12 @@ func (a *App) syncAssets(r *robot, listJSON string) {
 	for name, b := range want {
 		if have[name] == crc32.ChecksumIEEE(b) {
 			r.files[name] = true
+		}
+	}
+	for name := range have { // the pet's old files (e.g. a picture it no longer uses)
+		if _, ok := want[name]; !ok && strings.HasPrefix(name, assetDir) {
+			r.conn.command("asset_delete", map[string]any{"name": name})
+			a.log.Info("deleting an old pet file on the robot", "robot", r.id, "name", name)
 		}
 	}
 	names := make([]string, 0, len(want))

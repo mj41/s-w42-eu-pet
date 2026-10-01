@@ -57,7 +57,7 @@ func Needs(food, fun, energy float64) []byte {
 	rows := []struct {
 		icon  string
 		value float64
-	}{{"apple", food}, {"heart", fun}, {"battery", energy}}
+	}{{"apple", food}, {"heart", fun}, {"zzz", energy}}
 	for i, r := range rows {
 		y := 14 + i*76
 		if ic := icon(r.icon); ic != nil {
@@ -372,7 +372,7 @@ func fillRoundRect(dst *image.RGBA, r image.Rectangle, rad int, c color.RGBA) {
 }
 
 // needIcon is a need's icon (as on the needs picture).
-var needIcon = map[string]string{"food": "apple", "fun": "heart", "energy": "battery"}
+var needIcon = map[string]string{"food": "apple", "fun": "heart", "energy": "zzz"}
 
 // DemoReset shows that demo mode reset a need: the refresh arrows, the need's icon and
 // its bar back down at 10%.

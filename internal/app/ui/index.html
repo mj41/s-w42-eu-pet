@@ -122,7 +122,7 @@
   <section class="needs" aria-label="needs">
     <div class="need"><img src="/emoji/apple.svg" alt=""><div class="bar"><i id="barFood"></i></div></div>
     <div class="need"><img src="/emoji/heart.svg" alt=""><div class="bar"><i id="barFun"></i></div></div>
-    <div class="need"><img src="/emoji/battery.svg" alt=""><div class="bar"><i id="barEnergy"></i></div></div>
+    <div class="need"><img src="/emoji/zzz.svg" alt=""><div class="bar"><i id="barEnergy"></i></div></div>
   </section>
 
   <section class="buttons">
@@ -172,7 +172,7 @@ const T = {
 };
 // The pet is a tiny Stack-chan (ui/chan): the same face as on the robot's screen.
 const moodFace = { happy: "happy", ok: "neutral", hungry: "sad", bored: "grumpy", tired: "yawn", napping: "sleeping", sleeping: "sleeping" };
-const moodNeed = { hungry: "apple", bored: "ball", tired: "battery" };
+const moodNeed = { hungry: "apple", bored: "ball", tired: "zzz" };
 const $ = id => document.getElementById(id);
 let state = null, lang = navigator.language?.startsWith("en") ? "en" : "cs";
 
@@ -246,7 +246,7 @@ function react(r) {
     case "shake": faceAnim("shake"); break;
     case "asleep": fx("/emoji/moon.svg"); fx("/emoji/star.svg", 2); break; // a dream on the robot
     case "night_wake": faceAnim("jump", "yawn"); break;
-    case "demo_reset": fx("/emoji/refresh.svg"); fx(`/emoji/${{ food: "apple", fun: "heart", energy: "battery" }[r.need] || "apple"}.svg`); faceAnim("shake", "sad"); break;
+    case "demo_reset": fx("/emoji/refresh.svg"); fx(`/emoji/${{ food: "apple", fun: "heart", energy: "zzz" }[r.need] || "apple"}.svg`); faceAnim("shake", "sad"); break;
     case "game_over": if (r.hits) fx("/emoji/star.svg", r.hits); faceAnim("jump", "happy"); break;
   }
 }

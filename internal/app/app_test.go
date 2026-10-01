@@ -957,3 +957,12 @@ func TestSunkenHeadIsLifted(t *testing.T) {
 		t.Fatal("the head was lifted at night")
 	}
 }
+
+func TestOldPetFilesAreDeleted(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobotWith("robot-1", []string{"sprite", "assets"})
+	r.event("assets", map[string]any{"list": `{"files":[{"name":"pet/battery.png","bytes":10,"crc":1},{"name":"mine/song.wav","bytes":10,"crc":2}]}`})
+	if del := r.command("asset_delete"); del["name"] != "pet/battery.png" {
+		t.Fatalf("delete: %v", del)
+	}
+}
