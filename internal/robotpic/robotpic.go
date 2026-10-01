@@ -327,9 +327,9 @@ func menuTile(t tile) []byte {
 	cx, cy := t.w/2, t.h/2
 	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	switch t.icon {
-	case "colors": // the color game: its four colors as dots
+	case "colors": // the color game: its six colors as dots, three by two
 		for i, name := range Colors {
-			fillCircle(img, cx+(i%2*2-1)*t.w/5, cy+(i/2*2-1)*t.h/5, t.w/6, ColorRGBA[name])
+			fillCircle(img, cx+(i%3-1)*t.w*3/10, cy+(i/3*2-1)*t.h/5, t.w/8, ColorRGBA[name])
 		}
 	case "needs": // the needs picture in small: three icons with their bars
 		k := func(v int) int { return v * t.h / 96 } // drawn for 96 px
@@ -415,17 +415,23 @@ func DemoReset(need string) []byte {
 
 // The color game's colors (the robot's LEDs show the same).
 var (
-	Colors    = []string{"red", "yellow", "green", "blue"}
-	ColorRGBA = map[string]color.RGBA{
+	Colors    = []string{"red", "yellow", "green", "cyan", "blue", "purple"}
+	ColorRGBA = map[string]color.RGBA{ // the screen's colors; the LEDs show ColorLED
 		"red":    {0xe5, 0x39, 0x35, 0xff},
 		"yellow": {0xfd, 0xd8, 0x35, 0xff},
 		"green":  {0x43, 0xa0, 0x47, 0xff},
-		"blue":   {0x1e, 0x88, 0xe5, 0xff},
+		"cyan":   {0x26, 0xc6, 0xda, 0xff},
+		"blue":   {0x1e, 0x5b, 0xe5, 0xff},
+		"purple": {0x9c, 0x27, 0xb0, 0xff},
 	}
+	// ColorLED is each color at full strength for the robot's LEDs (they look washed
+	// out otherwise).
+	ColorLED = map[string]string{"red": "#ff0000", "yellow": "#ffb000", "green": "#00ff00",
+		"cyan": "#00ffff", "blue": "#0000ff", "purple": "#c000ff"}
 )
 
-// Color button size: four fit on the screen in two rows, below a strip for the colors to press.
-const ColorButtonW, ColorButtonH = 140, 80
+// Color button size: six fit on the screen, three by two.
+const ColorButtonW, ColorButtonH = 96, 104
 
 // ColorButton is one big rounded button of a color (PNG, white rim).
 func ColorButton(name string) []byte {

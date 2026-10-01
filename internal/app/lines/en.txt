@@ -176,12 +176,6 @@ Great, done in %s!
 [color_record]
 A new record! Only %s!
 
-[colors]
-red = red
-yellow = yellow
-green = green
-blue = blue
-
 [names]
 apple = apple
 carrot = carrot

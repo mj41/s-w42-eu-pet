@@ -208,13 +208,6 @@ Paráda, hotovo za %s!
 [color_record]
 Nový rekord! Jen %s!
 
-# Barvy pro hru (říká je, když ukáže barvu): klíč = jméno.
-[colors]
-red = červená
-yellow = žlutá
-green = zelená
-blue = modrá
-
 # Jména jídel (pro [eat]): klíč = jméno.
 [names]
 apple = jablíčko

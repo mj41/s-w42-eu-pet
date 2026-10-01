@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/mj41/stackchan-pet/internal/pet"
-	"github.com/mj41/stackchan-pet/internal/robotpic"
 	"github.com/mj41/stackchan-pet/internal/sound"
 	"github.com/mj41/stackchan-server/wire"
 )
@@ -82,22 +81,6 @@ func allLines(lang string) []string {
 	for _, variants := range foodTexts[lang] {
 		out = append(out, variants...)
 	}
-	// The color game's prompts: every order of 1 to 3 different colors.
-	var prompts func(seq []string)
-	prompts = func(seq []string) {
-		if len(seq) > 0 {
-			out = append(out, colorPrompt(lang, seq))
-		}
-		if len(seq) == 3 {
-			return
-		}
-		for _, c := range robotpic.Colors {
-			if !slices.Contains(seq, c) {
-				prompts(append(slices.Clone(seq), c))
-			}
-		}
-	}
-	prompts(nil)
 	return out
 }
 

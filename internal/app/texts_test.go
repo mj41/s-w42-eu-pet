@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/mj41/stackchan-pet/internal/pet"
-	"github.com/mj41/stackchan-pet/internal/robotpic"
 )
 
 // The keys the code says (text(lang, key, ...)).
@@ -40,11 +39,6 @@ func TestLinesFilesAreComplete(t *testing.T) {
 		for hits := 1; hits <= pet.GameRounds; hits++ {
 			if scoreTexts[lang][fmt.Sprint(hits)] == "" {
 				t.Errorf("lines/%s.txt [score]: no %d", lang, hits)
-			}
-		}
-		for _, c := range robotpic.Colors {
-			if colorNames[lang][c] == "" {
-				t.Errorf("lines/%s.txt [colors]: no %s", lang, c)
 			}
 		}
 		for _, food := range pet.FoodOrder {
