@@ -9,14 +9,16 @@ It is a separate server that the robot switches to from its QR screen
 (Next, then Connect). It speaks the Embody Mode protocol from
 [stackchan-server](https://github.com/mj41/stackchan-server) (`wire` package).
 
+All requirements, with ids and the open decisions, are in
+[docs/requirements.md](docs/requirements.md); this readme is the overview.
+
 ## Playing
 
 | On the robot | The pet |
 |---|---|
-| Stroke or press the head | Cuddle: happy face, heart, a chirp |
+| Stroke or press the head | Tickle, cuddle, long cuddle or scratch: each its own line and fun |
 | Hold an NFC card to it | Eats the card's food (it glides into the mouth); asleep, it dreams of the food, and more cards help it sleep (+15% energy each) |
-| Tap the screen | Shows its needs as three bars for a few seconds |
-| Hold a finger on the screen | A game of catch (below) |
+| Tap the screen | A menu: food, play (catch the ball, dance), nap, needs; a back arrow at the bottom |
 | Shake it | "Wheee!", dizzy |
 | Come close (proximity) | Says hello now and then |
 
@@ -25,7 +27,7 @@ works with pictures, so it needs no reading: the pet's face, three need bars
 (food, fun, energy) and four big buttons: food, cuddle, play and nap. Actions
 from the robot show on the page too.
 
-**Catch the ball** (the play button, or a long press on the robot's screen):
+**Catch the ball** (the play button on the page, or Play → ball in the robot's menu):
 the robot's screen shows a ball in one of its four quarters, and the kid taps
 it on the robot. Five balls, about five seconds each; a tap on the wrong
 quarter is just ignored, and a ball not caught flies on to the next place.
