@@ -487,8 +487,15 @@ func ledColor(c color.RGBA) string {
 	return fmt.Sprintf("#%02x%02x%02x", ch(r), ch(g), ch(b))
 }
 
+// ledByEye are LED colors tuned by looking at the robot, where ledColor was off:
+// yellow came out orange, purple too light.
+var ledByEye = map[string]string{"yellow": "#b38f00", "purple": "#5000b3"}
+
 func init() {
 	for name, c := range ColorRGBA {
 		ColorLED[name] = ledColor(c)
+		if hex, ok := ledByEye[name]; ok {
+			ColorLED[name] = hex
+		}
 	}
 }
