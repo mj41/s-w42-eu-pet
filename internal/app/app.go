@@ -115,6 +115,7 @@ type robot struct {
 	menuID        int
 	voiceGen      int                // bumped by each spoken line: an older one stops
 	speakingUntil time.Time          // a line is being spoken: effect sounds wait (one speaker queue)
+	recording     *recording         // a debug recording of the robot's microphone (debug.go)
 	head          *[2]float64        // yaw, pitch (degrees) from the robot's telemetry; nil until known
 	telemetry     map[string]float64 // the robot's last telemetry (every 2 s)
 	headWant      float64            // the pitch the pet last put the head at (0 = headRestPitch)

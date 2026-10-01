@@ -242,6 +242,9 @@ func (a *App) readLoop(c *robotConn) {
 			if len(data) > 1 && data[0] == wire.BinSnapshot { // a screen snapshot (debug.go)
 				a.saveScreen(c.id, data[1:])
 			}
+			if len(data) > 1 && data[0] == wire.BinAudioMulti { // a debug recording (debug.go)
+				a.micAudio(c.id, data[1:])
+			}
 			continue // the pet asks for no camera or microphone
 		}
 		frames, err := wire.Parse(data)

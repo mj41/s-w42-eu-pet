@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net/http"
 	"os"
@@ -31,7 +32,8 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Action   string `json:"action"`
 		Food     string `json:"food"`
-		Menu     string `json:"menu"` // for "menu": which one (default main)
+		Menu     string `json:"menu"`      // for "menu": which one (default main)
+		RecordMs int    `json:"record_ms"` // record the robot's microphone (ch0 = what the speaker plays) to DebugDir
 		ShotsMs  []int  `json:"shots_ms"`
 		Commands []struct {
 			Command string         `json:"command"`
@@ -89,6 +91,9 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 		a.publishReaction(rb, re)
 		a.publishState(rb)
 	}
+	if req.RecordMs > 0 {
+		a.record(rb, time.Duration(min(req.RecordMs, 30000))*time.Millisecond)
+	}
 	for _, ms := range req.ShotsMs {
 		conn := rb.conn
 		time.AfterFunc(time.Duration(ms)*time.Millisecond, func() { conn.command("screen_snapshot", nil) })
@@ -119,4 +124,65 @@ func (a *App) saveScreen(id string, jpeg []byte) {
 		os.Remove(files[0])
 		files = files[1:]
 	}
+}
+
+// record turns the robot's microphone on for d and saves what arrives (binary 0x04:
+// uint16 rate, uint8 channels, interleaved s16le; channel 0 is the speaker's own output)
+// as a WAV in DebugDir. a.mu held.
+func (a *App) record(r *robot, d time.Duration) {
+	r.recording = &recording{}
+	r.conn.command("mic", map[string]any{"on": true})
+	conn := r.conn
+	time.AfterFunc(d, func() {
+		a.mu.Lock()
+		rec := r.recording
+		r.recording = nil
+		a.mu.Unlock()
+		conn.command("mic", map[string]any{"on": false})
+		if rec == nil || rec.rate == 0 || a.cfg.DebugDir == "" {
+			return
+		}
+		name := filepath.Join(a.cfg.DebugDir, fmt.Sprintf("%s-%s.wav", r.id, time.Now().Format("150405")))
+		os.MkdirAll(a.cfg.DebugDir, 0o755)
+		os.WriteFile(name, wavOf(rec.pcm, rec.rate, rec.channels), 0o644)
+		a.log.Info("recording saved", "file", name, "seconds", float64(len(rec.pcm))/float64(2*rec.rate*rec.channels))
+	})
+}
+
+type recording struct {
+	rate, channels int
+	pcm            []byte
+}
+
+// micAudio keeps a microphone message while recording.
+func (a *App) micAudio(id string, payload []byte) {
+	if len(payload) < 3 {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	r := a.robots[id]
+	if r == nil || r.recording == nil {
+		return
+	}
+	r.recording.rate = int(payload[0]) | int(payload[1])<<8
+	r.recording.channels = int(payload[2])
+	r.recording.pcm = append(r.recording.pcm, payload[3:]...)
+}
+
+func wavOf(pcm []byte, rate, channels int) []byte {
+	b := make([]byte, 44, 44+len(pcm))
+	copy(b, "RIFF")
+	binary.LittleEndian.PutUint32(b[4:], uint32(36+len(pcm)))
+	copy(b[8:], "WAVEfmt ")
+	binary.LittleEndian.PutUint32(b[16:], 16)
+	binary.LittleEndian.PutUint16(b[20:], 1)
+	binary.LittleEndian.PutUint16(b[22:], uint16(channels))
+	binary.LittleEndian.PutUint32(b[24:], uint32(rate))
+	binary.LittleEndian.PutUint32(b[28:], uint32(rate*channels*2))
+	binary.LittleEndian.PutUint16(b[32:], uint16(channels*2))
+	binary.LittleEndian.PutUint16(b[34:], 16)
+	copy(b[36:], "data")
+	binary.LittleEndian.PutUint32(b[40:], uint32(len(pcm)))
+	return append(b, pcm...)
 }

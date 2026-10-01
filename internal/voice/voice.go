@@ -24,10 +24,11 @@ var Voices = map[string]EdgeVoice{
 }
 
 // robotFilter makes the voice a bit robot: 40% of a robotized copy (the FFT phase
-// dropped: a flat, buzzing pitch) mixed with the original, then even loudness.
+// dropped: a flat, buzzing pitch) mixed with the original, then even loudness with
+// 6 dB of headroom: the robot's speaker path adds gain, louder speech clipped there.
 const robotFilter = "aresample=22050,aformat=channel_layouts=mono,asplit[d][w];" +
 	"[w]afftfilt=real='hypot(re,im)':imag='0':win_size=512:overlap=0.75[r];" +
-	"[d][r]amix=inputs=2:weights=0.6 0.4:normalize=0,loudnorm=I=-18:TP=-2:LRA=11,aresample=16000"
+	"[d][r]amix=inputs=2:weights=0.6 0.4:normalize=0,loudnorm=I=-21:TP=-6:LRA=11,aresample=16000"
 
 // Synth makes speech: Edge + ffmpeg when both work (cached on disk: each line is made
 // once), else espeak-ng (kept in memory only, so Edge is tried again later).
