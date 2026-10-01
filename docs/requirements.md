@@ -142,6 +142,11 @@ there, instead of flipping the behaviour back and forth.
   look asleep while the pet is awake (the robot blanks its screen after 60 s
   without commands, so the pet sends its face again every 30 s when idle). A
   screen blanked on purpose (a double tap, the night) stays dark.
+- **R9** The head never moves while the robot is in someone's hands: held is a
+  tilt of more than 12° from the learned rest pose, turning (gyro over 8°/s),
+  more than 0.15 g off 1 g, or a shake; free again after two calm samples at
+  rest (telemetry every 2 s). Every head command (look, nod, shake, home) is
+  dropped while held.
 - **R8** While the pet sleeps (a nap, or the screen lit at night), a tiny faint
   bar in the bottom left corner shows its energy in % of full (10% steps,
   colored like the needs, no icon), rising as it rests.
@@ -164,19 +169,24 @@ there, instead of flipping the behaviour back and forth.
 - **G5** Without the robot connected, play is a short dance on the page.
 - **G6** The color game (robot menu: Play → the color-dots tile): six color
   buttons (red, yellow, green, white, blue, purple; not cyan, which looked like
-  blue on the LEDs), three by two, in a new order
-  every round. The robot's LED strips show the colors to press, in reading
-  order: 1 color the left strip (right dark); 2 colors left, then right; 3 colors
-  the left strip's half near the kid (the screen), its far half, then the right
-  strip's near half; 4 colors left near, left far, right near, right far. The same color twice is a double
-  tap. A pressed part goes dark. Rounds of 1, 2, 2 the same (a double tap), 3 and
-  4 colors; no spoken color names (the LEDs are the game). A wrong button only
-  buzzes (the clock runs on); a round not done in 20 s moves on and counts 20 s.
-  At the end the robot says the time over all rounds ("Hotovo za 14 sekund!");
-  with every round done, the best time is kept ("Nový rekord!"). Same fun,
-  energy and food as catch (G4). A double tap on a button is two presses, never
-  the screensaver. The LED colors match the buttons: gamma corrected, green
-  weakened, every color at the same power (not washed out to pastel).
+  blue on the LEDs), three by two, in a new order every level. The robot's LED
+  strips show colors; the kid presses them in the level's order:
+  1. the left strip, then the right one;
+  2. the right strip, then the left one;
+  3. left near the screen, left far, right near, right far;
+  4. right far, right near, left far, left near;
+  5. the four halves in a random order, not level 3's or 4's.
+
+  Each level starts with a picture of the robot from above (its screen towards
+  the kid) with its strips numbered in that order (3 s). Colors are random per
+  part; the same color twice in a row is a double tap. A pressed part goes dark.
+  A wrong button only buzzes (the clock runs on); a level not done in 20 s
+  moves on and counts 20 s. At the end the robot says the time over all levels
+  ("Hotovo za 14 sekund!"); with every level done, the best time is kept ("Nový
+  rekord!"). Same fun, energy and food as catch (G4). A double tap on a button
+  is two presses, never the screensaver. The LED colors match the buttons
+  (gamma corrected, green weakened, the same power; yellow, purple and white
+  tuned by eye).
 
 ## Naps
 
