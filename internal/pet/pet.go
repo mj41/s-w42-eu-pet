@@ -150,12 +150,12 @@ func (p *Pet) Advance(now time.Time) {
 	}
 }
 
-// Demo nap: +20% in the first 5 s (to see it work), then up to 95% at the end (1 minute):
-// full enough for the demo reset when it wakes up.
+// Demo nap: +20% in the first 5 s (to see it work), then up to 75% at the end (1 minute),
+// when it wakes up. The next nap passes 90% within seconds: the demo reset (DemoReset).
 const (
 	demoNapQuick     = 5 * time.Second
 	demoNapQuickGain = 20
-	demoNapTarget    = 95
+	demoNapTarget    = 75
 )
 
 // napCurve is the energy after a demo nap of length d that started at from.
@@ -518,7 +518,10 @@ func (p *Pet) DemoReset(now time.Time) []string {
 	}
 	p.Advance(now)
 	if p.Napping(now) {
-		return nil // let it sleep: the reset comes when it wakes up (rested)
+		if p.Stats.Energy < DemoHigh {
+			return nil // let it sleep on
+		}
+		p.NapUntil, p.NapFrom = time.Time{}, time.Time{} // full: the nap ends with the reset
 	}
 	var reset []string
 	for _, need := range Needs {

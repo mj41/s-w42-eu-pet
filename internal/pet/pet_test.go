@@ -300,16 +300,30 @@ func TestDemoNap(t *testing.T) {
 	for _, c := range []struct {
 		after  time.Duration
 		energy float64
-	}{{5 * time.Second, 30}, {time.Minute, 95}} {
+	}{{5 * time.Second, 30}, {time.Minute, 75}} {
 		p.Advance(t0.Add(c.after))
+		if reset := p.DemoReset(t0.Add(c.after)); reset != nil {
+			t.Fatalf("after %v: a reset below 90%%: %v", c.after, reset)
+		}
 		if math.Abs(p.Stats.Energy-c.energy) > 1 {
 			t.Fatalf("after %v: energy %.1f, want about %.0f", c.after, p.Stats.Energy, c.energy)
 		}
 	}
 	if p.Napping(t0.Add(time.Minute)) {
-		t.Fatal("a demo nap ends by itself after a minute")
+		t.Fatal("a demo nap ends by itself after a minute (at 75%)")
 	}
-	if reset := p.DemoReset(t0.Add(time.Minute)); len(reset) != 1 || reset[0] != "energy" || p.Stats.Energy != DemoLow {
-		t.Fatalf("after the demo nap the energy goes back to 10%%: %v, %.0f", reset, p.Stats.Energy)
+
+	// The next nap starts at 75%: past 90% within seconds, then back to 10% and awake.
+	t1 := t0.Add(2 * time.Minute)
+	p.Stats.Energy = 75
+	p.Updated = t1
+	if r := p.Nap(t1); r.Kind != KindNap {
+		t.Fatalf("second nap: %+v", r)
+	}
+	if reset := p.DemoReset(t1.Add(5 * time.Second)); len(reset) != 1 || reset[0] != "energy" || p.Stats.Energy != DemoLow {
+		t.Fatalf("the second nap: reset %v, energy %.0f", reset, p.Stats.Energy)
+	}
+	if p.Napping(t1.Add(6 * time.Second)) {
+		t.Fatal("the reset ends the nap")
 	}
 }

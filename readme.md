@@ -54,7 +54,8 @@ now and then.
 - the needs themselves: sliders for food, fun and energy, or all full
 - demo mode: a need at 90% drops back to 10% (a reset picture and a line on the
   robot), and a nap is quick: +20% energy in 5 seconds, 75% after a minute,
-  then the pet wakes up by itself
+  then the pet wakes up by itself; the next nap passes 90% within seconds and
+  the demo reset ends it (back to 10%)
 - the game: seconds per ball (3-10) and whether the head moves (circles, dodges)
 - a drawn face on the robot: colourful pictures per mood (`internal/robotpic/faces/`)
   instead of the robot's own blinking face; they step aside for speech bubbles
