@@ -80,3 +80,16 @@ func TestWatchdogEndsStuckStates(t *testing.T) {
 		})
 	}
 }
+
+func TestReactionClosesTheMenu(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	r.frame(wire.KindAccepted)
+	e.robotState("robot-1", func(rb *robot) {
+		rb.menu = "main"
+		e.app.react(rb, rb.pet.Touch(e.app.now(), "cuddle"), e.app.now())
+		if rb.menu != "" {
+			t.Fatalf("menu %q still open under a cuddle", rb.menu)
+		}
+	})
+}

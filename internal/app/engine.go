@@ -190,6 +190,9 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 		return
 	}
 	a.log.Info("reaction", "robot", r.id, "kind", re.Kind, "changed", re.Changed, "touch", re.Touch, "food", re.Food)
+	if r.menu != "" { // e.g. a cuddle while the menu is open: the reaction replaces it
+		a.closeMenu(r)
+	}
 	p := r.pet
 	lang := p.Settings.Lang
 	switch re.Kind {
