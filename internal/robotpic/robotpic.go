@@ -488,8 +488,8 @@ func ledColor(c color.RGBA) string {
 }
 
 // ledByEye are LED colors tuned by looking at the robot, where ledColor was off:
-// yellow came out orange, purple too light.
-var ledByEye = map[string]string{"yellow": "#b38f00", "purple": "#5000b3"}
+// yellow came out orange, purple too light, white pink (like purple).
+var ledByEye = map[string]string{"yellow": "#b38f00", "purple": "#5000b3", "white": "#b3b3b3"}
 
 func init() {
 	for name, c := range ColorRGBA {
