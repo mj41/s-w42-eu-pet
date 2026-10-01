@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -25,6 +26,9 @@ func (a *App) speak(r *robot, line string, atNight bool) {
 	s := r.pet.Settings
 	if a.cfg.Voice == nil || r.conn == nil || !s.Sounds || !s.Voice || (!atNight && s.PhaseAt(a.now()) == pet.Night) {
 		return
+	}
+	if time.Now().Before(r.speakingUntil) && slices.Contains(r.commands, "speaker_flush") {
+		r.conn.command("speaker_flush", nil) // the unfinished line fades out instead of mixing in
 	}
 	r.voiceGen++
 	r.speakingUntil = time.Now().Add(3 * time.Second) // until the speech's length is known
