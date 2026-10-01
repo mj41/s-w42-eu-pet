@@ -62,7 +62,8 @@ there, instead of flipping the behaviour back and forth.
   goes off and the LEDs too; whatever the kid does (head, cards, screen,
   shaking, the kid page) gets only "Během školy já odpočívám." (the screen
   lights for the line, then goes dark again). Nothing is eaten or played. After
-  school the face comes back. In holidays the parent turns school off.
+  school the face comes back. In holidays the parent turns school off. In demo
+  mode school is ignored by default (X5).
 
 ## On the robot
 
@@ -149,8 +150,8 @@ there, instead of flipping the behaviour back and forth.
   the ball on the robot's screen; a wrong tap is ignored; a missed ball moves on.
 - **G2** The head makes later balls harder (parent can turn it off): ball 1
   still, ball 2 circles, ball 3 random moves, balls 4–5 dodge a hand coming
-  close (proximity or the hand's shadow on the light sensor, 20 samples/s; each
-  dodge adds a second).
+  close (proximity 20 above its normal level, or the hand's shadow: light below
+  40% of normal; 20 samples/s; each dodge adds a second).
 - **G3** At the end: one star per catch and the score spoken in words
   ("Paráda, pět z pěti"). More catches, more fun.
 - **G4** Play costs energy and food (fun +20, energy −8, food −4); too tired
@@ -177,6 +178,8 @@ For showing the pet: something always happens within a minute.
 - **X3** The next nap passes 90% within seconds; the demo reset then ends the
   nap (back to 10%).
 - **X4** Dream cards (F5) work the same; past 90% they trigger the reset too.
+- **X5** Demo mode ignores school hours (a parent checkbox, on by default), so
+  a demo works on a school morning.
 
 ## Kid's page
 
@@ -230,6 +233,6 @@ For showing the pet: something always happens within a minute.
   head touch read no cards at all (firmware be75bc2, reverted). Twice a second
   is fast enough for now; revisit only if cards feel slow.
 - **C4 Game dodging (G2).** Proximity mostly stayed at 0–30 in games (the rise
-  threshold is 60), and the shadow rule fired 5 times in one game. Proposal:
-  rise 20, a stricter shadow rule.
+  threshold was 60) and the shadow rule (60%) fired 5 times in one game.
+  Decided 2026-10-01: rise 20, shadow below 40% (G2); check in the next games.
 - **C5 Long press (M2).** Decided 2026-10-01: a line asking for gentleness.

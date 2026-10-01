@@ -36,6 +36,7 @@ type Settings struct {
 	NightWakeMin     int  `json:"night_wake_min"`      // a hard press at night wakes it this long, 0 = never
 	DrawnFace        bool `json:"drawn_face"`          // the pet's drawn faces on the robot instead of its own
 	Demo             bool `json:"demo"`                // demo mode: a need at 90% drops back to 10% (DemoReset)
+	DemoNoSchool     bool `json:"demo_no_school"`      // in demo mode school hours are ignored (the pet does not rest)
 
 	GameBallSeconds int  `json:"game_ball_seconds"` // time to catch one ball (3..10)
 	GameHeadMoves   bool `json:"game_head_moves"`   // the head circles, wanders and dodges in the game
@@ -64,6 +65,7 @@ func DefaultSettings() Settings {
 		Weekday:          DaySchedule{Wake: "07:00", Bed: "20:00"},
 		Weekend:          DaySchedule{Wake: "08:00", Bed: "20:30"},
 		School:           false,
+		DemoNoSchool:     true,
 		SchoolFrom:       "08:00",
 		SchoolTo:         "15:00",
 		Sounds:           true,
@@ -155,7 +157,7 @@ func (s *Settings) PhaseAt(t time.Time) Phase {
 			return Night
 		}
 	}
-	if s.School && !weekend(t) {
+	if s.School && !weekend(t) && !(s.Demo && s.DemoNoSchool) {
 		from, to := minutesOf(s.SchoolFrom), minutesOf(s.SchoolTo)
 		if from >= 0 && to > from && m >= from && m < to {
 			return School

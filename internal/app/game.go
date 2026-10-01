@@ -49,8 +49,8 @@ var defaultTiming = timing{
 
 // Hand detection (raw sensor counts; see handNear).
 const (
-	proxRise   = 60  // proximity above its baseline: a hand close to the screen
-	shadowPart = 0.6 // light CH0 below this part of its baseline: a hand's shadow
+	proxRise   = 20  // proximity above its baseline: a hand close to the screen (games saw 0..30)
+	shadowPart = 0.4 // light CH0 below this part of its baseline: a hand's shadow (0.6 fired on leaning over)
 	shadowMin  = 20  // ... when there is enough light for a shadow to show
 )
 

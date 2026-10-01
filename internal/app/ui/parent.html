@@ -105,6 +105,7 @@
       <p class="hint" data-t="difficultyHint"></p>
       <div class="row"><label><input id="demo" type="checkbox"> <span data-t="demo"></span></label></div>
       <p class="hint" data-t="demoHint"></p>
+      <div class="row"><label><input id="demoNoSchool" type="checkbox"> <span data-t="demoNoSchool"></span></label></div>
     </section>
 
     <section>
@@ -202,6 +203,7 @@ const T = {
     voice: "Mluví (hlas robota)",
     head: (p, y) => `Hlava: sklon ${p}°, otočení ${y}°.`,
     demo: "Ukázkový režim (demo)",
+    demoNoSchool: "V ukázkovém režimu ignorovat školu (mazlíček neodpočívá)",
     demoHint: "Když je jídlo, zábava nebo energie na 90 %, spadne zpátky na 10 %: mazlíček pořád něco potřebuje. Na robotovi se ukáže obrázek s šipkami a věta.",
     setNeeds: "Změnit potřeby", set: "Nastavit", allFull: "Vše plné",
     game: "Hra (chytání míčku)", ballSeconds: "Sekund na míček", headMoves: "Hlava se při hře hýbe (krouží, uhýbá ruce)",
@@ -244,6 +246,7 @@ const T = {
     voice: "Speaks (robot voice)",
     head: (p, y) => `Head: tilt ${p}°, turn ${y}°.`,
     demo: "Demo mode",
+    demoNoSchool: "In demo mode, ignore school hours (the pet does not rest)",
     demoHint: "When food, fun or energy reaches 90%, it drops back to 10%: the pet always needs something. The robot shows a reset picture and says so.",
     setNeeds: "Change the needs", set: "Set", allFull: "All full",
     game: "Game (catch the ball)", ballSeconds: "Seconds per ball", headMoves: "The head moves in the game (circles, dodges a hand)",
@@ -317,6 +320,7 @@ function fill(d) {
   $("drawnFace").checked = s.drawn_face;
   $("voice").checked = s.voice;
   $("demo").checked = s.demo;
+  $("demoNoSchool").checked = s.demo_no_school;
   $("parentDeviceOn").checked = d.parent_device;
   for (const [k, id] of [["food", "Food"], ["fun", "Fun"], ["energy", "Energy"]]) {
     $("e" + id).value = Math.round(st.stats[k]); $("v" + id).textContent = Math.round(st.stats[k]);
@@ -406,6 +410,7 @@ function collect() {
     drawn_face: $("drawnFace").checked,
     voice: $("voice").checked,
     demo: $("demo").checked,
+    demo_no_school: $("demoNoSchool").checked,
     sounds: $("sounds").checked, volume: +$("volume").value,
     night_light: $("nightLight").checked, screen_off_at_night: $("screenOff").checked,
     foods,
