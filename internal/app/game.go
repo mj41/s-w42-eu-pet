@@ -116,6 +116,9 @@ func (a *App) startGame(r *robot, now time.Time) {
 	r.gen++ // drop pending steps of earlier reactions
 	g := &game{spot: -1, psBase: -1, ch0Base: -1, side: 1}
 	r.game = g
+	if r.menu != "" {
+		a.closeMenu(r)
+	}
 	r.busyUntil = now.Add(time.Minute)
 	if r.pictureOn {
 		r.conn.command("face", nil)

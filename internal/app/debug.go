@@ -66,6 +66,8 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 		re = rb.pet.Nap(now)
 	case "play":
 		re = a.playAction(rb, now)
+	case "colors":
+		re = a.colorsAction(rb, now)
 	case "dream":
 		rb.lastAsleep = time.Time{}
 		a.dream(rb, now)

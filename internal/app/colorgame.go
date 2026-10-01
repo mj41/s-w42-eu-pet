@@ -67,6 +67,7 @@ func (a *App) startColors(r *robot, now time.Time) {
 	r.gen++ // drop pending steps of earlier reactions
 	g := &game{colors: &colorGame{}}
 	r.game = g
+	r.menu = "" // the game replaces a menu (its sprites are cleared below)
 	r.busyUntil = now.Add(time.Minute)
 	if r.pictureOn {
 		r.conn.command("face", nil)
