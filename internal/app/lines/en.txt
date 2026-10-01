@@ -10,6 +10,11 @@ Yum, %s!
 %s! Delicious!
 Nom nom!
 
+[dream_food]
+Yum... zzz...
+One more bite... zzz...
+Zzz... yummy...
+
 [picky]
 Don't you have something else?
 The same again? Something else, please?

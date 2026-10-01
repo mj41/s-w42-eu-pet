@@ -986,3 +986,27 @@ func TestPulseKeepsPagesLive(t *testing.T) {
 		t.Fatalf("no state from the pulse: %q", buf[:n])
 	}
 }
+
+func TestFoodCardWhileAsleepIsADream(t *testing.T) {
+	e := newEnv(t, "")
+	e.clock.set(time.Date(2026, 9, 30, 22, 0, 0, 0, prague)) // night
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	e.app.mu.Lock()
+	e.app.robots["robot-1"].pet.Stats.Energy = 40
+	e.app.mu.Unlock()
+	r.event("nfc_tag", map[string]any{"uid": "04AA"})
+	r.binary(wire.BinShowJPEG) // the dream (no sprites on this robot: the picture)
+	e.clock.set(e.clock.now().Add(20 * time.Second))
+	r.event("nfc_tag", map[string]any{"uid": "04BB"})
+	r.next("the sleep murmur", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		return body.Command == "say"
+	})
+	_, st := kid.get("/api/state")
+	if s := stats(t, st); s["energy"].(float64) < 54 || s["food"].(float64) != 80 {
+		t.Fatalf("after two cards asleep: %v", s)
+	}
+}

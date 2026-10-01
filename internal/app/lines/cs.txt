@@ -11,6 +11,13 @@ Mňam, %s!
 %s! To je dobrota!
 Mňam mňam!
 
+# Spí a dostal jídlo (kartičkou): zdá se mu o něm, další kartička mu pomůže spát.
+# Jen bublina, potichu.
+[dream_food]
+Mňam... zzz...
+Ještě kousek... zzz...
+Zzz... dobrota...
+
 # Stejné jídlo podruhé za sebou: odmítne.
 [picky]
 Nemáš něco jiného?

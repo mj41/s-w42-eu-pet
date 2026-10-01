@@ -63,6 +63,8 @@ type Pet struct {
 	// NightWakeUntil: woken at night by a hard press, awake until then (needs stay paused).
 	NightWakeUntil time.Time `json:"night_wake_until,omitzero"`
 
+	DreamCards  int       `json:"dream_cards,omitempty"` // food cards in this sleep (DreamFood)
+	DreamCardAt time.Time `json:"dream_card_at,omitzero"`
 	LastFood    string    `json:"last_food,omitempty"` // for picky eating (Feed)
 	LastFoodAt  time.Time `json:"last_food_at,omitzero"`
 	FoodRepeats int       `json:"food_repeats,omitempty"`
@@ -302,6 +304,7 @@ const (
 	KindDemoReset = "demo_reset" // demo mode set a full need back to 10%
 	KindPicky     = "picky"      // the same food again: "Nemáš něco jiného?"
 	KindEatAgain  = "eat_again"  // the same food a third time: eaten after all, for 80%
+	KindDreamFood = "dream_food" // a food card while asleep: a dream of it (Changed: a sleep boost)
 	KindShake     = "shake"      // the robot was shaken
 	KindGame      = "game"       // a game of catch starts on the robot
 	KindGameOver  = "game_over"  // the game ended; Hits balls caught
@@ -571,4 +574,33 @@ func (p *Pet) need(name string) *float64 {
 		return &p.Stats.Fun
 	}
 	return &p.Stats.Energy
+}
+
+// Asleep reports whether the pet sleeps at now: the night or a nap.
+func (p *Pet) Asleep(now time.Time) bool { return p.Phase(now) == Night || p.Napping(now) }
+
+// dreamBoost is the energy a second (third, ...) food card in one sleep adds.
+const dreamBoost = 15
+
+// DreamFood is a food card while the pet sleeps: it dreams of the food instead of
+// eating it. From the second card in the same sleep on, each one helps it sleep
+// (+15% energy). Cards more than 30 minutes apart count as a new sleep.
+func (p *Pet) DreamFood(now time.Time, food string) Reaction {
+	p.Advance(now)
+	if _, ok := Foods[food]; !ok {
+		food = "apple"
+	}
+	if now.Sub(p.DreamCardAt) > 30*time.Minute {
+		p.DreamCards = 0
+	}
+	p.DreamCards++
+	p.DreamCardAt = now
+	re := Reaction{Kind: KindDreamFood, Food: food}
+	if p.DreamCards >= 2 {
+		p.Stats.Energy += dreamBoost
+		p.clamp()
+		re.Changed = true
+	}
+	p.log(now, KindDreamFood, food)
+	return re
 }

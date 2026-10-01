@@ -359,3 +359,20 @@ func TestFoodGivesNoEnergy(t *testing.T) {
 		}
 	}
 }
+
+func TestDreamFood(t *testing.T) {
+	p := New(at(0, 22, 0), DefaultSettings()) // night
+	p.Stats.Energy = 40
+	if !p.Asleep(at(0, 22, 0)) {
+		t.Fatal("asleep at night")
+	}
+	if r := p.DreamFood(at(0, 22, 0), "cake"); r.Kind != KindDreamFood || r.Food != "cake" || r.Changed || p.Stats.Energy != 40 {
+		t.Fatalf("first card: %+v, energy %.0f", r, p.Stats.Energy)
+	}
+	if r := p.DreamFood(at(0, 22, 0), "milk"); !r.Changed || p.Stats.Energy != 55 {
+		t.Fatalf("second card: %+v, energy %.0f", r, p.Stats.Energy)
+	}
+	if p.Stats.Food != 80 { // as New made it: the night pauses hunger
+		t.Fatalf("dreaming of food does not feed: %.0f", p.Stats.Food)
+	}
+}

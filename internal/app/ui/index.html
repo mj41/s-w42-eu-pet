@@ -238,6 +238,7 @@ function react(r) {
   switch (r.kind) {
     case "eat": case "eat_again": fx(`/emoji/${r.food}.svg`); faceAnim("jump", "yum"); break;
     case "picky": faceAnim("shake", "grumpy"); break;
+    case "dream_food": fx(`/emoji/${r.food}.svg`); fx("/emoji/zzz.svg"); break;
     case "full": case "not_tired": faceAnim("shake", "grumpy"); break;
     case "cuddle": if (r.changed) { fx("/emoji/heart.svg", 3); faceAnim("jump", "happy"); } break;
     case "play": fx("/emoji/party.svg", 2); fx("/emoji/ball.svg"); faceAnim("jump", "happy"); break;

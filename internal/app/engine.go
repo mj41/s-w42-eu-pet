@@ -219,6 +219,12 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 			a.sayText(r, line, 3)
 			c.command("nod", nil)
 		})
+	case pet.KindDreamFood: // a food card while asleep
+		a.dreamOf(r, now, re.Food)
+		if re.Changed { // it helped: a murmur in its sleep (a bubble, no voice)
+			c.command("say", map[string]any{"text": asciiOnly(text(lang, "dream_food", "")), "seconds": 3})
+		}
+		return
 	case pet.KindPicky: // the same food again: "something else?"
 		a.begin(r, now, reactionTime)
 		a.emotion(r, "doubt")
@@ -391,7 +397,11 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 				trimTags(r.unknownTags)
 			}
 		}
-		re = p.Feed(now, food)
+		if asleep { // asleep the pet dreams of the food; more cards help it sleep
+			re = p.DreamFood(now, food)
+		} else {
+			re = p.Feed(now, food)
+		}
 		a.log.Info("food card", "robot", id, "uid", uid, "food", food, "reaction", re.Kind)
 	case "screen_tap":
 		if r.menu != "" {
@@ -624,10 +634,17 @@ func (a *App) dream(r *robot, now time.Time) {
 	if r.conn == nil || now.Sub(r.lastAsleep) < dreamEvery {
 		return
 	}
+	a.dreamOf(r, now, robotpic.Dreams[rand.IntN(len(robotpic.Dreams))])
+}
+
+// dreamOf shows a dream of item (a food card while asleep: that food).
+func (a *App) dreamOf(r *robot, now time.Time, item string) {
+	if r.conn == nil {
+		return
+	}
 	r.lastAsleep = now
 	r.gen++
 	r.busyUntil = now.Add(10 * time.Second)
-	item := robotpic.Dreams[rand.IntN(len(robotpic.Dreams))]
 	if cloud, pic := assetDir+"cloud.png", assetDir+item+".png"; r.canSprite(cloud) && r.canSprite(pic) {
 		// A dream cloud next to the sleeping face, the dreamed thing bobbing in it.
 		if r.screenOff {
