@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 SVG=../app/ui/emoji
-for f in apple carrot banana cake milk bread heart battery ball star moon; do
+for f in apple carrot banana cake milk bread heart battery ball star moon plate party; do
     inkscape "$SVG/$f.svg" --export-type=png --export-width=160 --export-filename="png/$f.png" >/dev/null 2>&1
 done
 # Full-screen faces for the robot (faces/*.svg, the screen part of ../app/ui/chan): JPEG, no

@@ -808,27 +808,39 @@ func TestMenuOnTheRobot(t *testing.T) {
 	kid := e.browser()
 	kid.pair(r)
 	files := []string{"pet/menu-bg.png"}
-	for _, m := range menuItems {
-		files = append(files, "pet/"+m.asset)
-	}
-	haveFiles(t, r, files...)
-
-	r.event("screen_long_press", map[string]any{"x": 160, "y": 120})
-	taps := 0
-	for taps < len(menuItems) {
-		args := r.command("sprite")
-		if args["tap"] == true {
-			taps++
+	for _, items := range menus {
+		for _, m := range items {
+			files = append(files, "pet/"+m.asset)
 		}
 	}
-	// A tap on the apple tile: the needs picture.
-	r.event("screen_tap", map[string]any{"x": 230, "y": 60, "sprite": "menu:needs", "asset": "pet/menu-needs.png"})
-	r.binary(wire.BinShowJPEG)
+	haveFiles(t, r, files...)
 	e.app.mu.Lock()
-	open := e.app.robots["robot-1"].menuOpen
+	e.app.robots["robot-1"].pet.Stats.Food = 30
 	e.app.mu.Unlock()
-	if open {
-		t.Fatal("the menu should close after a choice")
+	tiles := func(n int) {
+		t.Helper()
+		for taps := 0; taps < n; {
+			if args := r.command("sprite"); args["tap"] == true {
+				taps++
+			}
+		}
+	}
+
+	r.event("screen_tap", map[string]any{"x": 160, "y": 120}) // a tap opens the main menu
+	tiles(len(menus["main"]))
+	r.event("screen_tap", map[string]any{"x": 56, "y": 64, "sprite": "m:open:food"})
+	tiles(len(menus["food"]))
+	r.event("screen_tap", map[string]any{"x": 264, "y": 48, "sprite": "m:feed:banana"})
+	r.next("the banana", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		return body.Command == "say" && isFoodLine("banana", body.Args["text"])
+	})
+	e.app.mu.Lock()
+	menu, log := e.app.robots["robot-1"].menu, e.app.robots["robot-1"].pet.Log
+	e.app.mu.Unlock()
+	if menu != "" || log[len(log)-1].Detail != "banana" {
+		t.Fatalf("after feeding from the menu: menu %q, log %+v", menu, log[len(log)-1])
 	}
 }
 

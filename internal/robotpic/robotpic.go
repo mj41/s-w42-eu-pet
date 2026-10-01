@@ -258,8 +258,8 @@ func CloudPNG() []byte {
 // the full-screen faces (face-<mood>.jpg) and the dream cloud.
 func Files() map[string][]byte {
 	out := map[string][]byte{"cloud.png": CloudPNG(), "menu-bg.png": menuBackdrop()}
-	for _, t := range menuTiles {
-		out[t.name+".png"] = menuTile(t.icon, t.color)
+	for _, t := range menuTilesList() {
+		out[t.name+".png"] = menuTile(t)
 	}
 	entries, _ := pngFS.ReadDir("png")
 	for _, e := range entries {
@@ -270,30 +270,76 @@ func Files() map[string][]byte {
 	return out
 }
 
-// Menu pictures for the robot's screen (sprites; the server places and reads them).
-var menuTiles = []struct {
-	name, icon string
+// Menu pictures for the robot's screen (sprites; the server places and reads them):
+// rounded coloured tiles with a big icon (transparent corners), per menu size.
+type tile struct {
+	name, icon string // icon: an emoji PNG, or "x" / "back" drawn
 	color      color.RGBA
-}{
-	{"menu-play", "ball", color.RGBA{0x4c, 0xaf, 0x50, 0xff}},
-	{"menu-needs", "apple", color.RGBA{0xff, 0xa7, 0x26, 0xff}},
-	{"menu-nap", "moon", color.RGBA{0x7e, 0x57, 0xc2, 0xff}},
-	{"menu-close", "", color.RGBA{0x78, 0x90, 0x9c, 0xff}},
+	w, h       int
 }
 
-// MenuTileSize is the size of a menu tile.
-const MenuTileW, MenuTileH = 130, 96
+var (
+	tileOrange = color.RGBA{0xff, 0xa7, 0x26, 0xff}
+	tileGreen  = color.RGBA{0x4c, 0xaf, 0x50, 0xff}
+	tilePurple = color.RGBA{0x7e, 0x57, 0xc2, 0xff}
+	tilePink   = color.RGBA{0xec, 0x40, 0x7a, 0xff}
+	tileGrey   = color.RGBA{0x78, 0x90, 0x9c, 0xff}
+	tileCream  = color.RGBA{0xff, 0xf3, 0xe0, 0xff}
+	tileBlue   = color.RGBA{0x29, 0x79, 0xff, 0xff}
+)
 
-// menuTile is a rounded coloured tile with a big icon (or an X), transparent corners.
-func menuTile(icon string, c color.RGBA) []byte {
-	img := image.NewRGBA(image.Rect(0, 0, MenuTileW, MenuTileH))
-	fillRoundRect(img, img.Bounds(), 18, c)
-	if ic := iconFor(icon); ic != nil {
-		drawScaled(img, ic, image.Rect(MenuTileW/2-36, MenuTileH/2-36, MenuTileW/2+36, MenuTileH/2+36))
-	} else { // close: a white X
-		for i := -26; i <= 26; i++ {
-			fillCircle(img, MenuTileW/2+i, MenuTileH/2+i, 6, color.RGBA{0xff, 0xff, 0xff, 0xff})
-			fillCircle(img, MenuTileW/2+i, MenuTileH/2-i, 6, color.RGBA{0xff, 0xff, 0xff, 0xff})
+// Tile sizes of the menus (the server lays them out on the 320x240 screen).
+const (
+	MainTile  = 96 // main menu: square
+	FoodTileW = 92 // food menu
+	FoodTileH = 76
+	PlayTileW = 120 // play menu
+	PlayTileH = 110
+	BackTileW = 120 // the back button at the bottom
+	BackTileH = 44
+)
+
+func menuTilesList() []tile {
+	t := []tile{
+		{"menu-food", "plate", tileOrange, MainTile, MainTile},
+		{"menu-play", "ball", tileGreen, MainTile, MainTile},
+		{"menu-nap", "moon", tilePurple, MainTile, MainTile},
+		{"menu-needs", "heart", tilePink, MainTile, MainTile},
+		{"menu-close", "x", tileGrey, MainTile, MainTile},
+		{"menu-back", "back", tileGrey, BackTileW, BackTileH},
+		{"menu-catch", "ball", tileGreen, PlayTileW, PlayTileH},
+		{"menu-dance", "party", tileBlue, PlayTileW, PlayTileH},
+	}
+	for _, f := range []string{"apple", "carrot", "banana", "bread", "milk", "cake"} {
+		t = append(t, tile{"menu-food-" + f, f, tileCream, FoodTileW, FoodTileH})
+	}
+	return t
+}
+
+// menuTile draws a tile: rounded, coloured, with the icon as big as fits.
+func menuTile(t tile) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, t.w, t.h))
+	fillRoundRect(img, img.Bounds(), min(18, t.h/3), t.color)
+	cx, cy := t.w/2, t.h/2
+	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	switch t.icon {
+	case "x":
+		for i := -t.h / 4; i <= t.h/4; i++ {
+			fillCircle(img, cx+i, cy+i, 6, white)
+			fillCircle(img, cx+i, cy-i, 6, white)
+		}
+	case "back": // an arrow pointing left
+		for i := -22; i <= 22; i++ {
+			fillCircle(img, cx+i, cy, 4, white)
+		}
+		for i := 0; i <= 12; i++ {
+			fillCircle(img, cx-22+i, cy-i, 4, white)
+			fillCircle(img, cx-22+i, cy+i, 4, white)
+		}
+	default:
+		if ic := icon(t.icon); ic != nil {
+			s := min(t.w, t.h) * 3 / 4
+			drawScaled(img, ic, image.Rect(cx-s/2, cy-s/2, cx+s/2, cy+s/2))
 		}
 	}
 	return encodePNG(img)
@@ -304,13 +350,6 @@ func menuBackdrop() []byte {
 	img := image.NewRGBA(image.Rect(0, 0, W, H))
 	draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{0x0e, 0x14, 0x33, 0xc8}}, image.Point{}, draw.Src)
 	return encodePNG(img)
-}
-
-func iconFor(name string) image.Image {
-	if name == "" {
-		return nil
-	}
-	return icon(name)
 }
 
 func encodePNG(img image.Image) []byte {

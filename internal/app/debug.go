@@ -31,6 +31,7 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Action   string `json:"action"`
 		Food     string `json:"food"`
+		Menu     string `json:"menu"` // for "menu": which one (default main)
 		ShotsMs  []int  `json:"shots_ms"`
 		Commands []struct {
 			Command string         `json:"command"`
@@ -66,7 +67,10 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 	case "express":
 		a.express(rb, now)
 	case "menu":
-		a.openMenu(rb, now)
+		if _, ok := menus[req.Menu]; !ok {
+			req.Menu = "main"
+		}
+		a.openMenu(rb, now, req.Menu)
 	default:
 		http.Error(w, "unknown action", http.StatusBadRequest)
 		return

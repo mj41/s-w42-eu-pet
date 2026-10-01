@@ -107,7 +107,7 @@ type robot struct {
 	touchID     int
 	strokes     []time.Time // recent head swipes
 	lastScratch time.Time
-	menuOpen    bool      // the menu is on the robot's screen (menu.go)
+	menu        string    // the menu on the robot's screen ("" = none; menu.go)
 	sleptAt     time.Time // the last good night: the night light fades from there
 	ledLevel    float64   // the night light's level last sent
 	dimmed      bool      // the pet dimmed the screen for the night

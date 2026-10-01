@@ -320,12 +320,12 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		switch {
 		case asleep:
 			re = pet.Reaction{Kind: pet.KindAsleep}
-		case r.menuOpen:
+		case r.menu != "":
 			a.closeMenu(r)
 			a.express(r, now)
 			return
 		case r.canMenu():
-			a.openMenu(r, now)
+			a.openMenu(r, now, "main")
 			return
 		default:
 			re = a.playAction(r, now)
@@ -377,7 +377,7 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		re = p.Feed(now, food)
 		a.log.Info("food card", "robot", id, "uid", uid, "food", food, "reaction", re.Kind)
 	case "screen_tap":
-		if r.menuOpen {
+		if r.menu != "" {
 			sprite, _ := ev.Data["sprite"].(string)
 			a.menuTap(r, sprite, now)
 			return
@@ -390,7 +390,10 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		case r.pictureOn: // tap again: back to the face
 			a.express(r, now)
 			return
-		default:
+		case r.canMenu(): // a tap opens the menu
+			a.openMenu(r, now, "main")
+			return
+		default: // robots without sprites: the needs
 			p.Advance(now)
 			a.showNeeds(r, now)
 			a.publishState(r)
@@ -422,6 +425,10 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 	case "sound_done":
 		return
 	case "screensaver_on":
+		if r.menu != "" { // a quick double tap on the menu blanks the robot's screen: not now
+			r.conn.command("screensaver", map[string]any{"on": false})
+			return
+		}
 		r.screenOff = true
 		return
 	case "screensaver_off": // a touch lit the screen: at night it dims and has its 5 minutes again
