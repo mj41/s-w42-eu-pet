@@ -66,9 +66,11 @@ type pairCode struct {
 type session struct {
 	Robots []string `json:"robots"`
 
-	parentUntil time.Time // the parent page is unlocked until then
-	pinFails    int
-	pinFailAt   time.Time
+	parentUntil  time.Time // the parent page is unlocked until then
+	parentDevice bool      // a parent's phone: the parent page stays unlocked until locked
+	locked       bool      // a parent's device locked with the button: the PIN again
+	pinFails     int
+	pinFailAt    time.Time
 }
 
 // robot is one robot and its pet; it stays after the robot disconnects.
@@ -174,6 +176,7 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("GET /api/parent", a.handleParent)
 	mux.HandleFunc("POST /api/parent/unlock", a.handleUnlock)
 	mux.HandleFunc("POST /api/parent/lock", a.handleLock)
+	mux.HandleFunc("POST /api/parent/device", a.handleDevice)
 	mux.HandleFunc("POST /api/parent/settings", a.handleSettings)
 	mux.HandleFunc("POST /api/parent/pin", a.handlePIN)
 	mux.HandleFunc("POST /api/parent/reset", a.handleReset)
@@ -317,6 +320,8 @@ func (a *App) pairedRobot(sid, want string) *robot {
 type stateFile struct {
 	Robots   map[string]savedRobot `json:"robots"`
 	Sessions map[string][]string   `json:"sessions"`
+	// Parent devices (session id -> locked): their parent page stays unlocked.
+	ParentDevices map[string]bool `json:"parent_devices,omitempty"`
 }
 
 type savedRobot struct {
@@ -349,6 +354,11 @@ func (a *App) load() error {
 			a.sessions[sid] = &session{Robots: ids}
 		}
 	}
+	for sid, locked := range st.ParentDevices {
+		if s := a.sessions[sid]; s != nil {
+			s.parentDevice, s.locked = true, locked
+		}
+	}
 	a.log.Info("state loaded", "file", a.cfg.StateFile, "pets", len(a.robots), "sessions", len(a.sessions))
 	return nil
 }
@@ -365,7 +375,7 @@ func (a *App) Save() error {
 		a.mu.Unlock()
 		return nil
 	}
-	st := stateFile{Robots: map[string]savedRobot{}, Sessions: map[string][]string{}}
+	st := stateFile{Robots: map[string]savedRobot{}, Sessions: map[string][]string{}, ParentDevices: map[string]bool{}}
 	for id, r := range a.robots {
 		r.pet.Advance(a.now())
 		st.Robots[id] = savedRobot{Pet: r.pet, PINHash: r.pinHash, UnknownTags: r.unknownTags}
@@ -373,6 +383,9 @@ func (a *App) Save() error {
 	for sid, s := range a.sessions {
 		if len(s.Robots) > 0 {
 			st.Sessions[sid] = s.Robots
+			if s.parentDevice {
+				st.ParentDevices[sid] = s.locked
+			}
 		}
 	}
 	b, err := json.MarshalIndent(st, "", "  ")

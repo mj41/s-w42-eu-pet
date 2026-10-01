@@ -317,7 +317,7 @@ func (a *App) parentRobot(w http.ResponseWriter, r *http.Request, sid string) *r
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not_paired"})
 		return nil
 	}
-	if s := a.sessions[sid]; s == nil || !a.cfg.Now().Before(s.parentUntil) {
+	if s := a.sessions[sid]; s == nil || !s.parentUnlocked(a.cfg.Now()) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "locked"})
 		return nil
 	}
@@ -340,8 +340,8 @@ func (a *App) handleParent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s := a.sessionFor(sid)
-	unlocked := a.cfg.Now().Before(s.parentUntil)
-	out := map[string]any{"has_pin": rb.pinHash != "", "unlocked": unlocked, "lang": rb.pet.Settings.Lang}
+	unlocked := s.parentUnlocked(a.cfg.Now())
+	out := map[string]any{"has_pin": rb.pinHash != "", "unlocked": unlocked, "lang": rb.pet.Settings.Lang, "parent_device": s.parentDevice}
 	if unlocked {
 		now := a.now()
 		p := rb.pet
@@ -374,7 +374,8 @@ func (a *App) handleParent(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleUnlock(w http.ResponseWriter, r *http.Request) {
 	sid := a.sessionID(w, r)
 	var req struct {
-		PIN string `json:"pin"`
+		PIN      string `json:"pin"`
+		Remember bool   `json:"remember"` // this is a parent's device: stay unlocked
 	}
 	if !readJSON(w, r, &req) {
 		return
@@ -411,15 +412,54 @@ func (a *App) handleUnlock(w http.ResponseWriter, r *http.Request) {
 	}
 	s.pinFails = 0
 	s.parentUntil = now.Add(parentUnlockTime)
+	if s.locked || req.Remember {
+		s.parentDevice = s.parentDevice || req.Remember
+		s.locked = false
+		a.dirty = true
+	}
 	writeJSON(w, http.StatusOK, map[string]bool{"unlocked": true})
+}
+
+// parentUnlocked: the PIN was entered lately, or this is a parent's device not locked.
+func (s *session) parentUnlocked(now time.Time) bool {
+	return now.Before(s.parentUntil) || s.parentDevice && !s.locked
 }
 
 func (a *App) handleLock(w http.ResponseWriter, r *http.Request) {
 	sid := a.sessionID(w, r)
 	a.mu.Lock()
-	a.sessionFor(sid).parentUntil = time.Time{}
+	s := a.sessionFor(sid)
+	s.parentUntil = time.Time{}
+	if s.parentDevice {
+		s.locked = true // until the PIN again
+		a.dirty = true
+	}
 	a.mu.Unlock()
 	writeJSON(w, http.StatusOK, map[string]bool{"unlocked": false})
+}
+
+// handleDevice marks this device as a parent's (stays unlocked) or not (the PIN
+// again after a while). Only while unlocked.
+func (a *App) handleDevice(w http.ResponseWriter, r *http.Request) {
+	sid := a.sessionID(w, r)
+	var req struct {
+		Parent bool `json:"parent"`
+	}
+	if !readJSON(w, r, &req) {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.parentRobot(w, r, sid) == nil {
+		return
+	}
+	s := a.sessionFor(sid)
+	if !req.Parent && s.parentDevice {
+		s.parentUntil = a.cfg.Now().Add(parentUnlockTime) // still unlocked for now
+	}
+	s.parentDevice, s.locked = req.Parent, false
+	a.dirty = true
+	writeJSON(w, http.StatusOK, map[string]bool{"parent_device": s.parentDevice})
 }
 
 // handleSettings replaces the settings (the parent page sends all of them).

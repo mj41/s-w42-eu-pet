@@ -70,6 +70,7 @@
     <h2 id="lockTitle"></h2>
     <form id="pinForm">
       <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" pattern="[0-9]*">
+      <p><label><input id="remember" type="checkbox"> <span data-t="parentDevice"></span></label></p>
       <p><button class="primary" data-t="unlock"></button></p>
       <p id="pinErr" class="err"></p>
       <p class="hint" id="pinHint"></p>
@@ -173,6 +174,8 @@
       <h2 data-t="advanced"></h2>
       <div class="row"><label for="newPin" data-t="newPin"></label>
         <input id="newPin" type="password" inputmode="numeric" maxlength="8" pattern="[0-9]*"><button id="pinSave" data-t="change"></button><span id="pinSaved" class="saved" data-t="saved"></span></div>
+      <div class="row"><label><input id="parentDeviceOn" type="checkbox"> <span data-t="parentDevice"></span></label></div>
+      <p class="hint" data-t="parentDeviceHint"></p>
       <div class="row"><button class="danger" id="reset" data-t="reset"></button></div>
       <p class="hint" data-t="resetHint"></p>
     </section>
@@ -185,6 +188,8 @@
 const T = {
   cs: {
     title: "Nastavení pro rodiče", toKid: "Zpět k mazlíčkovi", lock: "Zamknout",
+    parentDevice: "Toto je zařízení rodiče (zůstane odemčené)",
+    parentDeviceHint: "Na tomto zařízení se stránka pro rodiče nezamyká, dokud nestiskneš Zamknout. Nezaškrtávej na zařízení, které používá dítě.",
     notPaired: "Nejdřív naskenuj QR kód na robotovi, pak otevři tuto stránku znovu.",
     setPin: "Zvol PIN (4–8 číslic)", enterPin: "Zadej PIN", unlock: "Odemknout",
     setPinHint: "Tímto PINem se bude stránka pro rodiče odemykat. Dítě ho nemá znát.",
@@ -225,6 +230,8 @@ const T = {
   },
   en: {
     title: "Parent settings", toKid: "Back to the pet", lock: "Lock",
+    parentDevice: "This is a parent's device (stays unlocked)",
+    parentDeviceHint: "On this device the parent page stays unlocked until you press Lock. Don't tick it on a device the kid uses.",
     notPaired: "Scan the QR code on the robot first, then open this page again.",
     setPin: "Choose a PIN (4–8 digits)", enterPin: "Enter the PIN", unlock: "Unlock",
     setPinHint: "This PIN unlocks the parent page. Keep it from the kid.",
@@ -310,6 +317,7 @@ function fill(d) {
   $("drawnFace").checked = s.drawn_face;
   $("voice").checked = s.voice;
   $("demo").checked = s.demo;
+  $("parentDeviceOn").checked = d.parent_device;
   for (const [k, id] of [["food", "Food"], ["fun", "Fun"], ["energy", "Energy"]]) {
     $("e" + id).value = Math.round(st.stats[k]); $("v" + id).textContent = Math.round(st.stats[k]);
   }
@@ -408,12 +416,13 @@ function flash(id) { const el = $(id); el.classList.add("on"); setTimeout(() => 
 
 $("pinForm").onsubmit = async e => {
   e.preventDefault();
-  const { ok, out } = await api("/api/parent/unlock", { pin: $("pin").value });
+  const { ok, out } = await api("/api/parent/unlock", { pin: $("pin").value, remember: $("remember").checked });
   $("pin").value = "";
   $("pinErr").textContent = ok ? "" : t(out.error || "wrong_pin");
   if (ok) load();
 };
 $("lockBtn").onclick = async () => { await api("/api/parent/lock", {}); load(); };
+$("parentDeviceOn").onchange = async () => { await api("/api/parent/device", { parent: $("parentDeviceOn").checked }); load(); };
 for (const id of ["Food", "Fun", "Energy"]) $("e" + id).oninput = () => $("v" + id).textContent = $("e" + id).value;
 const setNeeds = async (v) => {
   const { ok } = await api("/api/parent/stats", v || { food: +$("eFood").value, fun: +$("eFun").value, energy: +$("eEnergy").value });

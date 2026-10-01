@@ -1031,3 +1031,57 @@ func TestFoodCardWhileAsleepIsADream(t *testing.T) {
 		t.Fatalf("after two cards asleep: %v", s)
 	}
 }
+
+func TestParentDeviceStaysUnlocked(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "state.json")
+	e := newEnv(t, file)
+	r := e.connectRobot("robot-1")
+	parent, other := e.browser(), e.browser()
+	parent.pair(r)
+	other.pair(r)
+	parent.post("/api/parent/unlock", map[string]any{"pin": "1234", "remember": true})
+	other.post("/api/parent/unlock", map[string]any{"pin": "1234"})
+	unlocked := func(b *browser) bool {
+		t.Helper()
+		_, out := b.get("/api/parent")
+		return out["unlocked"] == true
+	}
+	e.clock.set(e.clock.now().Add(2 * time.Hour))
+	if !unlocked(parent) || unlocked(other) {
+		t.Fatalf("after 2 hours: parent's device %v, other %v", unlocked(parent), unlocked(other))
+	}
+
+	// Locked on purpose: the PIN again, then unlocked for good again.
+	parent.post("/api/parent/lock", nil)
+	if unlocked(parent) {
+		t.Fatal("still unlocked after Lock")
+	}
+	if err := e.app.Save(); err != nil {
+		t.Fatal(err)
+	}
+	again := New(Config{RobotToken: testToken, StateFile: file, Location: prague, Now: e.clock.now})
+	var devices, locked int
+	for _, s := range again.sessions {
+		if s.parentDevice {
+			devices++
+			if s.locked {
+				locked++
+			}
+		}
+	}
+	if devices != 1 || locked != 1 {
+		t.Fatalf("after restart: %d parent devices, %d locked", devices, locked)
+	}
+	parent.post("/api/parent/unlock", map[string]any{"pin": "1234"})
+	e.clock.set(e.clock.now().Add(2 * time.Hour))
+	if !unlocked(parent) {
+		t.Fatal("the PIN did not unlock the parent's device for good")
+	}
+
+	// No longer a parent's device: it locks after the usual time.
+	parent.post("/api/parent/device", map[string]any{"parent": false})
+	e.clock.set(e.clock.now().Add(parentUnlockTime + time.Minute))
+	if unlocked(parent) {
+		t.Fatal("unmarked device still unlocked")
+	}
+}
