@@ -50,7 +50,8 @@ var (
 	red    = color.RGBA{0xE5, 0x39, 0x35, 0xFF}
 )
 
-// Needs shows food, fun and energy (0..100) as three icon + bar rows.
+// Needs shows food, fun and energy (0..100) as three icon + bar rows, with room at the
+// bottom for the close button (the menu places it).
 func Needs(food, fun, energy float64) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, W, H))
 	draw.Draw(img, img.Bounds(), &image.Uniform{cream}, image.Point{}, draw.Src)
@@ -59,11 +60,11 @@ func Needs(food, fun, energy float64) []byte {
 		value float64
 	}{{"apple", food}, {"heart", fun}, {"zzz", energy}}
 	for i, r := range rows {
-		y := 14 + i*76
+		y := 6 + i*62
 		if ic := icon(r.icon); ic != nil {
-			drawScaled(img, ic, image.Rect(14, y, 14+64, y+64))
+			drawScaled(img, ic, image.Rect(20, y, 20+54, y+54))
 		}
-		bar := image.Rect(96, y+12, 304, y+52)
+		bar := image.Rect(96, y+10, 304, y+44)
 		fillRound(img, bar, track)
 		c := green
 		switch {
@@ -273,7 +274,7 @@ func Files() map[string][]byte {
 // Menu pictures for the robot's screen (sprites; the server places and reads them):
 // rounded coloured tiles with a big icon (transparent corners), per menu size.
 type tile struct {
-	name, icon string // icon: an emoji PNG, or "x" / "back" drawn
+	name, icon string // icon: an emoji PNG, or "back" / "needs" drawn
 	color      color.RGBA
 	w, h       int
 }
@@ -290,7 +291,7 @@ var (
 
 // Tile sizes of the menus (the server lays them out on the 320x240 screen).
 const (
-	MainTile  = 96 // main menu: square
+	MainTile  = 84 // main menu: square
 	FoodTileW = 92 // food menu
 	FoodTileH = 76
 	PlayTileW = 120 // play menu
@@ -304,8 +305,7 @@ func menuTilesList() []tile {
 		{"menu-food", "plate", tileOrange, MainTile, MainTile},
 		{"menu-play", "ball", tileGreen, MainTile, MainTile},
 		{"menu-nap", "moon", tilePurple, MainTile, MainTile},
-		{"menu-needs", "heart", tilePink, MainTile, MainTile},
-		{"menu-close", "x", tileGrey, MainTile, MainTile},
+		{"menu-needs", "needs", tilePink, MainTile, MainTile},
 		{"menu-back", "back", tileGrey, BackTileW, BackTileH},
 		{"menu-catch", "ball", tileGreen, PlayTileW, PlayTileH},
 		{"menu-dance", "party", tileBlue, PlayTileW, PlayTileH},
@@ -323,10 +323,22 @@ func menuTile(t tile) []byte {
 	cx, cy := t.w/2, t.h/2
 	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
 	switch t.icon {
-	case "x":
-		for i := -t.h / 4; i <= t.h/4; i++ {
-			fillCircle(img, cx+i, cy+i, 6, white)
-			fillCircle(img, cx+i, cy-i, 6, white)
+	case "needs": // the needs picture in small: three icons with their bars
+		k := func(v int) int { return v * t.h / 96 } // drawn for 96 px
+		for i, n := range []struct {
+			icon  string
+			share float64
+			c     color.RGBA
+		}{{"apple", 1, green}, {"heart", 0.6, yellow}, {"zzz", 0.3, red}} {
+			y := k(10 + i*27)
+			if ic := icon(n.icon); ic != nil {
+				drawScaled(img, ic, image.Rect(k(8), y, k(8+24), y+k(24)))
+			}
+			bar := image.Rect(k(38), y+k(6), k(88), y+k(18))
+			fillRound(img, bar, white)
+			fill := bar
+			fill.Max.X = bar.Min.X + max(bar.Dy(), int(float64(bar.Dx())*n.share))
+			fillRound(img, fill, n.c)
 		}
 	case "back": // an arrow pointing left
 		for i := -22; i <= 22; i++ {

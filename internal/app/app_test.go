@@ -826,9 +826,30 @@ func TestMenuOnTheRobot(t *testing.T) {
 		}
 	}
 
+	menuNow := func() string {
+		time.Sleep(50 * time.Millisecond)
+		e.app.mu.Lock()
+		defer e.app.mu.Unlock()
+		return e.app.robots["robot-1"].menu
+	}
 	r.event("screen_tap", map[string]any{"x": 160, "y": 120}) // a tap opens the main menu
 	tiles(len(menus["main"]))
-	r.event("screen_tap", map[string]any{"x": 56, "y": 64, "sprite": "m:open:food"})
+	// The needs, and back: to the main menu, then to the face.
+	r.event("screen_tap", map[string]any{"x": 208, "y": 140, "sprite": "m:open:needs"})
+	r.binary(wire.BinShowJPEG)
+	tiles(len(menus["needs"]))
+	r.event("screen_tap", map[string]any{"x": 160, "y": 206, "sprite": "m:back"})
+	tiles(len(menus["main"]))
+	if m := menuNow(); m != "main" {
+		t.Fatalf("back from the needs: menu %q", m)
+	}
+	r.event("screen_tap", map[string]any{"x": 160, "y": 206, "sprite": "m:back"})
+	if m := menuNow(); m != "" {
+		t.Fatalf("back from the main menu: menu %q", m)
+	}
+	r.event("screen_tap", map[string]any{"x": 160, "y": 120})
+	tiles(len(menus["main"]))
+	r.event("screen_tap", map[string]any{"x": 112, "y": 50, "sprite": "m:open:food"})
 	tiles(len(menus["food"]))
 	r.event("screen_tap", map[string]any{"x": 264, "y": 48, "sprite": "m:feed:banana"})
 	r.next("the banana", func(m robotMsg) bool {

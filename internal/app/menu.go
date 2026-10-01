@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mj41/stackchan-pet/internal/pet"
+	"github.com/mj41/stackchan-pet/internal/robotpic"
 )
 
 // Menus on the robot's screen: a tap (or a long press) opens the main menu over a
@@ -22,11 +23,11 @@ type menuItem struct {
 
 var menus = map[string][]menuItem{
 	"main": {
-		{"open:food", "menu-food.png", 56, 64},
-		{"open:play", "menu-play.png", 160, 64},
-		{"nap", "menu-nap.png", 264, 64},
-		{"needs", "menu-needs.png", 108, 172},
-		{"close", "menu-close.png", 212, 172},
+		{"open:food", "menu-food.png", 112, 50},
+		{"open:play", "menu-play.png", 208, 50},
+		{"nap", "menu-nap.png", 112, 140},
+		{"open:needs", "menu-needs.png", 208, 140},
+		{"back", "menu-back.png", 160, 206},
 	},
 	"food": {
 		{"feed:apple", "menu-food-apple.png", 56, 48},
@@ -35,12 +36,15 @@ var menus = map[string][]menuItem{
 		{"feed:bread", "menu-food-bread.png", 56, 132},
 		{"feed:milk", "menu-food-milk.png", 160, 132},
 		{"feed:cake", "menu-food-cake.png", 264, 132},
-		{"open:main", "menu-back.png", 160, 206},
+		{"back", "menu-back.png", 160, 206},
+	},
+	"needs": { // over the needs picture
+		{"back", "menu-back.png", 160, 206},
 	},
 	"play": {
 		{"play:catch", "menu-catch.png", 90, 100},
 		{"play:dance", "menu-dance.png", 230, 100},
-		{"open:main", "menu-back.png", 160, 206},
+		{"back", "menu-back.png", 160, 206},
 	},
 }
 
@@ -63,17 +67,27 @@ func (r *robot) canMenu() bool {
 func (a *App) openMenu(r *robot, now time.Time, name string) {
 	r.gen++ // drop pending steps of earlier reactions
 	a.clearSprites(r)
+	if name != "main" { // back goes to the menu it came from; the main menu's to the face
+		r.menuBack = r.menu
+	}
 	r.menu = name
 	r.menuID++
 	r.busyUntil = now.Add(menuTimeout + time.Second)
-	if r.pictureOn {
-		r.conn.command("face", nil)
-		r.pictureOn = false
+	if name == "needs" {
+		s := r.pet.Stats
+		a.showPicture(r, robotpic.Needs(s.Food, s.Fun, s.Energy))
+	} else {
+		if r.pictureOn {
+			r.conn.command("face", nil)
+			r.pictureOn = false
+			a.drawnFace(r, moodFace[r.shownMood]) // it stepped aside for the picture
+		}
+		if name == "main" {
+			r.menuBack = ""
+			a.emotion(r, "happy")
+		}
+		a.sprite(r, map[string]any{"id": "m:bg", "asset": assetDir + "menu-bg.png", "x": 160, "y": 120, "z": 20})
 	}
-	if name == "main" {
-		a.emotion(r, "happy")
-	}
-	a.sprite(r, map[string]any{"id": "m:bg", "asset": assetDir + "menu-bg.png", "x": 160, "y": 120, "z": 20})
 	for _, m := range menus[name] {
 		a.sprite(r, map[string]any{"id": "m:" + m.action, "asset": assetDir + m.asset, "x": m.x, "y": m.y, "z": 21, "tap": true})
 	}
@@ -103,6 +117,10 @@ func (a *App) menuTap(r *robot, sprite string, now time.Time) {
 			return
 		}
 	}
+	if action == "back" && r.menuBack != "" {
+		a.openMenu(r, now, r.menuBack)
+		return
+	}
 	a.closeMenu(r)
 	p := r.pet
 	var re pet.Reaction
@@ -115,12 +133,7 @@ func (a *App) menuTap(r *robot, sprite string, now time.Time) {
 		re = p.Play(now)
 	case action == "nap":
 		re = p.Nap(now)
-	case action == "needs":
-		p.Advance(now)
-		a.showNeeds(r, now)
-		a.publishState(r)
-		return
-	default: // the X, the backdrop, or a tap next to the tiles
+	default: // back to the face, the backdrop, or a tap next to the tiles
 		a.express(r, now)
 		return
 	}

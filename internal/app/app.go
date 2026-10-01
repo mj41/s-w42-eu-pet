@@ -113,6 +113,7 @@ type robot struct {
 	dimmed        bool      // the pet dimmed the screen for the night
 	screenOnAt    time.Time // the screen was last lit at night: off nightScreenOn later
 	menuID        int
+	menuBack      string             // where the menu's back button goes ("" = the face)
 	voiceGen      int                // bumped by each spoken line: an older one stops
 	speakingUntil time.Time          // a line is being spoken: effect sounds wait (one speaker queue)
 	recording     *recording         // a debug recording of the robot's microphone (debug.go)

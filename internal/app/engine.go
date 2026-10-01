@@ -312,6 +312,11 @@ func (a *App) showNeeds(r *robot, now time.Time) {
 	if r.conn == nil {
 		return
 	}
+	r.pet.Advance(now)
+	if r.canMenu() { // with a button to close it
+		a.openMenu(r, now, "needs")
+		return
+	}
 	s := r.pet.Stats
 	a.begin(r, now, 5*time.Second)
 	a.showPicture(r, robotpic.Needs(s.Food, s.Fun, s.Energy))
