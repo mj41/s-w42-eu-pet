@@ -71,7 +71,9 @@ there, instead of flipping the behaviour back and forth.
 - **T3** A food card held to the robot touches its head too. Such a touch must
   never count as a cuddle: only the card counts. Today: a touch reaction waits
   0.5 s after the release for a card, and touches within 2 s of a card are
-  ignored. Depends on how fast the robot reads a card (see C3).
+  ignored. Measured 2026-10-01: the card arrives 120–370 ms after the head
+  touch (the firmware polls twice a second; a read takes 230–460 ms), and a
+  card with its touch counts as the card only.
 
 ### Food cards (NFC)
 
@@ -218,9 +220,9 @@ For showing the pet: something always happens within a minute.
 - **C2 The screen stays on all day (R7) vs. school hours.** Nobody watches the
   pet at school. Proposal: keep it on (the robot is plugged in), or a parent
   setting "screen off during school".
-- **C3 Telling a card from a touch (T3).** It depends on how fast the robot
-  reads a card after the head touch; the firmware reports `read_ms` with each
-  card, to tune the 0.5 s / 2 s windows.
+- **C3 Faster card reads (T3).** Polling four times a second with a wake on
+  head touch read no cards at all (firmware be75bc2, reverted). Twice a second
+  is fast enough for now; revisit only if cards feel slow.
 - **C4 Game dodging (G2).** Proximity mostly stayed at 0–30 in games (the rise
   threshold is 60), and the shadow rule fired 5 times in one game. Proposal:
   rise 20, a stricter shadow rule.
