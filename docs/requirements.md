@@ -22,7 +22,8 @@ there, instead of flipping the behaviour back and forth.
 - **P4** The robot's firmware sends primary data only (raw sensor values,
   hardware events); the pet decides what they mean.
 - **P5** The robot moves its head only as part of a feature the user asked for
-  (games, dance, lifting a sunken head); nothing else moves or unpowers it.
+  (games, dance, lifting a sunken head); nothing else moves or unpowers it. It
+  never moves while the robot is in someone's hands (R9).
 - **P6** Server code is Go (standard library plus gorilla/websocket).
 - **P7** The pet's own needs pause while the kid sleeps or is at school, so it
   never suffers while the kid can't care for it.
@@ -113,6 +114,10 @@ there, instead of flipping the behaviour back and forth.
 - **M5** The main menu's needs tile shows all three needs (icons with bars),
   not a single heart.
 - **M6** A menu closes by itself after 15 s without a tap.
+- **M7** Any tap on the face counts, also one landing on its eyes or mouth (menu
+  tiles sit over the eyes). A double tap on a tile or button is two taps; a
+  double tap elsewhere blanks the screen (the robot's screensaver). Any reaction
+  (e.g. a cuddle) closes an open menu; a game start too.
 
 ### Other robot input
 
@@ -141,15 +146,16 @@ there, instead of flipping the behaviour back and forth.
 - **R7** By day the screen stays on with the pet's face; the robot must not
   look asleep while the pet is awake (the robot blanks its screen after 60 s
   without commands, so the pet sends its face again every 30 s when idle). A
-  screen blanked on purpose (a double tap, the night) stays dark.
+  screen blanked on purpose (a double tap, the night) stays dark, and so does
+  the screen during school hours (D7).
+- **R8** While the pet sleeps (a nap, or the screen lit at night), a tiny faint
+  bar in the bottom left corner shows its energy in % of full (10% steps,
+  colored like the needs, no icon), rising as it rests.
 - **R9** The head never moves while the robot is in someone's hands: held is a
   tilt of more than 12° from the learned rest pose, turning (gyro over 8°/s),
   more than 0.15 g off 1 g, or a shake; free again after two calm samples at
   rest (telemetry every 2 s). Every head command (look, nod, shake, home) is
   dropped while held.
-- **R8** While the pet sleeps (a nap, or the screen lit at night), a tiny faint
-  bar in the bottom left corner shows its energy in % of full (10% steps,
-  colored like the needs, no icon), rising as it rests.
 
 ## Play
 
@@ -164,17 +170,6 @@ there, instead of flipping the behaviour back and forth.
   ("Paráda, pět z pěti"). More catches, more fun.
 - **G4** Play costs energy and food (fun +20, energy −8, food −4); too tired
   (energy < 15) it refuses. Daily play limit (parent, minutes; feeding is never limited).
-- **G8** The color game's leaderboard: the three best full games (every round
-  done), kept on the server (the state file, photos next to it), so a robot
-  restart loses nothing. A game fast enough for it: the robot says the place
-  ("Jsi na prvním místě! Usměj se, vyfotím tě."), counts down ("Tři, dva,
-  jedna, sýr!") and takes a photo with its camera (parent setting, on by
-  default). After every color game the robot shows the podium (first in the
-  middle, photos in gold, silver and bronze frames, the times); the kid's page
-  shows it too. The parent page lists it, removes a place or clears it (the
-  photos go too). Photos are served only to browsers paired with the robot.
-- **G7** During a game the screen has a fixed brightness (70%): the kid's hand
-  near the light sensor must not dim it. Auto brightness returns after the game.
 - **G5** Without the robot connected, play is a short dance on the page.
 - **G6** The color game (robot menu: Play → the color-dots tile): six color
   buttons (red, yellow, green, white, blue, purple; not cyan, which looked like
@@ -193,11 +188,23 @@ there, instead of flipping the behaviour back and forth.
   A wrong button buzzes and greys all buttons out for 3 s, they take no presses
   meanwhile (a penalty; the clock runs on); a round not done in 20 s
   moves on and counts 20 s. At the end the robot says the time over all rounds
-  ("Hotovo za 74 sekund!"); with every round done, the best time is kept ("Nový
-  rekord!"). Same fun, energy and food as catch (G4). A double tap on a button
+  ("Hotovo za 74 sekund!"); a game with every round done can get on the
+  leaderboard (G8; the fastest says "Nový rekord!"). Same fun, energy and food
+  as catch (G4), by the share of rounds done. A double tap on a button
   is two presses, never the screensaver. The LED colors match the buttons
   (gamma corrected, green weakened, the same power; yellow, purple and white
   tuned by eye).
+- **G7** During a game the screen has a fixed brightness (70%): the kid's hand
+  near the light sensor must not dim it. Auto brightness returns after the game.
+- **G8** The color game's leaderboard: the three best full games (every round
+  done), kept on the server (the state file, photos next to it), so a robot
+  restart loses nothing. A game fast enough for it: the robot says the place
+  ("Jsi na prvním místě! Usměj se, vyfotím tě."), counts down ("Tři, dva,
+  jedna, sýr!") and takes a photo with its camera (parent setting, on by
+  default). After every color game the robot shows the podium (first in the
+  middle, photos in gold, silver and bronze frames, the times); the kid's page
+  shows it too. The parent page lists it, removes a place or clears it (the
+  photos go too). Photos are served only to browsers paired with the robot.
 
 ## Naps
 
@@ -227,6 +234,7 @@ For showing the pet: something always happens within a minute.
 - **K1** Opened by scanning the robot's QR code (pairs the browser with the robot).
 - **K2** The tiny colourful Stack-chan face (mood), three need bars, four big
   picture buttons: food, cuddle, play, nap. Robot actions show on the page too.
+  The color game's podium (G8) when there is one, not during games or at night.
 - **K3** No settings, no text the kid must read.
 
 ## Parent page
@@ -239,18 +247,21 @@ For showing the pet: something always happens within a minute.
 - **A3** Settings: name, language, difficulty; schedule (D1) and school; daily
   play limit; sounds, voice, volume (40); night light, screen off at night,
   night wake minutes; drawn faces; demo mode; game ball seconds and head moves;
-  food per card.
+  photos for the color game's leaderboard; food per card.
 - **A4** Set the needs directly (sliders, all full).
 - **A5** A log of what happened; previews of morning, bedtime, the needs
   picture, every sound and spoken line on the robot.
 - **A6** New pet (needs and age reset, settings kept), change the PIN.
 - **A7** Demo mode has its own section at the bottom of the page (on/off,
   ignore school); its checkboxes save at once.
+- **A8** The color game's leaderboard with photos: remove a place, or clear it
+  (the photos go too).
 
 ## Reliability
 
-- **W1** The pet's state (pets, PINs, pairings, parent devices) survives
-  restarts (saved every minute and on exit).
+- **W1** The pet's state (pets, PINs, pairings, parent devices, the color
+  game's leaderboard and its photos) is kept on the server and survives
+  restarts of the server (saved every minute and on exit) and of the robot.
 - **W2** A robot that reconnects gets its face and files back in step.
 - **W3** A watchdog (every 2 s) repairs what the engine would otherwise only
   fix on the next change, and logs each repair: a menu left open, a game that
@@ -279,3 +290,8 @@ For showing the pet: something always happens within a minute.
   threshold was 60) and the shadow rule (60%) fired 5 times in one game.
   Decided 2026-10-01: rise 20, shadow below 40% (G2); check in the next games.
 - **C5 Long press (M2).** Decided 2026-10-01: a line asking for gentleness.
+- **C6 Not yet seen on the robot (2026-10-01):** the held detection (R9; its
+  thresholds may need tuning), the leaderboard's countdown, photo and podium
+  (G8; the camera snapshot itself works), dodges with the new thresholds (C4).
+- **C7 The level picture (G6)** shows the robot from above; whether small kids
+  read it that way is still to be seen.
