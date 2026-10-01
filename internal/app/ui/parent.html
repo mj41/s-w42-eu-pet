@@ -103,9 +103,6 @@
       <div class="row"><label for="difficulty" data-t="difficulty"></label>
         <select id="difficulty"><option value="easy" data-t="easy"></option><option value="normal" data-t="normal"></option><option value="hard" data-t="hard"></option></select></div>
       <p class="hint" data-t="difficultyHint"></p>
-      <div class="row"><label><input id="demo" type="checkbox"> <span data-t="demo"></span></label></div>
-      <p class="hint" data-t="demoHint"></p>
-      <div class="row"><label><input id="demoNoSchool" type="checkbox"> <span data-t="demoNoSchool"></span></label></div>
     </section>
 
     <section>
@@ -180,6 +177,13 @@
       <div class="row"><button class="danger" id="reset" data-t="reset"></button></div>
       <p class="hint" data-t="resetHint"></p>
     </section>
+
+    <section>
+      <h2 data-t="demoTitle"></h2>
+      <div class="row"><label><input id="demo" type="checkbox"> <span data-t="demo"></span></label><span id="demoSaved" class="saved" data-t="saved"></span></div>
+      <p class="hint" data-t="demoHint"></p>
+      <div class="row"><label><input id="demoNoSchool" type="checkbox"> <span data-t="demoNoSchool"></span></label></div>
+    </section>
   </div>
   <p class="hint" style="text-align:center">Stack-chan is developed and published by meganetaaan ·
     <a href="https://github.com/meganetaaan/stack-chan">github.com/meganetaaan/stack-chan</a> · pictures: Fluent Emoji (MIT)</p>
@@ -202,8 +206,8 @@ const T = {
     scheduleHint: "V noci mazlíček spí: jeho potřeby stojí, obrazovka zhasne a na dotyk jen ospale odpoví. 10 minut před spaním zívá.",
     voice: "Mluví (hlas robota)",
     head: (p, y) => `Hlava: sklon ${p}°, otočení ${y}°.`,
-    demo: "Ukázkový režim (demo)",
-    demoNoSchool: "V ukázkovém režimu ignorovat školu (mazlíček neodpočívá)",
+    demoTitle: "Ukázkový režim (demo)", demo: "Zapnout",
+    demoNoSchool: "Ignorovat školu (mazlíček během ní neodpočívá)",
     demoHint: "Když je jídlo, zábava nebo energie na 90 %, spadne zpátky na 10 %: mazlíček pořád něco potřebuje. Na robotovi se ukáže obrázek s šipkami a věta.",
     setNeeds: "Změnit potřeby", set: "Nastavit", allFull: "Vše plné",
     game: "Hra (chytání míčku)", ballSeconds: "Sekund na míček", headMoves: "Hlava se při hře hýbe (krouží, uhýbá ruce)",
@@ -245,8 +249,8 @@ const T = {
     scheduleHint: "At night the pet sleeps: its needs pause, the screen goes dark and a touch only gets a sleepy answer. It yawns 10 minutes before bedtime.",
     voice: "Speaks (robot voice)",
     head: (p, y) => `Head: tilt ${p}°, turn ${y}°.`,
-    demo: "Demo mode",
-    demoNoSchool: "In demo mode, ignore school hours (the pet does not rest)",
+    demoTitle: "Demo mode", demo: "On",
+    demoNoSchool: "Ignore school hours (the pet does not rest then)",
     demoHint: "When food, fun or energy reaches 90%, it drops back to 10%: the pet always needs something. The robot shows a reset picture and says so.",
     setNeeds: "Change the needs", set: "Set", allFull: "All full",
     game: "Game (catch the ball)", ballSeconds: "Seconds per ball", headMoves: "The head moves in the game (circles, dodges a hand)",
@@ -436,6 +440,13 @@ const setNeeds = async (v) => {
 $("setNeeds").onclick = () => setNeeds();
 $("fullNeeds").onclick = () => setNeeds({ food: 100, fun: 100, energy: 100 });
 $("volume").oninput = () => $("volumeN").textContent = $("volume").value;
+// The demo section is below the save bar: its checkboxes save at once (only them).
+const saveDemo = async () => {
+  const s = { ...data.settings, demo: $("demo").checked, demo_no_school: $("demoNoSchool").checked };
+  const { ok } = await api("/api/parent/settings", s);
+  if (ok) { data.settings = s; flash("demoSaved"); }
+};
+$("demo").onchange = $("demoNoSchool").onchange = saveDemo;
 $("save").onclick = async () => {
   const { ok, status } = await api("/api/parent/settings", collect());
   $("saveErr").textContent = ok ? "" : status === 403 ? t("enterPin") : "!";

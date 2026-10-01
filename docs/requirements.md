@@ -203,6 +203,8 @@ For showing the pet: something always happens within a minute.
 - **A5** A log of what happened; previews of morning, bedtime, the needs
   picture, every sound and spoken line on the robot.
 - **A6** New pet (needs and age reset, settings kept), change the PIN.
+- **A7** Demo mode has its own section at the bottom of the page (on/off,
+  ignore school); its checkboxes save at once.
 
 ## Reliability
 
