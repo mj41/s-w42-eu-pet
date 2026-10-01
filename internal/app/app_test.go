@@ -461,6 +461,7 @@ func (e *env) fastGame(round time.Duration) {
 	defer e.app.mu.Unlock()
 	e.app.timing.round, e.app.timing.moveExtra = round, 0
 	e.app.timing.gap, e.app.timing.intro, e.app.timing.stars = 50*time.Millisecond, 50*time.Millisecond, 100*time.Millisecond
+	e.app.timing.penalty = 100 * time.Millisecond
 }
 
 // lightMsg is a light stream message with n samples of the same values.

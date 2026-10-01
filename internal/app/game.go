@@ -40,11 +40,12 @@ type timing struct {
 	dodgeBack   time.Duration // a dodge returns to the middle after this
 	dreamShare  float64       // how often a touch while asleep shows a dream; otherwise a sleepy "Zzz"
 	demoPicture time.Duration // the demo reset picture, before the face says it
+	penalty     time.Duration // the color game: buttons greyed out after a wrong one
 }
 
 var defaultTiming = timing{
 	round: 5 * time.Second, moveExtra: time.Second, gap: 700 * time.Millisecond, intro: 1500 * time.Millisecond,
-	stars: 3 * time.Second, demoPicture: 3 * time.Second, dodgeEvery: 1200 * time.Millisecond, dodgeBack: 1100 * time.Millisecond, dreamShare: 0.4,
+	stars: 3 * time.Second, demoPicture: 3 * time.Second, penalty: 3 * time.Second, dodgeEvery: 1200 * time.Millisecond, dodgeBack: 1100 * time.Millisecond, dreamShare: 0.4,
 }
 
 // Hand detection (raw sensor counts; see handNear).

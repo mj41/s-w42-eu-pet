@@ -24,7 +24,8 @@ import (
 //
 // Each level has colorTurns rounds: new colors, the buttons shuffled. The same color
 // twice in a row is a double tap. A part goes dark once pressed. A wrong button only
-// buzzes, the clock runs on; a round not done in colorRoundMax moves on and counts
+// buzzes and greys the buttons out for timing.penalty (the clock runs on); a round not
+// done in colorRoundMax moves on and counts
 // with that time. At the end the robot says the time over all rounds; the best time
 // (every round done) is kept. It is a game like catch (r.game, with colors
 // set). Everything here runs with a.mu held.
@@ -32,19 +33,23 @@ import (
 // colorRoundMax ends a round the kid does not finish; it counts with this time.
 const colorRoundMax = 20 * time.Second
 
+// A wrong button greys all of them out for timing.penalty (3 s; the clock runs on).
+const colorGreyed = 0.2 // the buttons' opacity meanwhile
+
 // The game is colorLevels levels of colorTurns rounds each.
 const colorLevels, colorTurns = 5, 5
 
 type colorGame struct {
-	turn    int      // the round in this level, 1..colorTurns
-	done    int      // rounds done over the game
-	parts   int      // 2 (left, right) or 4 (halves)
-	order   []int    // the parts in the order to press
-	colors  []string // each part's color
-	next    int      // how many are pressed
-	started time.Time
-	total   time.Duration // the levels so far
-	wrong   int
+	turn        int      // the round in this level, 1..colorTurns
+	done        int      // rounds done over the game
+	parts       int      // 2 (left, right) or 4 (halves)
+	order       []int    // the parts in the order to press
+	colors      []string // each part's color
+	next        int      // how many are pressed
+	started     time.Time
+	lockedUntil time.Time     // greyed out after a wrong button until then
+	total       time.Duration // the levels so far
+	wrong       int
 }
 
 // pressNext is the color to press next.
@@ -186,8 +191,9 @@ func (a *App) colorTurn(r *robot, g *game) {
 	for i, spot := range rand.Perm(len(colorSpots)) {
 		c := robotpic.Colors[i]
 		a.sprite(r, map[string]any{"id": "c:" + c, "asset": assetDir + "color-" + c + ".png",
-			"x": colorSpots[spot][0], "y": colorSpots[spot][1], "z": 21, "tap": true, "hidden": false})
+			"x": colorSpots[spot][0], "y": colorSpots[spot][1], "z": 21, "tap": true, "hidden": false, "opacity": 1.0})
 	}
+	cg.lockedUntil = time.Time{}
 	a.colorLEDs(r, cg)
 	cg.started = time.Now()
 	r.busyUntil = a.now().Add(time.Minute)
@@ -199,6 +205,13 @@ func (a *App) colorTurn(r *robot, g *game) {
 			a.colorTurn(r, g)
 		}
 	})
+}
+
+// colorButtons sets the buttons' opacity (greyed out after a wrong one, or back).
+func (a *App) colorButtons(r *robot, opacity float64) {
+	for _, id := range colorIDs() {
+		r.conn.command("sprite", map[string]any{"id": id, "opacity": opacity})
+	}
 }
 
 // colorIDs are the buttons' sprite ids.
@@ -232,9 +245,20 @@ func (a *App) colorTap(r *robot, g *game, sprite string) {
 	if !ok || !slices.Contains(robotpic.Colors, c) || cg.started.IsZero() || cg.next >= cg.parts {
 		return
 	}
-	if c != cg.pressNext() {
+	if time.Now().Before(cg.lockedUntil) {
+		return // greyed out after a wrong button
+	}
+	if c != cg.pressNext() { // the penalty: the buttons grey out for a while, the clock runs on
 		cg.wrong++
+		cg.lockedUntil = time.Now().Add(a.timing.penalty)
 		a.play(r, sound.No, false)
+		a.colorButtons(r, colorGreyed)
+		level, turn := g.round, cg.turn
+		a.afterGame(r, g, a.timing.penalty, func() {
+			if g.round == level && cg.turn == turn {
+				a.colorButtons(r, 1)
+			}
+		})
 		return
 	}
 	cg.next++
