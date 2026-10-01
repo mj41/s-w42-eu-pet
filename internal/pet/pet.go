@@ -72,7 +72,7 @@ type Pet struct {
 	PlayDay      string    `json:"play_day"` // the local date PlayMin counts, "2006-01-02"
 	PlayMin      float64   `json:"play_min"` // play and cuddle time on PlayDay
 	LastPlayAt   time.Time `json:"last_play_at,omitzero"`
-	ColorsBestMs int64     `json:"colors_best_ms,omitempty"` // the color game's best time (every round done)
+	ColorsBestMs int64     `json:"color_levels_best_ms,omitempty"` // the color game's best time (every round done; 5 levels of 5)
 	LastCuddle   time.Time `json:"last_cuddle,omitzero"`
 
 	Log []Entry `json:"log"`
@@ -480,20 +480,20 @@ func (p *Pet) reward(won int) {
 	p.clamp()
 }
 
-// FinishColors ends the color game: done rounds of GameRounds, in total time (the
-// rounds not done count with their full time). A game with every round done can
-// set the best time.
-func (p *Pet) FinishColors(now time.Time, done int, total time.Duration) Reaction {
+// FinishColors ends the color game: done of rounds, in total time (the rounds not
+// done count with their full time). A game with every round done can set the best
+// time. The fun is as for catch, by the share done.
+func (p *Pet) FinishColors(now time.Time, done, rounds int, total time.Duration) Reaction {
 	p.Advance(now)
-	done = max(0, min(GameRounds, done))
+	done = max(0, min(rounds, done))
 	p.countPlay(now)
-	p.reward(done)
+	p.reward(done * GameRounds / max(1, rounds))
 	re := Reaction{Kind: KindColorsOver, Hits: done, Ms: total.Milliseconds(), Changed: true}
-	if done == GameRounds && (p.ColorsBestMs == 0 || re.Ms < p.ColorsBestMs) {
+	if done == rounds && (p.ColorsBestMs == 0 || re.Ms < p.ColorsBestMs) {
 		re.Record = p.ColorsBestMs != 0 // the first game is not a record yet
 		p.ColorsBestMs = re.Ms
 	}
-	p.log(now, "colors", fmt.Sprintf("%d/%d %.1f s", done, GameRounds, total.Seconds()))
+	p.log(now, "colors", fmt.Sprintf("%d/%d %.1f s", done, rounds, total.Seconds()))
 	return re
 }
 

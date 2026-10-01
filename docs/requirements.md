@@ -178,11 +178,12 @@ there, instead of flipping the behaviour back and forth.
   5. the four halves in a random order, not level 3's or 4's.
 
   Each level starts with a picture of the robot from above (its screen towards
-  the kid) with its strips numbered in that order (3 s). Colors are random per
+  the kid) with its strips numbered in that order (6 s), then 5 rounds: new
+  colors, the buttons shuffled (25 rounds in a game). Colors are random per
   part; the same color twice in a row is a double tap. A pressed part goes dark.
-  A wrong button only buzzes (the clock runs on); a level not done in 20 s
-  moves on and counts 20 s. At the end the robot says the time over all levels
-  ("Hotovo za 14 sekund!"); with every level done, the best time is kept ("Nový
+  A wrong button only buzzes (the clock runs on); a round not done in 20 s
+  moves on and counts 20 s. At the end the robot says the time over all rounds
+  ("Hotovo za 74 sekund!"); with every round done, the best time is kept ("Nový
   rekord!"). Same fun, energy and food as catch (G4). A double tap on a button
   is two presses, never the screensaver. The LED colors match the buttons
   (gamma corrected, green weakened, the same power; yellow, purple and white

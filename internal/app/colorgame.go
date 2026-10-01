@@ -22,16 +22,22 @@ import (
 //	level 4  right far, right near, left far, left near
 //	level 5  the four halves in a random order (not level 3's or 4's)
 //
-// The same color twice in a row is a double tap. A part goes dark once pressed. A
-// wrong button only buzzes, the clock runs on; a level not done in colorRoundMax
-// moves on and counts with that time. At the end the robot says the time over all
-// levels; the best time is kept. It is a game like catch (r.game, with colors
+// Each level has colorTurns rounds: new colors, the buttons shuffled. The same color
+// twice in a row is a double tap. A part goes dark once pressed. A wrong button only
+// buzzes, the clock runs on; a round not done in colorRoundMax moves on and counts
+// with that time. At the end the robot says the time over all rounds; the best time
+// (every round done) is kept. It is a game like catch (r.game, with colors
 // set). Everything here runs with a.mu held.
 
-// colorRoundMax ends a level the kid does not finish; it counts with this time.
+// colorRoundMax ends a round the kid does not finish; it counts with this time.
 const colorRoundMax = 20 * time.Second
 
+// The game is colorLevels levels of colorTurns rounds each.
+const colorLevels, colorTurns = 5, 5
+
 type colorGame struct {
+	turn    int      // the round in this level, 1..colorTurns
+	done    int      // rounds done over the game
 	parts   int      // 2 (left, right) or 4 (halves)
 	order   []int    // the parts in the order to press
 	colors  []string // each part's color
@@ -133,22 +139,19 @@ func (a *App) startColors(r *robot, now time.Time) {
 	a.say(r, "color_game", "", 2)
 	a.play(r, sound.Hello, false)
 	a.publishState(r)
-	a.afterGame(r, g, a.timing.intro, func() { a.colorRound(r, g) })
+	a.afterGame(r, g, a.timing.intro, func() { a.colorLevelStart(r, g) })
 }
 
-// colorRound starts the next level: its order picture first, then the buttons and the colors.
-func (a *App) colorRound(r *robot, g *game) {
-	if g.round >= pet.GameRounds {
+// colorLevelStart starts the next level with its order picture (colorShowOrder).
+func (a *App) colorLevelStart(r *robot, g *game) {
+	if g.round >= colorLevels {
 		a.endColors(r, g)
 		return
 	}
 	g.round++
 	cg := g.colors
 	cg.parts, cg.order = colorLevel(g.round)
-	cg.colors, cg.next = make([]string, cg.parts), 0
-	for i := range cg.colors {
-		cg.colors[i] = robotpic.Colors[rand.IntN(len(robotpic.Colors))]
-	}
+	cg.turn = 0
 	r.conn.command("leds", map[string]any{"pixels": slices.Repeat([]string{"#000000"}, 12)})
 	for _, id := range append([]string{"c:bg"}, colorIDs()...) { // the picture is under the sprites
 		r.conn.command("sprite", map[string]any{"id": id, "hidden": true})
@@ -156,27 +159,45 @@ func (a *App) colorRound(r *robot, g *game) {
 	a.showPicture(r, robotpic.Order(cg.parts, cg.order))
 	r.busyUntil = a.now().Add(time.Minute)
 	a.publishState(r)
-	round := g.round
-	a.afterGame(r, g, 2*a.timing.intro, func() {
-		if g.round != round {
+	level := g.round
+	a.afterGame(r, g, 4*a.timing.intro, func() { // 6 s: time to learn the order
+		if g.round != level {
 			return
 		}
 		r.conn.command("face", nil)
 		r.pictureOn = false
 		r.conn.command("sprite", map[string]any{"id": "c:bg", "hidden": false})
-		for i, spot := range rand.Perm(len(colorSpots)) {
-			c := robotpic.Colors[i]
-			a.sprite(r, map[string]any{"id": "c:" + c, "asset": assetDir + "color-" + c + ".png",
-				"x": colorSpots[spot][0], "y": colorSpots[spot][1], "z": 21, "tap": true, "hidden": false})
+		a.colorTurn(r, g)
+	})
+}
+
+// colorTurn is the next round of the level: new colors, the buttons shuffled.
+func (a *App) colorTurn(r *robot, g *game) {
+	cg := g.colors
+	if cg.turn >= colorTurns {
+		a.colorLevelStart(r, g)
+		return
+	}
+	cg.turn++
+	cg.colors, cg.next = make([]string, cg.parts), 0
+	for i := range cg.colors {
+		cg.colors[i] = robotpic.Colors[rand.IntN(len(robotpic.Colors))]
+	}
+	for i, spot := range rand.Perm(len(colorSpots)) {
+		c := robotpic.Colors[i]
+		a.sprite(r, map[string]any{"id": "c:" + c, "asset": assetDir + "color-" + c + ".png",
+			"x": colorSpots[spot][0], "y": colorSpots[spot][1], "z": 21, "tap": true, "hidden": false})
+	}
+	a.colorLEDs(r, cg)
+	cg.started = time.Now()
+	r.busyUntil = a.now().Add(time.Minute)
+	level, turn := g.round, cg.turn
+	a.afterGame(r, g, colorRoundMax, func() {
+		if g.round == level && cg.turn == turn && cg.next < cg.parts { // not finished: on to the next round
+			cg.total += colorRoundMax
+			cg.started = time.Time{}
+			a.colorTurn(r, g)
 		}
-		a.colorLEDs(r, cg)
-		cg.started = time.Now()
-		a.afterGame(r, g, colorRoundMax, func() {
-			if g.round == round && cg.next < cg.parts { // not finished: on to the next level
-				cg.total += colorRoundMax
-				a.colorRound(r, g)
-			}
-		})
 	})
 }
 
@@ -224,13 +245,14 @@ func (a *App) colorTap(r *robot, g *game, sprite string) {
 	}
 	cg.total += time.Since(cg.started) // the level is done
 	cg.started = time.Time{}           // no presses until the next level's buttons
-	g.hits++
+	cg.done++
+	g.hits = cg.done / colorTurns // the page counts levels
 	r.pet.Caught(a.now())
 	a.publishState(r)
-	round := g.round
+	level, turn := g.round, cg.turn
 	a.afterGame(r, g, a.timing.gap, func() {
-		if g.round == round {
-			a.colorRound(r, g)
+		if g.round == level && cg.turn == turn {
+			a.colorTurn(r, g)
 		}
 	})
 }
@@ -243,8 +265,8 @@ func (a *App) endColors(r *robot, g *game) {
 	a.gameScreen(r, false)
 	a.restoreHead(r)
 	a.clearSprites(r)
-	re := r.pet.FinishColors(now, g.hits, cg.total)
-	a.log.Info("color game over", "robot", r.id, "rounds", g.hits, "seconds", cg.total.Seconds(), "wrong", cg.wrong, "record", re.Record)
+	re := r.pet.FinishColors(now, cg.done, colorLevels*colorTurns, cg.total)
+	a.log.Info("color game over", "robot", r.id, "rounds", cg.done, "seconds", cg.total.Seconds(), "wrong", cg.wrong, "record", re.Record)
 	a.dirty = true
 	a.begin(r, now, 6*time.Second)
 	a.emotion(r, "happy")
