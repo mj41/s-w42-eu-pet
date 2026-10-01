@@ -3,6 +3,7 @@ package robotpic
 import (
 	"bytes"
 	"image/jpeg"
+	"image/png"
 	"os"
 	"testing"
 
@@ -47,5 +48,15 @@ func TestSpotAt(t *testing.T) {
 		if got := SpotAt(c.x, c.y); got != c.want {
 			t.Errorf("SpotAt(%v, %v) = %d, want %d", c.x, c.y, got, c.want)
 		}
+	}
+}
+
+func TestEnergyBarIsTransparentAroundTheIcon(t *testing.T) {
+	img, err := png.Decode(bytes.NewReader(EnergyBar(50)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, a := img.At(1, 1).RGBA(); a != 0 { // the icon's empty corner
+		t.Fatalf("corner alpha %d", a)
 	}
 }

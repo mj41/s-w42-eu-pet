@@ -142,6 +142,9 @@ there, instead of flipping the behaviour back and forth.
   look asleep while the pet is awake (the robot blanks its screen after 60 s
   without commands, so the pet sends its face again every 30 s when idle). A
   screen blanked on purpose (a double tap, the night) stays dark.
+- **R8** While the pet sleeps (a nap, or the screen lit at night), a tiny bar
+  under the face shows its energy in % of full (the zzz icon and a bar in 10%
+  steps, colored like the needs), rising as it rests.
 
 ## Play
 

@@ -116,13 +116,13 @@ func drawScaled(dst *image.RGBA, src image.Image, r image.Rectangle) {
 				}
 			}
 			rs, gs, bs, as = rs/n, gs/n, bs/n, as/n
-			d := dst.RGBAAt(x, y)
+			d := dst.RGBAAt(x, y) // premultiplied too: "over" keeps a transparent dst transparent
 			inv := 0xFFFF - as
 			dst.SetRGBA(x, y, color.RGBA{
 				R: uint8((rs + uint32(d.R)*0x101*inv/0xFFFF) >> 8),
 				G: uint8((gs + uint32(d.G)*0x101*inv/0xFFFF) >> 8),
 				B: uint8((bs + uint32(d.B)*0x101*inv/0xFFFF) >> 8),
-				A: 0xFF,
+				A: uint8((as + uint32(d.A)*0x101*inv/0xFFFF) >> 8),
 			})
 		}
 	}
