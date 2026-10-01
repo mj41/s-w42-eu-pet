@@ -512,7 +512,7 @@ func (p *Pet) Shake(now time.Time) Reaction {
 	return Reaction{Kind: KindShake, Changed: true}
 }
 
-// Food is what one serving adds.
+// Food is what one serving adds. Only sleep gives energy (Energy stays 0 for foods).
 type Food struct {
 	Food, Fun, Energy float64
 }
@@ -520,10 +520,10 @@ type Food struct {
 // Foods by key; FoodOrder is the order on the kid's page.
 var Foods = map[string]Food{
 	"apple":  {Food: 20, Fun: 2},
-	"carrot": {Food: 20, Energy: 3},
-	"banana": {Food: 25, Energy: 5},
+	"carrot": {Food: 20, Fun: 2},
+	"banana": {Food: 25},
 	"bread":  {Food: 30},
-	"milk":   {Food: 15, Energy: 10},
+	"milk":   {Food: 20},
 	"cake":   {Food: 15, Fun: 15},
 }
 

@@ -351,3 +351,11 @@ func TestPickyEating(t *testing.T) {
 		t.Fatalf("the same food an hour later: %+v", r)
 	}
 }
+
+func TestFoodGivesNoEnergy(t *testing.T) {
+	for name, f := range Foods {
+		if f.Energy != 0 {
+			t.Errorf("%s gives energy %.0f: only sleep gives energy", name, f.Energy)
+		}
+	}
+}
