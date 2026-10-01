@@ -104,6 +104,7 @@ func (a *App) startColors(r *robot, now time.Time) {
 		r.pictureOn = false
 	}
 	a.rememberHead(r)
+	a.gameScreen(r, true)
 	a.clearSprites(r)
 	a.emotion(r, "happy")
 	a.sprite(r, map[string]any{"id": "c:bg", "asset": assetDir + "menu-bg.png", "x": 160, "y": 120, "z": 20})
@@ -208,6 +209,7 @@ func (a *App) endColors(r *robot, g *game) {
 	now := a.now()
 	cg := g.colors
 	r.game = nil
+	a.gameScreen(r, false)
 	a.restoreHead(r)
 	a.clearSprites(r)
 	re := r.pet.FinishColors(now, g.hits, cg.total)

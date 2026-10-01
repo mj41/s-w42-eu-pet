@@ -91,6 +91,19 @@ type gameView struct {
 	Hits   int `json:"hits"`
 }
 
+// gameBrightness is the screen's brightness (%) during a game: fixed, as a kid's hand
+// over the light sensor would dim the automatic one.
+const gameBrightness = 70
+
+// gameScreen fixes the brightness for a game (on), or gives it back to the light sensor.
+func (a *App) gameScreen(r *robot, on bool) {
+	if on {
+		r.conn.command("brightness", map[string]any{"value": gameBrightness})
+		return
+	}
+	r.conn.command("brightness", map[string]any{"auto": true})
+}
+
 // afterGame runs fn after d if g is still the robot's game.
 func (a *App) afterGame(r *robot, g *game, d time.Duration, fn func()) {
 	time.AfterFunc(d, func() {
@@ -125,6 +138,7 @@ func (a *App) startGame(r *robot, now time.Time) {
 		r.pictureOn = false
 	}
 	r.conn.command("light_stream", map[string]any{"on": true})
+	a.gameScreen(r, true)
 	a.rememberHead(r)
 	a.emotion(r, "happy")
 	a.say(r, "game", "", 2)
@@ -315,6 +329,7 @@ func (a *App) endGame(r *robot, g *game) {
 	now := a.now()
 	r.game = nil
 	r.conn.command("light_stream", map[string]any{"on": false})
+	a.gameScreen(r, false)
 	a.restoreHead(r)
 	a.log.Info("game over", "robot", r.id, "hits", g.hits, "dodges", g.allDodges, "light_samples", g.samples,
 		"proximity", fmt.Sprintf("%.0f..%.0f", g.psMin, g.psMax), "light_ch0", fmt.Sprintf("%.0f..%.0f", g.ch0Min, g.ch0Max))
@@ -366,6 +381,7 @@ func (a *App) stopGame(r *robot) {
 	r.game = nil
 	if r.conn != nil {
 		r.conn.command("light_stream", map[string]any{"on": false})
+		a.gameScreen(r, false)
 		a.restoreHead(r)
 		a.clearSprites(r)
 	}

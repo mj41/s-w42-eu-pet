@@ -14,6 +14,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+	"math"
 	"sync"
 )
 
@@ -428,10 +429,8 @@ var (
 		"blue":   {0x1e, 0x5b, 0xe5, 0xff},
 		"purple": {0x9c, 0x27, 0xb0, 0xff},
 	}
-	// ColorLED is each color at full strength for the robot's LEDs (they look washed
-	// out otherwise).
-	ColorLED = map[string]string{"red": "#ff0000", "yellow": "#ffb000", "green": "#00ff00",
-		"cyan": "#00ffff", "blue": "#0000ff", "purple": "#c000ff"}
+	// ColorLED is each color for the robot's LEDs (ledColor).
+	ColorLED = map[string]string{}
 )
 
 // Color button size: six fit on the screen, three by two.
@@ -445,14 +444,13 @@ func ColorButton(name string) []byte {
 	return encodePNG(img)
 }
 
-// EnergyBar is the tiny energy bar under the sleeping face (PNG, transparent): the
-// zzz icon and a bar filled to pct percent, colored like the needs bars.
+// EnergyBar is the tiny energy bar in the sleeping face's corner (PNG): a bar filled
+// to pct percent, colored like the needs bars (the server shows it faint).
+const EnergyBarW, EnergyBarH = 80, 10
+
 func EnergyBar(pct int) []byte {
-	img := image.NewRGBA(image.Rect(0, 0, 140, 28))
-	if ic := icon("zzz"); ic != nil {
-		drawScaled(img, ic, image.Rect(0, 1, 26, 27))
-	}
-	bar := image.Rect(32, 6, 140, 22)
+	img := image.NewRGBA(image.Rect(0, 0, EnergyBarW, EnergyBarH))
+	bar := img.Bounds()
 	fillRound(img, bar, color.RGBA{0x55, 0x5c, 0x7a, 0xff})
 	c := green
 	switch {
@@ -465,4 +463,28 @@ func EnergyBar(pct int) []byte {
 	fill.Max.X = bar.Min.X + max(bar.Dy(), bar.Dx()*max(0, min(100, pct))/100)
 	fillRound(img, fill, c)
 	return encodePNG(img)
+}
+
+// LED color tuning: the LEDs are linear (the screen's colors are gamma encoded), their
+// green is much brighter than red and blue, and at full power the diffuser washes the
+// colors out to pastel. Every color gets the same power (its strongest channel).
+const (
+	ledGamma = 2.2
+	ledGreen = 0.65 // the green channel's share
+	ledLevel = 0.7  // the strongest channel, of full
+)
+
+// ledColor is the screen color c for the LEDs, as "#rrggbb".
+func ledColor(c color.RGBA) string {
+	lin := func(v uint8) float64 { return math.Pow(float64(v)/255, ledGamma) }
+	r, g, b := lin(c.R), lin(c.G)*ledGreen, lin(c.B)
+	k := 255 * ledLevel / max(r, g, b, 1e-6)
+	ch := func(v float64) int { return int(math.Round(v * k)) }
+	return fmt.Sprintf("#%02x%02x%02x", ch(r), ch(g), ch(b))
+}
+
+func init() {
+	for name, c := range ColorRGBA {
+		ColorLED[name] = ledColor(c)
+	}
 }

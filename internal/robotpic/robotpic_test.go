@@ -51,12 +51,12 @@ func TestSpotAt(t *testing.T) {
 	}
 }
 
-func TestEnergyBarIsTransparentAroundTheIcon(t *testing.T) {
+func TestEnergyBarPNG(t *testing.T) {
 	img, err := png.Decode(bytes.NewReader(EnergyBar(50)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, a := img.At(1, 1).RGBA(); a != 0 { // the icon's empty corner
+	if _, _, _, a := img.At(0, 0).RGBA(); a != 0 { // the rounded end
 		t.Fatalf("corner alpha %d", a)
 	}
 }

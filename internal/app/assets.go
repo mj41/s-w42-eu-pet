@@ -195,8 +195,9 @@ func (a *App) refreshFace(r *robot) {
 	}
 }
 
-// energyBar: while the pet sleeps (a nap, or the screen lit at night), a tiny bar
-// under the face shows its energy, in steps of 10%. Only sent when it changes.
+// energyBar: while the pet sleeps (a nap, or the screen lit at night), a tiny faint
+// bar in the bottom left corner shows its energy, in steps of 10%. Only sent when it
+// changes.
 func (a *App) energyBar(r *robot) {
 	step := int(math.Round(r.pet.Stats.Energy/10)) * 10
 	asset := fmt.Sprintf("%szbar-%d.png", assetDir, step)
@@ -204,7 +205,8 @@ func (a *App) energyBar(r *robot) {
 		return
 	}
 	r.barStep = step
-	a.sprite(r, map[string]any{"id": energyBarSprite, "asset": asset, "x": 160, "y": 220, "z": 5})
+	a.sprite(r, map[string]any{"id": energyBarSprite, "asset": asset, // bottom left, faint
+		"x": 12 + robotpic.EnergyBarW/2, "y": 240 - 12 - robotpic.EnergyBarH/2, "z": 5, "opacity": 0.45})
 }
 
 const energyBarSprite = "zbar"

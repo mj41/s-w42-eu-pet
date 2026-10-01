@@ -142,9 +142,9 @@ there, instead of flipping the behaviour back and forth.
   look asleep while the pet is awake (the robot blanks its screen after 60 s
   without commands, so the pet sends its face again every 30 s when idle). A
   screen blanked on purpose (a double tap, the night) stays dark.
-- **R8** While the pet sleeps (a nap, or the screen lit at night), a tiny bar
-  under the face shows its energy in % of full (the zzz icon and a bar in 10%
-  steps, colored like the needs), rising as it rests.
+- **R8** While the pet sleeps (a nap, or the screen lit at night), a tiny faint
+  bar in the bottom left corner shows its energy in % of full (10% steps,
+  colored like the needs, no icon), rising as it rests.
 
 ## Play
 
@@ -159,6 +159,8 @@ there, instead of flipping the behaviour back and forth.
   ("Paráda, pět z pěti"). More catches, more fun.
 - **G4** Play costs energy and food (fun +20, energy −8, food −4); too tired
   (energy < 15) it refuses. Daily play limit (parent, minutes; feeding is never limited).
+- **G7** During a game the screen has a fixed brightness (70%): the kid's hand
+  near the light sensor must not dim it. Auto brightness returns after the game.
 - **G5** Without the robot connected, play is a short dance on the page.
 - **G6** The color game (robot menu: Play → the color-dots tile): six color
   buttons (red, yellow, green, cyan, blue, purple), three by two, in a new order
@@ -172,7 +174,8 @@ there, instead of flipping the behaviour back and forth.
   At the end the robot says the time over all rounds ("Hotovo za 14 sekund!");
   with every round done, the best time is kept ("Nový rekord!"). Same fun,
   energy and food as catch (G4). A double tap on a button is two presses, never
-  the screensaver.
+  the screensaver. The LED colors match the buttons: gamma corrected, green
+  weakened, every color at the same power (not washed out to pastel).
 
 ## Naps
 
