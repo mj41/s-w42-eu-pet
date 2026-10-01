@@ -90,7 +90,7 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 		files++
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"reaction": re, "shots": len(req.ShotsMs), "dir": a.cfg.DebugDir,
-		"commands": rb.commands, "files": files, "sprites": rb.canSprite(assetDir + "ball.png"), "face": rb.faceShown})
+		"commands": rb.commands, "files": files, "sprites": rb.canSprite(assetDir + "ball.png"), "face": rb.faceShown, "menu": rb.canMenu()})
 }
 
 // saveScreen keeps a screen snapshot from the robot (binary 0x07) in DebugDir.

@@ -15,8 +15,8 @@ It is a separate server that the robot switches to from its QR screen
 |---|---|
 | Stroke or press the head | Cuddle: happy face, heart, a chirp |
 | Hold an NFC card to it | Eats the card's food (shown big on the screen) |
-| Tap the screen | Shows its needs as three bars for a few seconds |
-| Hold a finger on the screen | A game of catch (below) |
+| Tap the screen | The menu: food, play, nap, needs (below) |
+| Hold a finger on the screen | Straight into a game of catch (below) |
 | Shake it | "Wheee!", dizzy |
 | Come close (proximity) | Says hello now and then |
 

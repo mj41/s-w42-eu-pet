@@ -316,18 +316,14 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 	asleep := night || p.Napping(now) // the night, or a daytime nap
 	var re pet.Reaction
 	switch ev.Name {
-	case "screen_long_press": // hold a finger on the screen: the menu (or a game without one)
+	case "screen_long_press": // hold a finger on the screen: straight into the ball game
 		switch {
 		case asleep:
 			re = pet.Reaction{Kind: pet.KindAsleep}
-		case r.menu != "":
-			a.closeMenu(r)
-			a.express(r, now)
-			return
-		case r.canMenu():
-			a.openMenu(r, now, "main")
-			return
 		default:
+			if r.menu != "" {
+				a.closeMenu(r)
+			}
 			re = a.playAction(r, now)
 		}
 	case "head_press":
