@@ -935,6 +935,8 @@ func (a *App) Pulse() {
 			re := pet.Reaction{Kind: pet.KindWake, Changed: true}
 			a.react(r, re, now)
 			a.publishReaction(r, re)
+		} else if r.conn != nil && now.After(r.busyUntil) && r.game == nil && r.menu == "" && p.Phase(now) != pet.Night {
+			a.demoCheck(r, now) // demo mode: a full need drops back within seconds
 		}
 		if a.watched(r.id) {
 			a.publishState(r)

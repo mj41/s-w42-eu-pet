@@ -300,7 +300,7 @@ func TestDemoNap(t *testing.T) {
 	for _, c := range []struct {
 		after  time.Duration
 		energy float64
-	}{{5 * time.Second, 30}, {time.Minute, 75}} {
+	}{{5 * time.Second, 30}, {time.Minute, 95}} {
 		p.Advance(t0.Add(c.after))
 		if math.Abs(p.Stats.Energy-c.energy) > 1 {
 			t.Fatalf("after %v: energy %.1f, want about %.0f", c.after, p.Stats.Energy, c.energy)
@@ -309,7 +309,7 @@ func TestDemoNap(t *testing.T) {
 	if p.Napping(t0.Add(time.Minute)) {
 		t.Fatal("a demo nap ends by itself after a minute")
 	}
-	if reset := p.DemoReset(t0.Add(30 * time.Second)); reset != nil {
-		t.Fatalf("75%% is below the demo reset: %v", reset)
+	if reset := p.DemoReset(t0.Add(time.Minute)); len(reset) != 1 || reset[0] != "energy" || p.Stats.Energy != DemoLow {
+		t.Fatalf("after the demo nap the energy goes back to 10%%: %v, %.0f", reset, p.Stats.Energy)
 	}
 }

@@ -150,11 +150,12 @@ func (p *Pet) Advance(now time.Time) {
 	}
 }
 
-// Demo nap: +20% in the first 5 s (to see it work), then up to 75% at the end (1 minute).
+// Demo nap: +20% in the first 5 s (to see it work), then up to 95% at the end (1 minute):
+// full enough for the demo reset when it wakes up.
 const (
 	demoNapQuick     = 5 * time.Second
 	demoNapQuickGain = 20
-	demoNapTarget    = 75
+	demoNapTarget    = 95
 )
 
 // napCurve is the energy after a demo nap of length d that started at from.

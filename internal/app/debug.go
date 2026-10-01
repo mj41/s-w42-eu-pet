@@ -59,6 +59,9 @@ func (a *App) handleDebugRun(w http.ResponseWriter, r *http.Request) {
 		re = rb.pet.Feed(now, req.Food)
 	case "cuddle":
 		re = rb.pet.Cuddle(now)
+	case "nap":
+		rb.pet.Stats.Energy = min(rb.pet.Stats.Energy, 30) // tired enough to nap
+		re = rb.pet.Nap(now)
 	case "play":
 		re = a.playAction(rb, now)
 	case "dream":
