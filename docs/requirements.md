@@ -157,14 +157,19 @@ there, instead of flipping the behaviour back and forth.
 - **G4** Play costs energy and food (fun +20, energy −8, food −4); too tired
   (energy < 15) it refuses. Daily play limit (parent, minutes; feeding is never limited).
 - **G5** Without the robot connected, play is a short dance on the page.
-- **G6** The color game (robot menu: Play → the four-color tile): four big
-  color buttons (red, yellow, green, blue); the robot shows the colors to press
-  as small swatches at the top, lights its LEDs in the next one and says them
-  ("Červená a modrá!"). Five rounds of 1, 1, 2, 2, 3 colors, pressed in order; a
-  wrong button only buzzes (the clock runs on); a round not done in 20 s moves
-  on and counts 20 s. At the end the robot says the time over all rounds ("Hotovo
-  za 14 sekund!"); with every round done, the best time is kept ("Nový rekord!").
-  Same fun, energy and food as catch (G4).
+- **G6** The color game (robot menu: Play → the color-dots tile): six color
+  buttons (red, yellow, green, cyan, blue, purple), three by two, in a new order
+  every round. The robot's LED strips show the colors to press, in reading
+  order: 1 color the left strip (right dark); 2 colors left, then right; 3 colors
+  the left strip's half near the kid, its far half, then the right strip; 4 colors
+  left near, left far, right near, right far. The same color twice is a double
+  tap. A pressed part goes dark. Rounds of 1, 2, 2 the same (a double tap), 3 and
+  4 colors; no spoken color names (the LEDs are the game). A wrong button only
+  buzzes (the clock runs on); a round not done in 20 s moves on and counts 20 s.
+  At the end the robot says the time over all rounds ("Hotovo za 14 sekund!");
+  with every round done, the best time is kept ("Nový rekord!"). Same fun,
+  energy and food as catch (G4). A double tap on a button is two presses, never
+  the screensaver.
 
 ## Naps
 
