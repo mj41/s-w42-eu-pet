@@ -189,6 +189,7 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 	if c == nil {
 		return
 	}
+	a.log.Info("reaction", "robot", r.id, "kind", re.Kind, "changed", re.Changed, "touch", re.Touch, "food", re.Food)
 	p := r.pet
 	lang := p.Settings.Lang
 	switch re.Kind {
@@ -199,10 +200,14 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 			a.snore(r, now)
 		}
 		return
-	case pet.KindEat:
+	case pet.KindEat, pet.KindEatAgain:
 		a.begin(r, now, reactionTime)
+		line := foodText(lang, re.Food)
+		if re.Kind == pet.KindEatAgain { // the same food a third time: eaten after all
+			line = text(lang, "eat_again", "")
+		}
 		if asset := assetDir + re.Food + ".png"; r.canSprite(asset) {
-			a.eatSprite(r, asset, foodText(lang, re.Food))
+			a.eatSprite(r, asset, line)
 			break
 		}
 		a.showPicture(r, robotpic.Food(re.Food))
@@ -211,9 +216,14 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 			c.command("face", nil)
 			r.pictureOn = false
 			a.emotion(r, "happy")
-			a.sayText(r, foodText(lang, re.Food), 3)
+			a.sayText(r, line, 3)
 			c.command("nod", nil)
 		})
+	case pet.KindPicky: // the same food again: "something else?"
+		a.begin(r, now, reactionTime)
+		a.emotion(r, "doubt")
+		c.command("shake", nil)
+		a.say(r, "picky", "", 3)
 	case pet.KindFull:
 		a.begin(r, now, reactionTime)
 		a.emotion(r, "doubt")
@@ -549,6 +559,7 @@ func (a *App) daytime(r *robot, now time.Time) {
 		return
 	}
 	if r.shownMood == pet.Napping && mood != pet.Napping {
+		r.shownMood = mood // woken: the Pulse must not see "napping" again
 		a.react(r, pet.Reaction{Kind: pet.KindWake, Changed: true}, now)
 		return
 	}
@@ -935,6 +946,7 @@ func (a *App) Pulse() {
 		p.Advance(now)
 		if r.conn != nil && r.shownMood == pet.Napping && !p.Napping(now) && now.After(r.busyUntil) &&
 			p.Phase(now) != pet.Night {
+			r.shownMood = p.Mood(now) // woken: no second wake before the mood is shown again
 			re := pet.Reaction{Kind: pet.KindWake, Changed: true}
 			a.react(r, re, now)
 			a.publishReaction(r, re)

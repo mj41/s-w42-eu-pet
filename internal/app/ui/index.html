@@ -236,7 +236,8 @@ function faceAnim(cls, face, ms = 1600) {
 // react shows a reaction, from this page or from the robot (head stroke, food card).
 function react(r) {
   switch (r.kind) {
-    case "eat": fx(`/emoji/${r.food}.svg`); faceAnim("jump", "yum"); break;
+    case "eat": case "eat_again": fx(`/emoji/${r.food}.svg`); faceAnim("jump", "yum"); break;
+    case "picky": faceAnim("shake", "grumpy"); break;
     case "full": case "not_tired": faceAnim("shake", "grumpy"); break;
     case "cuddle": if (r.changed) { fx("/emoji/heart.svg", 3); faceAnim("jump", "happy"); } break;
     case "play": fx("/emoji/party.svg", 2); fx("/emoji/ball.svg"); faceAnim("jump", "happy"); break;

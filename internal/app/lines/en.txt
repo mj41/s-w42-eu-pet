@@ -10,6 +10,14 @@ Yum, %s!
 %s! Delicious!
 Nom nom!
 
+[picky]
+Don't you have something else?
+The same again? Something else, please?
+
+[eat_again]
+Oh well...
+Okay, fine.
+
 [full]
 I'm full!
 Thanks, that's enough.
@@ -17,7 +25,7 @@ Thanks, that's enough.
 [cuddle]
 That's nice!
 More, more!
-I love you!
+I really love this!
 You're great at cuddles!
 Meow! ...Wait, I'm not a cat.
 I'm the happiest robot in the world!

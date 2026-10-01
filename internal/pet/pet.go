@@ -63,6 +63,10 @@ type Pet struct {
 	// NightWakeUntil: woken at night by a hard press, awake until then (needs stay paused).
 	NightWakeUntil time.Time `json:"night_wake_until,omitzero"`
 
+	LastFood    string    `json:"last_food,omitempty"` // for picky eating (Feed)
+	LastFoodAt  time.Time `json:"last_food_at,omitzero"`
+	FoodRepeats int       `json:"food_repeats,omitempty"`
+
 	PlayDay    string    `json:"play_day"` // the local date PlayMin counts, "2006-01-02"
 	PlayMin    float64   `json:"play_min"` // play and cuddle time on PlayDay
 	LastPlayAt time.Time `json:"last_play_at,omitzero"`
@@ -296,6 +300,8 @@ const (
 	KindAsleep    = "asleep"     // it is night: only a sleepy answer (a dream on the robot)
 	KindNightWake = "night_wake" // woken at night by a hard press
 	KindDemoReset = "demo_reset" // demo mode set a full need back to 10%
+	KindPicky     = "picky"      // the same food again: "Nemáš něco jiného?"
+	KindEatAgain  = "eat_again"  // the same food a third time: eaten after all, for 80%
 	KindShake     = "shake"      // the robot was shaken
 	KindGame      = "game"       // a game of catch starts on the robot
 	KindGameOver  = "game_over"  // the game ended; Hits balls caught
@@ -327,13 +333,35 @@ func (p *Pet) Feed(now time.Time, food string) Reaction {
 		p.log(now, KindFull, food)
 		return Reaction{Kind: KindFull, Food: food}
 	}
-	p.Stats.Food += f.Food
-	p.Stats.Fun += f.Fun
-	p.Stats.Energy += f.Energy
+	// The same food again soon: the second time it is refused ("something else?"),
+	// the third time eaten after all, for 80% of its value.
+	if food == p.LastFood && now.Sub(p.LastFoodAt) < pickyWindow {
+		p.FoodRepeats++
+	} else {
+		p.FoodRepeats = 0
+	}
+	p.LastFood, p.LastFoodAt = food, now
+	kind, share := KindEat, 1.0
+	switch {
+	case p.FoodRepeats == 1:
+		p.log(now, KindPicky, food)
+		return Reaction{Kind: KindPicky, Food: food}
+	case p.FoodRepeats >= 2:
+		kind, share = KindEatAgain, pickyShare
+		p.FoodRepeats = 0 // the next one of it is refused again
+	}
+	p.Stats.Food += f.Food * share
+	p.Stats.Fun += f.Fun * share
+	p.Stats.Energy += f.Energy * share
 	p.clamp()
 	p.log(now, "feed", food)
-	return Reaction{Kind: KindEat, Food: food, Changed: true}
+	return Reaction{Kind: kind, Food: food, Changed: true}
 }
+
+const (
+	pickyWindow = 30 * time.Minute // the same food within this counts as "again"
+	pickyShare  = 0.8              // what the same food is worth the third time
+)
 
 const cuddleEvery = 4 * time.Second
 

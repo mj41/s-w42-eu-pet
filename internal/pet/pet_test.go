@@ -327,3 +327,27 @@ func TestDemoNap(t *testing.T) {
 		t.Fatal("the reset ends the nap")
 	}
 }
+
+func TestPickyEating(t *testing.T) {
+	p := New(at(0, 9, 0), DefaultSettings())
+	p.Stats.Food = 20
+	now := at(0, 9, 0)
+	if r := p.Feed(now, "apple"); r.Kind != KindEat || math.Abs(p.Stats.Food-40) > 0.1 {
+		t.Fatalf("first apple: %+v, food %.1f", r, p.Stats.Food)
+	}
+	if r := p.Feed(now, "apple"); r.Kind != KindPicky || r.Changed || math.Abs(p.Stats.Food-40) > 0.1 {
+		t.Fatalf("second apple: %+v, food %.1f", r, p.Stats.Food)
+	}
+	if r := p.Feed(now, "apple"); r.Kind != KindEatAgain || math.Abs(p.Stats.Food-56) > 0.1 {
+		t.Fatalf("third apple: %+v, food %.1f (80%% of 20 is 16)", r, p.Stats.Food)
+	}
+	if r := p.Feed(now, "apple"); r.Kind != KindPicky {
+		t.Fatalf("fourth apple: %+v", r)
+	}
+	if r := p.Feed(now, "carrot"); r.Kind != KindEat {
+		t.Fatalf("something else: %+v", r)
+	}
+	if r := p.Feed(now.Add(time.Hour), "carrot"); r.Kind != KindEat {
+		t.Fatalf("the same food an hour later: %+v", r)
+	}
+}

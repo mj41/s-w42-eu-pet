@@ -11,6 +11,16 @@ Mňam, %s!
 %s! To je dobrota!
 Mňam mňam!
 
+# Stejné jídlo podruhé za sebou: odmítne.
+[picky]
+Nemáš něco jiného?
+Zase to samé? Nemáš něco jiného?
+
+# Stejné jídlo potřetí: sní ho (za 80 %).
+[eat_again]
+No dobře...
+No dobře, tak jo.
+
 # Nechce jíst, je plný.
 [full]
 Už nemůžu, jsem plný!
@@ -20,7 +30,7 @@ Děkuju, už mám dost.
 [cuddle]
 To je příjemné!
 Ještě, ještě!
-Mám tě rád!
+Tohle mám moc rád!
 Ty umíš hladit!
 Mňau! ...Počkej, já nejsem kočka.
 Jsem nejšťastnější robot na světě!

@@ -219,7 +219,7 @@ const T = {
     todayText: (m, left, mood, phase) => `Hraní dnes: ${m} min${left >= 0 ? `, zbývá ${left} min` : ""}. Nálada: ${mood}. ${phase}`,
     moods: { happy: "šťastný", ok: "v pohodě", hungry: "hladový", bored: "nudí se", tired: "unavený", napping: "dřímá", sleeping: "spí" },
     phases: { awake: "", night: "Je noc.", school: "Je škola – potřeby stojí." },
-    kinds: { demo_reset: "Demo: zpátky na 10 %", parent_stats: "Rodič změnil potřeby", night_wake: "Vzbuzen v noci", feed: "Jídlo", full: "Nechtěl jíst (plný)", cuddle: "Pohlazení", play: "Hraní", nap: "Zdřímnutí", morning: "Ráno – vstal", night: "Večer – usnul", reset: "Nový mazlíček" },
+    kinds: { picky: "Chtěl něco jiného", demo_reset: "Demo: zpátky na 10 %", parent_stats: "Rodič změnil potřeby", night_wake: "Vzbuzen v noci", feed: "Jídlo", full: "Nechtěl jíst (plný)", cuddle: "Pohlazení", play: "Hraní", nap: "Zdřímnutí", morning: "Ráno – vstal", night: "Večer – usnul", reset: "Nový mazlíček" },
     foods: { apple: "jablko", carrot: "mrkev", banana: "banán", bread: "chleba", milk: "mléko", cake: "dort", food: "jídlo", fun: "zábava", energy: "energie" },
     offline: "Robot není připojený.",
   },
@@ -259,12 +259,12 @@ const T = {
     todayText: (m, left, mood, phase) => `Played today: ${m} min${left >= 0 ? `, ${left} min left` : ""}. Mood: ${mood}. ${phase}`,
     moods: { happy: "happy", ok: "fine", hungry: "hungry", bored: "bored", tired: "tired", napping: "napping", sleeping: "asleep" },
     phases: { awake: "", night: "It is night.", school: "School time – needs paused." },
-    kinds: { demo_reset: "Demo: back to 10%", parent_stats: "Parent changed the needs", night_wake: "Woken at night", feed: "Food", full: "Refused food (full)", cuddle: "Cuddle", play: "Play", nap: "Nap", morning: "Morning – woke up", night: "Evening – fell asleep", reset: "New pet" },
+    kinds: { picky: "Wanted something else", demo_reset: "Demo: back to 10%", parent_stats: "Parent changed the needs", night_wake: "Woken at night", feed: "Food", full: "Refused food (full)", cuddle: "Cuddle", play: "Play", nap: "Nap", morning: "Morning – woke up", night: "Evening – fell asleep", reset: "New pet" },
     foods: { apple: "apple", carrot: "carrot", banana: "banana", bread: "bread", milk: "milk", cake: "cake", food: "food", fun: "fun", energy: "energy" },
     offline: "The robot is not connected.",
   },
 };
-const kindIcon = { demo_reset: "refresh", parent_stats: "gear", night_wake: "moon", feed: "plate", full: "grumpy", cuddle: "hug", play: "ball", nap: "zzz", morning: "sun", night: "moon", reset: "party" };
+const kindIcon = { picky: "grumpy", demo_reset: "refresh", parent_stats: "gear", night_wake: "moon", feed: "plate", full: "grumpy", cuddle: "hug", play: "ball", nap: "zzz", morning: "sun", night: "moon", reset: "party" };
 const SOUNDS = ["chirp", "munch", "tada", "no", "yawn", "morning", "lullaby", "hello", "whee"];
 const FOODS = ["apple", "carrot", "banana", "bread", "milk", "cake"];
 const $ = id => document.getElementById(id);
