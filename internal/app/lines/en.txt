@@ -21,7 +21,7 @@ I love you!
 You're great at cuddles!
 Meow! ...Wait, I'm not a cat.
 I'm the happiest robot in the world!
-Cuddles charge my batteries!
+Cuddles give me energy and a good mood!
 
 [tickle]
 Hehe, that tickles!
@@ -132,6 +132,18 @@ Five out of five! Well done!
 [game_over_0]
 Next time!
 Let's try again?
+
+[demo_food]
+Demo: and I'm hungry again!
+Magic! My tummy is empty again.
+
+[demo_fun]
+Demo: and I'm bored again!
+Magic! I want to play again.
+
+[demo_energy]
+Demo: and I'm tired again!
+Magic! My batteries are low again.
 
 [names]
 apple = apple

@@ -30,16 +30,26 @@ func init() {
 	files, _ := linesFS.ReadDir("lines")
 	for _, f := range files {
 		b, _ := linesFS.ReadFile("lines/" + f.Name())
-		if err := parseLines(strings.TrimSuffix(f.Name(), ".txt"), string(b)); err != nil {
+		lang := strings.TrimSuffix(f.Name(), ".txt")
+		l, err := parseLines(string(b))
+		if err != nil {
 			panic("lines/" + f.Name() + ": " + err.Error())
 		}
+		robotTexts[lang], foodTexts[lang], foodNames[lang], scoreTexts[lang] = l.texts, l.foods, l.names, l.scores
 	}
 }
 
+// lines is one language's lines file.
+type lines struct {
+	texts  map[string][]string // key -> variants
+	foods  map[string][]string // food -> variants
+	names  map[string]string   // food -> name
+	scores map[string]string   // balls caught -> words
+}
+
 // parseLines reads one language's lines file.
-func parseLines(lang, text string) error {
-	robotTexts[lang], foodTexts[lang], foodNames[lang] = map[string][]string{}, map[string][]string{}, map[string]string{}
-	scoreTexts[lang] = map[string]string{}
+func parseLines(text string) (lines, error) {
+	l := lines{texts: map[string][]string{}, foods: map[string][]string{}, names: map[string]string{}, scores: map[string]string{}}
 	section := ""
 	for n, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)
@@ -48,25 +58,25 @@ func parseLines(lang, text string) error {
 		case strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]"):
 			section = strings.TrimSpace(line[1 : len(line)-1])
 		case section == "":
-			return fmt.Errorf("line %d: text before the first [section]", n+1)
+			return l, fmt.Errorf("line %d: text before the first [section]", n+1)
 		case section == "names" || section == "score":
 			key, value, ok := strings.Cut(line, "=")
 			if !ok {
-				return fmt.Errorf("line %d: want key = text", n+1)
+				return l, fmt.Errorf("line %d: want key = text", n+1)
 			}
-			m := foodNames[lang]
+			m := l.names
 			if section == "score" {
-				m = scoreTexts[lang]
+				m = l.scores
 			}
 			m[strings.TrimSpace(key)] = strings.TrimSpace(value)
 		case strings.HasPrefix(section, "food "):
 			food := strings.TrimSpace(strings.TrimPrefix(section, "food "))
-			foodTexts[lang][food] = append(foodTexts[lang][food], line)
+			l.foods[food] = append(l.foods[food], line)
 		default:
-			robotTexts[lang][section] = append(robotTexts[lang][section], line)
+			l.texts[section] = append(l.texts[section], line)
 		}
 	}
-	return nil
+	return l, nil
 }
 
 // scoreText is the game's score in words ("tři z pěti"), or "3 z 5" without them.

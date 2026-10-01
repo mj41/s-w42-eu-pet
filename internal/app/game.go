@@ -31,19 +31,20 @@ import (
 
 // timing is the game's pace (and the dream share); per App, so tests can speed it up.
 type timing struct {
-	round      time.Duration // to catch one ball
-	moveExtra  time.Duration // more time for balls with a moving head
-	gap        time.Duration // after a catch, before the next ball
-	intro      time.Duration
-	stars      time.Duration // the result, before the face says the score
-	dodgeEvery time.Duration
-	dodgeBack  time.Duration // a dodge returns to the middle after this
-	dreamShare float64       // how often a touch while asleep shows a dream; otherwise a sleepy "Zzz"
+	round       time.Duration // to catch one ball
+	moveExtra   time.Duration // more time for balls with a moving head
+	gap         time.Duration // after a catch, before the next ball
+	intro       time.Duration
+	stars       time.Duration // the result, before the face says the score
+	dodgeEvery  time.Duration
+	dodgeBack   time.Duration // a dodge returns to the middle after this
+	dreamShare  float64       // how often a touch while asleep shows a dream; otherwise a sleepy "Zzz"
+	demoPicture time.Duration // the demo reset picture, before the face says it
 }
 
 var defaultTiming = timing{
 	round: 5 * time.Second, moveExtra: time.Second, gap: 700 * time.Millisecond, intro: 1500 * time.Millisecond,
-	stars: 3 * time.Second, dodgeEvery: 1200 * time.Millisecond, dodgeBack: 1100 * time.Millisecond, dreamShare: 0.4,
+	stars: 3 * time.Second, demoPicture: 3 * time.Second, dodgeEvery: 1200 * time.Millisecond, dodgeBack: 1100 * time.Millisecond, dreamShare: 0.4,
 }
 
 // Hand detection (raw sensor counts; see handNear).

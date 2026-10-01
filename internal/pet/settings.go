@@ -35,6 +35,7 @@ type Settings struct {
 	ScreenOffAtNight bool `json:"screen_off_at_night"` // the robot's screen sleeps at night
 	NightWakeMin     int  `json:"night_wake_min"`      // a hard press at night wakes it this long, 0 = never
 	DrawnFace        bool `json:"drawn_face"`          // the pet's drawn faces on the robot instead of its own
+	Demo             bool `json:"demo"`                // demo mode: a need at 90% drops back to 10% (DemoReset)
 
 	GameBallSeconds int  `json:"game_ball_seconds"` // time to catch one ball (3..10)
 	GameHeadMoves   bool `json:"game_head_moves"`   // the head circles, wanders and dodges in the game

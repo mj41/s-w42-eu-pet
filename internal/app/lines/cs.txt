@@ -24,7 +24,7 @@ Mám tě rád!
 Ty umíš hladit!
 Mňau! ...Počkej, já nejsem kočka.
 Jsem nejšťastnější robot na světě!
-Hlazení mi nabíjí baterky!
+Hlazení mi dodává energii a dobrou náladu!
 
 # Malinký lehký dotek (jen ťuknutí): lechtá.
 [tickle]
@@ -156,6 +156,19 @@ Pět z pěti! To se ti povedlo!
 [game_over_0]
 Příště to vyjde!
 Zkusíme to znovu?
+
+# Ukázkový režim (demo): potřeba byla na 90 %, spadla zpátky na 10 %.
+[demo_food]
+Ukázka: a zase mám hlad!
+Kouzlo! Bříško je zase prázdné.
+
+[demo_fun]
+Ukázka: a zase se nudím!
+Kouzlo! Chce se mi zase hrát.
+
+[demo_energy]
+Ukázka: a zase jsem unavený!
+Kouzlo! Baterky jsou zase dole.
 
 # Jména jídel (pro [eat]): klíč = jméno.
 [names]

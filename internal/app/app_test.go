@@ -895,3 +895,37 @@ func TestNightScreenDimsThenSleeps(t *testing.T) {
 		t.Fatalf("morning brightness: %v", b)
 	}
 }
+
+func TestDemoModeOnTheRobot(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	parent := e.browser()
+	parent.pair(r)
+	parent.post("/api/parent/unlock", map[string]any{"pin": "1234"})
+	_, out := parent.get("/api/parent")
+	s := out["settings"].(map[string]any)
+	s["demo"] = true
+	parent.post("/api/parent/settings", s)
+	parent.post("/api/parent/stats", map[string]any{"food": 95})
+	e.app.mu.Lock()
+	e.app.timing.demoPicture = 100 * time.Millisecond
+	e.app.mu.Unlock()
+
+	e.clock.set(e.clock.now().Add(20 * time.Second))
+	e.app.Tick()
+	r.binary(wire.BinShowJPEG) // the reset picture
+	r.next("the demo line", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		for _, v := range robotTexts["cs"]["demo_food"] {
+			if body.Command == "say" && body.Args["text"] == asciiOnly(v) {
+				return true
+			}
+		}
+		return false
+	})
+	_, st := parent.get("/api/state")
+	if food := stats(t, st)["food"].(float64); food > 11 {
+		t.Fatalf("food after the demo reset: %.1f", food)
+	}
+}

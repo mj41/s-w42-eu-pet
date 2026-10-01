@@ -246,6 +246,7 @@ function react(r) {
     case "shake": faceAnim("shake"); break;
     case "asleep": fx("/emoji/moon.svg"); fx("/emoji/star.svg", 2); break; // a dream on the robot
     case "night_wake": faceAnim("jump", "yawn"); break;
+    case "demo_reset": fx("/emoji/refresh.svg"); fx(`/emoji/${{ food: "apple", fun: "heart", energy: "battery" }[r.need] || "apple"}.svg`); faceAnim("shake", "sad"); break;
     case "game_over": if (r.hits) fx("/emoji/star.svg", r.hits); faceAnim("jump", "happy"); break;
   }
 }

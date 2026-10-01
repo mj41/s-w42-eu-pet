@@ -102,6 +102,8 @@
       <div class="row"><label for="difficulty" data-t="difficulty"></label>
         <select id="difficulty"><option value="easy" data-t="easy"></option><option value="normal" data-t="normal"></option><option value="hard" data-t="hard"></option></select></div>
       <p class="hint" data-t="difficultyHint"></p>
+      <div class="row"><label><input id="demo" type="checkbox"> <span data-t="demo"></span></label></div>
+      <p class="hint" data-t="demoHint"></p>
     </section>
 
     <section>
@@ -193,6 +195,8 @@ const T = {
     schedule: "Denní režim", wake: "Vstává", bed: "Jde spát", weekday: "Po–Pá", weekend: "So–Ne",
     scheduleHint: "V noci mazlíček spí: jeho potřeby stojí, obrazovka zhasne a na dotyk jen ospale odpoví. 10 minut před spaním zívá.",
     voice: "Mluví (hlas robota)",
+    demo: "Ukázkový režim (demo)",
+    demoHint: "Když je jídlo, zábava nebo energie na 90 %, spadne zpátky na 10 %: mazlíček pořád něco potřebuje. Na robotovi se ukáže obrázek s šipkami a věta.",
     setNeeds: "Změnit potřeby", set: "Nastavit", allFull: "Vše plné",
     game: "Hra (chytání míčku)", ballSeconds: "Sekund na míček", headMoves: "Hlava se při hře hýbe (krouží, uhýbá ruce)",
     gameHint: "Pro menší děti: víc sekund a hlava v klidu.",
@@ -214,8 +218,8 @@ const T = {
     todayText: (m, left, mood, phase) => `Hraní dnes: ${m} min${left >= 0 ? `, zbývá ${left} min` : ""}. Nálada: ${mood}. ${phase}`,
     moods: { happy: "šťastný", ok: "v pohodě", hungry: "hladový", bored: "nudí se", tired: "unavený", napping: "dřímá", sleeping: "spí" },
     phases: { awake: "", night: "Je noc.", school: "Je škola – potřeby stojí." },
-    kinds: { parent_stats: "Rodič změnil potřeby", night_wake: "Vzbuzen v noci", feed: "Jídlo", full: "Nechtěl jíst (plný)", cuddle: "Pohlazení", play: "Hraní", nap: "Zdřímnutí", morning: "Ráno – vstal", night: "Večer – usnul", reset: "Nový mazlíček" },
-    foods: { apple: "jablko", carrot: "mrkev", banana: "banán", bread: "chleba", milk: "mléko", cake: "dort" },
+    kinds: { demo_reset: "Demo: zpátky na 10 %", parent_stats: "Rodič změnil potřeby", night_wake: "Vzbuzen v noci", feed: "Jídlo", full: "Nechtěl jíst (plný)", cuddle: "Pohlazení", play: "Hraní", nap: "Zdřímnutí", morning: "Ráno – vstal", night: "Večer – usnul", reset: "Nový mazlíček" },
+    foods: { apple: "jablko", carrot: "mrkev", banana: "banán", bread: "chleba", milk: "mléko", cake: "dort", food: "jídlo", fun: "zábava", energy: "energie" },
     offline: "Robot není připojený.",
   },
   en: {
@@ -230,6 +234,8 @@ const T = {
     schedule: "Daily routine", wake: "Wakes up", bed: "Bedtime", weekday: "Mon–Fri", weekend: "Sat–Sun",
     scheduleHint: "At night the pet sleeps: its needs pause, the screen goes dark and a touch only gets a sleepy answer. It yawns 10 minutes before bedtime.",
     voice: "Speaks (robot voice)",
+    demo: "Demo mode",
+    demoHint: "When food, fun or energy reaches 90%, it drops back to 10%: the pet always needs something. The robot shows a reset picture and says so.",
     setNeeds: "Change the needs", set: "Set", allFull: "All full",
     game: "Game (catch the ball)", ballSeconds: "Seconds per ball", headMoves: "The head moves in the game (circles, dodges a hand)",
     gameHint: "For small kids: more seconds and a still head.",
@@ -251,12 +257,12 @@ const T = {
     todayText: (m, left, mood, phase) => `Played today: ${m} min${left >= 0 ? `, ${left} min left` : ""}. Mood: ${mood}. ${phase}`,
     moods: { happy: "happy", ok: "fine", hungry: "hungry", bored: "bored", tired: "tired", napping: "napping", sleeping: "asleep" },
     phases: { awake: "", night: "It is night.", school: "School time – needs paused." },
-    kinds: { parent_stats: "Parent changed the needs", night_wake: "Woken at night", feed: "Food", full: "Refused food (full)", cuddle: "Cuddle", play: "Play", nap: "Nap", morning: "Morning – woke up", night: "Evening – fell asleep", reset: "New pet" },
-    foods: { apple: "apple", carrot: "carrot", banana: "banana", bread: "bread", milk: "milk", cake: "cake" },
+    kinds: { demo_reset: "Demo: back to 10%", parent_stats: "Parent changed the needs", night_wake: "Woken at night", feed: "Food", full: "Refused food (full)", cuddle: "Cuddle", play: "Play", nap: "Nap", morning: "Morning – woke up", night: "Evening – fell asleep", reset: "New pet" },
+    foods: { apple: "apple", carrot: "carrot", banana: "banana", bread: "bread", milk: "milk", cake: "cake", food: "food", fun: "fun", energy: "energy" },
     offline: "The robot is not connected.",
   },
 };
-const kindIcon = { parent_stats: "gear", night_wake: "moon", feed: "plate", full: "grumpy", cuddle: "hug", play: "ball", nap: "zzz", morning: "sun", night: "moon", reset: "party" };
+const kindIcon = { demo_reset: "refresh", parent_stats: "gear", night_wake: "moon", feed: "plate", full: "grumpy", cuddle: "hug", play: "ball", nap: "zzz", morning: "sun", night: "moon", reset: "party" };
 const SOUNDS = ["chirp", "munch", "tada", "no", "yawn", "morning", "lullaby", "hello", "whee"];
 const FOODS = ["apple", "carrot", "banana", "bread", "milk", "cake"];
 const $ = id => document.getElementById(id);
@@ -301,6 +307,7 @@ function fill(d) {
   $("ballSeconds").value = s.game_ball_seconds; $("headMoves").checked = s.game_head_moves;
   $("drawnFace").checked = s.drawn_face;
   $("voice").checked = s.voice;
+  $("demo").checked = s.demo;
   for (const [k, id] of [["food", "Food"], ["fun", "Fun"], ["energy", "Energy"]]) {
     $("e" + id).value = Math.round(st.stats[k]); $("v" + id).textContent = Math.round(st.stats[k]);
   }
@@ -387,6 +394,7 @@ function collect() {
     game_ball_seconds: +$("ballSeconds").value || 5, game_head_moves: $("headMoves").checked,
     drawn_face: $("drawnFace").checked,
     voice: $("voice").checked,
+    demo: $("demo").checked,
     sounds: $("sounds").checked, volume: +$("volume").value,
     night_light: $("nightLight").checked, screen_off_at_night: $("screenOff").checked,
     foods,

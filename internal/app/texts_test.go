@@ -11,7 +11,7 @@ import (
 // The keys the code says (text(lang, key, ...)).
 var lineKeys = []string{"eat", "full", "cuddle", "play", "too_tired", "limit", "nap", "not_tired", "wake", "shake",
 	"hello", "hungry", "bored", "tired", "bedtime", "goodnight", "morning", "game", "night_wake", "game_over", "game_over_0",
-	"tickle", "long_cuddle", "scratch", "game_over_all"}
+	"tickle", "long_cuddle", "scratch", "game_over_all", "demo_food", "demo_fun", "demo_energy"}
 
 func TestLinesFilesAreComplete(t *testing.T) {
 	for _, lang := range []string{"cs", "en"} {
@@ -51,13 +51,14 @@ func TestLinesFilesAreComplete(t *testing.T) {
 }
 
 func TestParseLines(t *testing.T) {
-	if err := parseLines("xx", "Ahoj\n"); err == nil {
+	if _, err := parseLines("Ahoj\n"); err == nil {
 		t.Error("text before a section should be an error")
 	}
-	if err := parseLines("xx", "[names]\napple jablko\n"); err == nil {
+	if _, err := parseLines("[names]\napple jablko\n"); err == nil {
 		t.Error("a name without = should be an error")
 	}
-	delete(robotTexts, "xx")
-	delete(foodTexts, "xx")
-	delete(foodNames, "xx")
+	l, err := parseLines("# x\n[hello]\nAhoj!\n[score]\n1 = jeden\n")
+	if err != nil || l.texts["hello"][0] != "Ahoj!" || l.scores["1"] != "jeden" {
+		t.Errorf("parsed: %+v %v", l, err)
+	}
 }

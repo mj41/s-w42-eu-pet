@@ -370,3 +370,25 @@ func fillRoundRect(dst *image.RGBA, r image.Rectangle, rad int, c color.RGBA) {
 		}
 	}
 }
+
+// needIcon is a need's icon (as on the needs picture).
+var needIcon = map[string]string{"food": "apple", "fun": "heart", "energy": "battery"}
+
+// DemoReset shows that demo mode reset a need: the refresh arrows, the need's icon and
+// its bar back down at 10%.
+func DemoReset(need string) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	draw.Draw(img, img.Bounds(), &image.Uniform{night}, image.Point{}, draw.Src)
+	if ic := icon(needIcon[need]); ic != nil {
+		drawScaled(img, ic, image.Rect(W/2-60, 30, W/2+60, 150))
+	}
+	if ic := icon("refresh"); ic != nil { // a badge: "reset"
+		drawScaled(img, ic, image.Rect(W/2+40, 14, W/2+104, 78))
+	}
+	bar := image.Rect(40, 182, 280, 218)
+	fillRound(img, bar, color.RGBA{0x3a, 0x40, 0x6a, 0xff})
+	low := bar
+	low.Max.X = bar.Min.X + max(bar.Dy(), bar.Dx()/10)
+	fillRound(img, low, red)
+	return encode(img)
+}

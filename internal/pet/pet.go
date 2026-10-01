@@ -247,6 +247,7 @@ type Reaction struct {
 	Food    string `json:"food,omitempty"`  // for KindEat
 	Hits    int    `json:"hits,omitempty"`  // for KindGameOver
 	Touch   string `json:"touch,omitempty"` // for KindCuddle: tickle, cuddle, long, scratch
+	Need    string `json:"need,omitempty"`  // for KindDemoReset: food, fun or energy
 	Changed bool   `json:"changed"`         // the needs changed
 }
 
@@ -262,6 +263,7 @@ const (
 	KindWake      = "wake"       // woken from a nap
 	KindAsleep    = "asleep"     // it is night: only a sleepy answer (a dream on the robot)
 	KindNightWake = "night_wake" // woken at night by a hard press
+	KindDemoReset = "demo_reset" // demo mode set a full need back to 10%
 	KindShake     = "shake"      // the robot was shaken
 	KindGame      = "game"       // a game of catch starts on the robot
 	KindGameOver  = "game_over"  // the game ended; Hits balls caught
@@ -457,3 +459,41 @@ var Foods = map[string]Food{
 }
 
 var FoodOrder = []string{"apple", "carrot", "banana", "bread", "milk", "cake"}
+
+// Demo mode thresholds: a need this full drops back to demoLow, so the pet always needs something.
+const (
+	DemoHigh = 90
+	DemoLow  = 10
+)
+
+// Needs are the names of the needs, in the order DemoReset checks them.
+var Needs = []string{"food", "fun", "energy"}
+
+// DemoReset (demo mode) sets every need at DemoHigh or more back to DemoLow and returns
+// which ones it reset (nil when demo mode is off or none was that full).
+func (p *Pet) DemoReset(now time.Time) []string {
+	if !p.Settings.Demo {
+		return nil
+	}
+	p.Advance(now)
+	var reset []string
+	for _, need := range Needs {
+		v := p.need(need)
+		if *v >= DemoHigh {
+			*v = DemoLow
+			reset = append(reset, need)
+			p.log(now, "demo_reset", need)
+		}
+	}
+	return reset
+}
+
+func (p *Pet) need(name string) *float64 {
+	switch name {
+	case "food":
+		return &p.Stats.Food
+	case "fun":
+		return &p.Stats.Fun
+	}
+	return &p.Stats.Energy
+}

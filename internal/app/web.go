@@ -122,7 +122,8 @@ func (a *App) publishState(r *robot) {
 }
 
 func (a *App) publishReaction(r *robot, re pet.Reaction) {
-	a.publish(r.id, sseEvent{"reaction", mustJSON(map[string]any{"robot": r.id, "kind": re.Kind, "food": re.Food, "hits": re.Hits, "changed": re.Changed})})
+	a.publish(r.id, sseEvent{"reaction", mustJSON(map[string]any{"robot": r.id, "kind": re.Kind, "food": re.Food, "hits": re.Hits,
+		"need": re.Need, "changed": re.Changed})})
 }
 
 func mustJSON(v any) []byte {

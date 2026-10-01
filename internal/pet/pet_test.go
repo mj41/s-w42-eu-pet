@@ -271,3 +271,19 @@ func TestTouchKinds(t *testing.T) {
 		t.Fatalf("log: %+v", p.Log)
 	}
 }
+
+func TestDemoReset(t *testing.T) {
+	p := New(at(0, 9, 0), DefaultSettings())
+	p.Stats = Stats{Food: 95, Fun: 50, Energy: 92}
+	if r := p.DemoReset(at(0, 9, 0)); r != nil {
+		t.Fatalf("demo off: %v", r)
+	}
+	p.Settings.Demo = true
+	r := p.DemoReset(at(0, 9, 0))
+	if len(r) != 2 || r[0] != "food" || r[1] != "energy" || p.Stats.Food != DemoLow || p.Stats.Energy != DemoLow || p.Stats.Fun != 50 {
+		t.Fatalf("reset %v, stats %+v", r, p.Stats)
+	}
+	if l := p.Log[len(p.Log)-1]; l.Kind != "demo_reset" || l.Detail != "energy" {
+		t.Fatalf("log: %+v", l)
+	}
+}

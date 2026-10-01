@@ -510,6 +510,9 @@ func (a *App) Tick() {
 		prev := r.phase
 		r.phase = phase
 		if r.conn == nil {
+			if reset := p.DemoReset(now); len(reset) > 0 { // demo mode without the robot: the page shows it
+				a.publishReaction(r, pet.Reaction{Kind: pet.KindDemoReset, Need: reset[0], Changed: true})
+			}
 			continue
 		}
 		switch {
@@ -518,7 +521,9 @@ func (a *App) Tick() {
 		case prev == pet.Night && phase != pet.Night:
 			a.morning(r, now)
 		case phase != pet.Night && now.After(r.busyUntil):
-			a.daytime(r, now)
+			if !a.demoCheck(r, now) {
+				a.daytime(r, now)
+			}
 		case phase == pet.Night && now.After(r.busyUntil):
 			a.nightFade(r, now)
 		}
@@ -865,4 +870,26 @@ func (a *App) nightFade(r *robot, now time.Time) {
 	if !r.screenOff && !r.screenOnAt.IsZero() && now.Sub(r.screenOnAt) >= nightScreenOn {
 		a.sleepScreen(r)
 	}
+}
+
+// demoCheck: in demo mode a need at 90% drops back to 10%. The robot shows a reset
+// picture (the need's icon, a refresh badge, its bar at 10%), then says so.
+func (a *App) demoCheck(r *robot, now time.Time) bool {
+	reset := r.pet.DemoReset(now)
+	if len(reset) == 0 {
+		return false
+	}
+	a.dirty = true
+	need := reset[0]
+	a.begin(r, now, 7*time.Second)
+	a.showPicture(r, robotpic.DemoReset(need))
+	a.later(r, a.timing.demoPicture, func() {
+		r.conn.command("face", nil)
+		r.pictureOn = false
+		a.emotion(r, "doubt")
+		a.say(r, "demo_"+need, "", 4)
+	})
+	a.publishReaction(r, pet.Reaction{Kind: pet.KindDemoReset, Need: need, Changed: true})
+	a.publishState(r)
+	return true
 }
