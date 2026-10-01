@@ -9,6 +9,7 @@ package pet
 import (
 	"fmt"
 	"math"
+	"slices"
 	"time"
 )
 
@@ -69,11 +70,11 @@ type Pet struct {
 	LastFoodAt  time.Time `json:"last_food_at,omitzero"`
 	FoodRepeats int       `json:"food_repeats,omitempty"`
 
-	PlayDay      string    `json:"play_day"` // the local date PlayMin counts, "2006-01-02"
-	PlayMin      float64   `json:"play_min"` // play and cuddle time on PlayDay
-	LastPlayAt   time.Time `json:"last_play_at,omitzero"`
-	ColorsBestMs int64     `json:"color_levels_best_ms,omitempty"` // the color game's best time (every round done; 5 levels of 5)
-	LastCuddle   time.Time `json:"last_cuddle,omitzero"`
+	PlayDay    string     `json:"play_day"` // the local date PlayMin counts, "2006-01-02"
+	PlayMin    float64    `json:"play_min"` // play and cuddle time on PlayDay
+	LastPlayAt time.Time  `json:"last_play_at,omitzero"`
+	ColorsTop  []TopEntry `json:"colors_top,omitempty"` // the color game's 3 best full games, fastest first
+	LastCuddle time.Time  `json:"last_cuddle,omitzero"`
 
 	Log []Entry `json:"log"`
 }
@@ -287,6 +288,7 @@ type Reaction struct {
 	Hits    int    `json:"hits,omitempty"`   // for KindGameOver
 	Ms      int64  `json:"ms,omitempty"`     // for KindColorsOver: the time over all rounds
 	Record  bool   `json:"record,omitempty"` // for KindColorsOver: the best time so far
+	Place   int    `json:"place,omitempty"`  // for KindColorsOver: 1..3 on the leaderboard, 0 = not on it
 	Touch   string `json:"touch,omitempty"`  // for KindCuddle: tickle, cuddle, long, scratch
 	Need    string `json:"need,omitempty"`   // for KindDemoReset: food, fun or energy
 	Changed bool   `json:"changed"`          // the needs changed
@@ -480,18 +482,37 @@ func (p *Pet) reward(won int) {
 	p.clamp()
 }
 
+// TopEntry is a place on the color game's leaderboard.
+type TopEntry struct {
+	Ms    int64     `json:"ms"`
+	At    time.Time `json:"at"`
+	Photo string    `json:"photo,omitempty"` // the player's photo (a file the app keeps), "" = none
+}
+
+// TopPlaces is the leaderboard's length.
+const TopPlaces = 3
+
 // FinishColors ends the color game: done of rounds, in total time (the rounds not
-// done count with their full time). A game with every round done can set the best
-// time. The fun is as for catch, by the share done.
+// done count with their full time). A game with every round done can get on the
+// leaderboard (Place); the fastest is a record. The fun is as for catch, by the
+// share done.
 func (p *Pet) FinishColors(now time.Time, done, rounds int, total time.Duration) Reaction {
 	p.Advance(now)
 	done = max(0, min(rounds, done))
 	p.countPlay(now)
 	p.reward(done * GameRounds / max(1, rounds))
 	re := Reaction{Kind: KindColorsOver, Hits: done, Ms: total.Milliseconds(), Changed: true}
-	if done == rounds && (p.ColorsBestMs == 0 || re.Ms < p.ColorsBestMs) {
-		re.Record = p.ColorsBestMs != 0 // the first game is not a record yet
-		p.ColorsBestMs = re.Ms
+	if done == rounds {
+		i := 0
+		for i < len(p.ColorsTop) && p.ColorsTop[i].Ms <= re.Ms {
+			i++
+		}
+		if i < TopPlaces {
+			re.Place = i + 1
+			re.Record = i == 0 && len(p.ColorsTop) > 0 // the first game is not a record yet
+			p.ColorsTop = slices.Insert(p.ColorsTop, i, TopEntry{Ms: re.Ms, At: now})
+			p.ColorsTop = p.ColorsTop[:min(len(p.ColorsTop), TopPlaces)]
+		}
 	}
 	p.log(now, "colors", fmt.Sprintf("%d/%d %.1f s", done, rounds, total.Seconds()))
 	return re

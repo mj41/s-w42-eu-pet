@@ -6,16 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/mj41/stackchan-pet/internal/robotpic"
 	"github.com/mj41/stackchan-server/wire"
 )
 
-func TestColorGame(t *testing.T) {
-	e := newEnv(t, "")
-	e.fastGame(300 * time.Millisecond)
-	r := e.connectRobotWith("robot-1", []string{"sprite", "assets"})
-	kid := e.browser()
-	kid.pair(r)
+// playColors starts the color game from the robot's menu and plays it through.
+func playColors(t *testing.T, e *env, r *fakeRobot) {
+	t.Helper()
 	files := []string{"pet/menu-bg.png"}
 	for _, items := range menus {
 		for _, m := range items {
@@ -59,6 +57,10 @@ func TestColorGame(t *testing.T) {
 			if level == 1 && turn == 1 { // a wrong one first (the right strip's color, if it differs): only a buzz
 				if c := ledColor[pixels[ledParts[1][0]].(string)]; c != ledColor[pixels[ledParts[0][0]].(string)] {
 					r.event("screen_tap", map[string]any{"sprite": "c:" + c})
+					if g := r.command("sprite"); g["opacity"] != colorGreyed {
+						t.Fatalf("after a wrong button: %v", g)
+					}
+					time.Sleep(200 * time.Millisecond) // the penalty (shortened)
 				}
 			}
 			for _, part := range order {
@@ -75,6 +77,15 @@ func TestColorGame(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestColorGame(t *testing.T) {
+	e := newEnv(t, "")
+	e.fastGame(300 * time.Millisecond)
+	r := e.connectRobotWith("robot-1", []string{"sprite", "assets"})
+	kid := e.browser()
+	kid.pair(r)
+	playColors(t, e, r)
 	r.next("the time", func(m robotMsg) bool {
 		var body wire.RobotCommandBody
 		m.frame.Decode(&body)
@@ -82,8 +93,8 @@ func TestColorGame(t *testing.T) {
 		return body.Command == "say" && strings.Contains(text, "otovo za") && strings.Contains(text, "sekund")
 	})
 	e.robotState("robot-1", func(rb *robot) {
-		if rb.game != nil || rb.pet.ColorsBestMs == 0 {
-			t.Fatalf("after the game: game %v, best %d ms", rb.game != nil, rb.pet.ColorsBestMs)
+		if rb.game != nil || len(rb.pet.ColorsTop) == 0 {
+			t.Fatalf("after the game: game %v, board %v", rb.game != nil, rb.pet.ColorsTop)
 		}
 	})
 }
@@ -93,5 +104,31 @@ func TestSecondsText(t *testing.T) {
 		if s := secondsText("cs", d); s != want {
 			t.Errorf("%v: %q, want %q", d, s, want)
 		}
+	}
+}
+
+func TestLeaderboardPhoto(t *testing.T) {
+	e := newEnv(t, "")
+	e.fastGame(300 * time.Millisecond)
+	e.app.cfg.PhotoDir = t.TempDir()
+	r := e.connectRobotWith("robot-1", []string{"sprite", "assets", "snapshot"})
+	kid, stranger := e.browser(), e.browser()
+	kid.pair(r)
+	playColors(t, e, r)
+	r.command("snapshot")           // first place: "smile", three, two, one
+	photo := robotpic.Food("apple") // any JPEG
+	r.ws.WriteMessage(websocket.BinaryMessage, append([]byte{wire.BinSnapshot}, photo...))
+	r.binary(wire.BinShowJPEG) // the podium
+	_, st := kid.get("/api/state")
+	top := st["top"].([]any)
+	if len(top) != 1 || top[0].(map[string]any)["photo"] == nil {
+		t.Fatalf("the board: %v", top)
+	}
+	url := top[0].(map[string]any)["photo"].(string)
+	if res, _ := kid.c.Get(e.srv.URL + url); res.StatusCode != 200 {
+		t.Fatalf("the kid's photo: %d", res.StatusCode)
+	}
+	if res, _ := stranger.c.Get(e.srv.URL + url); res.StatusCode != 404 {
+		t.Fatalf("a stranger got the photo: %d", res.StatusCode)
 	}
 }

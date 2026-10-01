@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"math"
 	"mime"
 	"net/http"
 	"os"
@@ -72,6 +73,14 @@ type stateView struct {
 	NapUntil *time.Time `json:"nap_until,omitempty"`
 	Foods    []string   `json:"foods"`
 	Game     *gameView  `json:"game,omitempty"` // a game of catch on the robot
+	Top      []topView  `json:"top"`            // the color game's leaderboard
+}
+
+// topView is a place on the color game's leaderboard.
+type topView struct {
+	Seconds int    `json:"seconds"`
+	Photo   string `json:"photo,omitempty"` // its URL
+	At      string `json:"at"`              // the date
 }
 
 // view builds the kid's view. a.mu held.
@@ -88,6 +97,14 @@ func (a *App) view(r *robot) stateView {
 	if p.Napping(now) {
 		t := p.NapUntil
 		v.NapUntil = &t
+	}
+	v.Top = []topView{}
+	for _, e := range p.ColorsTop {
+		t := topView{Seconds: int(math.Round(float64(e.Ms) / 1000)), At: e.At.In(a.cfg.Location).Format(time.DateOnly)}
+		if e.Photo != "" {
+			t.Photo = "/api/photos/" + e.Photo
+		}
+		v.Top = append(v.Top, t)
 	}
 	return v
 }
@@ -646,4 +663,57 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(v)
+}
+
+// handlePhoto serves a leaderboard photo to a browser paired with its robot.
+func (a *App) handlePhoto(w http.ResponseWriter, r *http.Request) {
+	sid := a.sessionID(w, r)
+	name := r.PathValue("name")
+	a.mu.Lock()
+	ok := false
+	if s := a.sessions[sid]; s != nil && name != "" {
+		for _, id := range s.Robots {
+			if rb := a.robots[id]; rb != nil {
+				ok = ok || slices.ContainsFunc(rb.pet.ColorsTop, func(e pet.TopEntry) bool { return e.Photo == name })
+			}
+		}
+	}
+	a.mu.Unlock()
+	if !ok || a.cfg.PhotoDir == "" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Cache-Control", "private, max-age=86400")
+	http.ServeFile(w, r, filepath.Join(a.cfg.PhotoDir, filepath.Base(name)))
+}
+
+// handleTop: the parent removes a place from the leaderboard ({"remove": i}) or
+// clears it ({"clear": true}); the photos go too.
+func (a *App) handleTop(w http.ResponseWriter, r *http.Request) {
+	sid := a.sessionID(w, r)
+	var req struct {
+		Remove *int `json:"remove"`
+		Clear  bool `json:"clear"`
+	}
+	if !readJSON(w, r, &req) {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	rb := a.parentRobot(w, r, sid)
+	if rb == nil {
+		return
+	}
+	p := rb.pet
+	before := slices.Clone(p.ColorsTop)
+	switch {
+	case req.Clear:
+		p.ColorsTop = nil
+	case req.Remove != nil && *req.Remove >= 0 && *req.Remove < len(p.ColorsTop):
+		p.ColorsTop = slices.Delete(p.ColorsTop, *req.Remove, *req.Remove+1)
+	}
+	a.dropPhotos(before, p.ColorsTop)
+	a.dirty = true
+	a.publishState(rb)
+	writeJSON(w, http.StatusOK, map[string]any{"state": a.view(rb)})
 }

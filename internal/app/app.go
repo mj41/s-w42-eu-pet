@@ -39,6 +39,7 @@ type Config struct {
 	Log        *slog.Logger
 	Now        func() time.Time // tests; default time.Now
 	DebugDir   string           // where screen snapshots from the robot are saved (debug.go); "" = not saved
+	PhotoDir   string           // the color game's leaderboard photos (photos.go); "" = no photos
 	Voice      *voice.Synth     // the pet's voice (voice.go); nil = silent lines
 }
 
@@ -129,6 +130,8 @@ type robot struct {
 	droppedSeen   uint64
 	quietSince    time.Time // nothing was sent to the robot since then
 	lastSchool    time.Time // the last "I rest during school" (engine.go)
+	photoFor      time.Time // a leaderboard photo is awaited for the entry made then (photos.go)
+	photoUntil    time.Time // ... until then
 	barStep       int       // the energy bar shown while asleep (energyBar)
 	hold          holdState // held in someone's hands (held.go)
 }
@@ -185,6 +188,8 @@ func (a *App) Handler() http.Handler {
 	mux.HandleFunc("POST /api/parent/reset", a.handleReset)
 	mux.HandleFunc("POST /api/parent/try", a.handleTry)
 	mux.HandleFunc("POST /api/parent/stats", a.handleStats)
+	mux.HandleFunc("POST /api/parent/top", a.handleTop)
+	mux.HandleFunc("GET /api/photos/{name}", a.handlePhoto)
 	mux.HandleFunc("POST /api/debug/{id}/run", a.handleDebugRun)
 	mux.Handle("GET /emoji/", http.StripPrefix("/emoji/", a.uiFiles("emoji")))
 	mux.Handle("GET /chan/", http.StripPrefix("/chan/", a.uiFiles("chan")))

@@ -11,7 +11,7 @@ import (
 // The keys the code says (text(lang, key, ...)).
 var lineKeys = []string{"eat", "full", "cuddle", "play", "too_tired", "limit", "nap", "not_tired", "wake", "shake",
 	"hello", "hungry", "bored", "tired", "bedtime", "goodnight", "morning", "game", "night_wake", "game_over", "game_over_0", "school", "long_press",
-	"color_game", "color_done", "color_record",
+	"color_game", "color_done", "color_record", "color_place", "photo_count",
 	"tickle", "long_cuddle", "scratch", "game_over_all", "demo_food", "demo_fun", "demo_energy", "picky", "eat_again", "dream_food"}
 
 func TestLinesFilesAreComplete(t *testing.T) {
@@ -21,7 +21,7 @@ func TestLinesFilesAreComplete(t *testing.T) {
 				t.Errorf("lines/%s.txt: no [%s]", lang, key)
 			}
 			for _, v := range robotTexts[lang][key] {
-				filled := key == "game_over" || key == "color_done" || key == "color_record"
+				filled := key == "game_over" || key == "color_done" || key == "color_record" || key == "color_place"
 				if strings.Contains(v, "%s") != (key == "eat" && strings.Contains(v, "%s") || filled) {
 					t.Errorf("lines/%s.txt [%s]: %%s where it is not filled in (or missing): %q", lang, key, v)
 				}

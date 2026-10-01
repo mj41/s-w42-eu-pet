@@ -40,6 +40,7 @@ type Settings struct {
 
 	GameBallSeconds int  `json:"game_ball_seconds"` // time to catch one ball (3..10)
 	GameHeadMoves   bool `json:"game_head_moves"`   // the head circles, wanders and dodges in the game
+	ColorPhotos     bool `json:"color_photos"`      // the color game's top three get a photo from the robot's camera
 
 	Foods map[string]string `json:"foods"` // NFC tag uid -> food key; unknown tags feed an apple
 }
@@ -76,6 +77,7 @@ func DefaultSettings() Settings {
 		NightWakeMin:     5,
 		GameBallSeconds:  5,
 		GameHeadMoves:    true,
+		ColorPhotos:      true,
 		Foods:            map[string]string{},
 	}
 }

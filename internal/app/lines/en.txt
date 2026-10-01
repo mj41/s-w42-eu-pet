@@ -176,6 +176,12 @@ Great, done in %s!
 [color_record]
 A new record! Only %s!
 
+[color_place]
+You are in %s place! Smile, I'll take your photo.
+
+[photo_count]
+Three, two, one, cheese!
+
 [names]
 apple = apple
 carrot = carrot

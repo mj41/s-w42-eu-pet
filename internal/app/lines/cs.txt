@@ -208,6 +208,13 @@ Paráda, hotovo za %s!
 [color_record]
 Nový rekord! Jen %s!
 
+# Místo na žebříčku (%s = prvním, druhém, třetím), pak fotka.
+[color_place]
+Jsi na %s místě! Usměj se, vyfotím tě.
+
+[photo_count]
+Tři, dva, jedna, sýr!
+
 # Jména jídel (pro [eat]): klíč = jméno.
 [names]
 apple = jablíčko

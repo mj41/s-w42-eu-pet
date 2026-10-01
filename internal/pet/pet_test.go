@@ -3,6 +3,7 @@ package pet
 import (
 	"encoding/json"
 	"math"
+	"slices"
 	"testing"
 	"time"
 )
@@ -385,18 +386,34 @@ func TestNapUpTo90(t *testing.T) {
 	}
 }
 
-func TestColorsBestTime(t *testing.T) {
+func TestColorsLeaderboard(t *testing.T) {
 	p := New(at(0, 13, 0), DefaultSettings())
-	if re := p.FinishColors(at(0, 13, 1), 25, 25, 20*time.Second); re.Record || p.ColorsBestMs != 20000 {
-		t.Fatalf("first game: %+v best %d", re, p.ColorsBestMs)
+	game := func(m, done int, secs float64) Reaction {
+		return p.FinishColors(at(0, 13, m), done, 25, time.Duration(secs*float64(time.Second)))
 	}
-	if re := p.FinishColors(at(0, 13, 2), 25, 25, 25*time.Second); re.Record || p.ColorsBestMs != 20000 {
-		t.Fatalf("slower: %+v best %d", re, p.ColorsBestMs)
+	if re := game(1, 25, 80); re.Place != 1 || re.Record {
+		t.Fatalf("first game: %+v", re)
 	}
-	if re := p.FinishColors(at(0, 13, 3), 24, 25, 10*time.Second); re.Record {
-		t.Fatalf("a round not done is no record: %+v", re)
+	if re := game(2, 25, 90); re.Place != 2 {
+		t.Fatalf("slower: %+v", re)
 	}
-	if re := p.FinishColors(at(0, 13, 4), 25, 25, 15*time.Second); !re.Record || p.ColorsBestMs != 15000 {
-		t.Fatalf("faster: %+v best %d", re, p.ColorsBestMs)
+	if re := game(3, 24, 50); re.Place != 0 {
+		t.Fatalf("a round not done is not on the board: %+v", re)
+	}
+	if re := game(4, 25, 85); re.Place != 2 {
+		t.Fatalf("between: %+v", re)
+	}
+	if re := game(5, 25, 70); re.Place != 1 || !re.Record {
+		t.Fatalf("faster: %+v", re)
+	}
+	if re := game(6, 25, 95); re.Place != 0 {
+		t.Fatalf("slower than all three: %+v", re)
+	}
+	var ms []int64
+	for _, e := range p.ColorsTop {
+		ms = append(ms, e.Ms)
+	}
+	if !slices.Equal(ms, []int64{70000, 80000, 85000}) {
+		t.Fatalf("board: %v", ms)
 	}
 }

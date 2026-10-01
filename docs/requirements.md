@@ -164,6 +164,15 @@ there, instead of flipping the behaviour back and forth.
   ("Paráda, pět z pěti"). More catches, more fun.
 - **G4** Play costs energy and food (fun +20, energy −8, food −4); too tired
   (energy < 15) it refuses. Daily play limit (parent, minutes; feeding is never limited).
+- **G8** The color game's leaderboard: the three best full games (every round
+  done), kept on the server (the state file, photos next to it), so a robot
+  restart loses nothing. A game fast enough for it: the robot says the place
+  ("Jsi na prvním místě! Usměj se, vyfotím tě."), counts down ("Tři, dva,
+  jedna, sýr!") and takes a photo with its camera (parent setting, on by
+  default). After every color game the robot shows the podium (first in the
+  middle, photos in gold, silver and bronze frames, the times); the kid's page
+  shows it too. The parent page lists it, removes a place or clears it (the
+  photos go too). Photos are served only to browsers paired with the robot.
 - **G7** During a game the screen has a fixed brightness (70%): the kid's hand
   near the light sensor must not dim it. Auto brightness returns after the game.
 - **G5** Without the robot connected, play is a short dance on the page.
@@ -181,7 +190,8 @@ there, instead of flipping the behaviour back and forth.
   the kid) with its strips numbered in that order (6 s), then 5 rounds: new
   colors, the buttons shuffled (25 rounds in a game). Colors are random per
   part; the same color twice in a row is a double tap. A pressed part goes dark.
-  A wrong button only buzzes (the clock runs on); a round not done in 20 s
+  A wrong button buzzes and greys all buttons out for 3 s, they take no presses
+  meanwhile (a penalty; the clock runs on); a round not done in 20 s
   moves on and counts 20 s. At the end the robot says the time over all rounds
   ("Hotovo za 74 sekund!"); with every round done, the best time is kept ("Nový
   rekord!"). Same fun, energy and food as catch (G4). A double tap on a button

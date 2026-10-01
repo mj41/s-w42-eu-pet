@@ -93,6 +93,16 @@
   .gamecard .stars img { width: 44px; filter: grayscale(1); opacity: .3; transition: all .3s; }
   .gamecard .stars img.on { filter: none; opacity: 1; transform: scale(1.15); }
   body.gaming .gamecard { display: block; }
+  /* The color game's leaderboard: a podium, first in the middle. */
+  .board { display: none; background: var(--card); border-radius: 24px; padding: 14px 10px 0; }
+  body.hasboard:not(.gaming):not(.night) .board { display: block; }
+  .board .podium { display: flex; justify-content: center; align-items: flex-end; gap: 8px; }
+  .board .place { flex: 1; max-width: 120px; text-align: center; font-weight: 800; font-size: 18px; }
+  .board .photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; border: 4px solid var(--medal); background: #26326e; display: block; }
+  .board .step { background: var(--medal); border-radius: 10px 10px 0 0; margin-top: 6px; font-size: 26px; color: #0e1433; padding-top: 6px; }
+  .board .p1 { --medal: #ffc107; } .board .p1 .step { height: 70px; }
+  .board .p2 { --medal: #cfd8dc; } .board .p2 .step { height: 48px; }
+  .board .p3 { --medal: #d7894a; } .board .p3 .step { height: 34px; }
   body.gaming .buttons { display: none; }
 
   .pair { display: none; text-align: center; margin: auto; max-width: 420px; font-size: 22px; font-weight: 800; }
@@ -136,6 +146,10 @@
     <img class="ball" src="/emoji/ball.svg" alt="">
     <div data-t="catch"></div>
     <div class="stars" id="stars"></div>
+  </section>
+
+  <section class="board" aria-label="leaderboard">
+    <div class="podium" id="podium"></div>
   </section>
 
   <section class="nightcard">
@@ -189,6 +203,7 @@ function render(s) {
   document.body.classList.toggle("night", s.phase === "night");
   document.body.classList.toggle("gaming", !!s.game);
   if (s.game) stars(s.game);
+  board(s.top || []);
   $("stage").classList.toggle("napping", s.mood === "napping");
   const napping = s.mood === "napping";
   $("napLabel").dataset.t = napping ? "wake" : "nap";
@@ -208,6 +223,34 @@ function render(s) {
   $("nightText").textContent = t("sleeps", s.name);
   $("wakeAt").textContent = s.wake;
   document.querySelector('meta[name="theme-color"]').content = s.phase === "night" ? "#0e1433" : "#bfe6ff";
+}
+
+// board shows the color game's top three as a podium (second, first, third).
+function board(top) {
+  document.body.classList.toggle("hasboard", top.length > 0);
+  const el = $("podium");
+  el.textContent = "";
+  for (const i of [1, 0, 2]) {
+    const e = top[i];
+    const div = document.createElement("div");
+    div.className = `place p${i + 1}`;
+    if (e) {
+      const img = document.createElement("img");
+      img.className = "photo";
+      img.src = e.photo || "/emoji/star.svg";
+      img.alt = "";
+      if (!e.photo) img.style.objectFit = "contain";
+      div.appendChild(img);
+      const t = document.createElement("div");
+      t.textContent = `${e.seconds} s`;
+      div.appendChild(t);
+    }
+    const step = document.createElement("div");
+    step.className = "step";
+    step.textContent = i + 1;
+    div.appendChild(step);
+    el.appendChild(div);
+  }
 }
 
 // stars shows the game's progress: one star per ball, lit when caught.

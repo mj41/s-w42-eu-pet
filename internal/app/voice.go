@@ -71,6 +71,10 @@ func allLines(lang string) []string {
 				for _, food := range pet.FoodOrder {
 					out = append(out, strings.ReplaceAll(v, "%s", foodNames[lang][food]))
 				}
+			case key == "color_place":
+				for place := 1; place <= pet.TopPlaces; place++ {
+					out = append(out, strings.ReplaceAll(v, "%s", ordinalText(lang, place)))
+				}
 			case key == "game_over":
 				for hits := 1; hits <= pet.GameRounds; hits++ {
 					out = append(out, strings.ReplaceAll(v, "%s", scoreText(lang, hits, pet.GameRounds)))

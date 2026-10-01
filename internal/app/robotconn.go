@@ -249,8 +249,8 @@ func (a *App) readLoop(c *robotConn) {
 			if len(data) > 1 && data[0] == wire.BinLight { // the game's hand detection
 				a.lightSamples(c.id, data[1:])
 			}
-			if len(data) > 1 && data[0] == wire.BinSnapshot { // a screen snapshot (debug.go)
-				a.saveScreen(c.id, data[1:])
+			if len(data) > 1 && data[0] == wire.BinSnapshot { // a leaderboard photo, or a screen snapshot (photos.go)
+				a.robotSnapshot(c.id, data[1:])
 			}
 			if len(data) > 1 && data[0] == wire.BinAudioMulti { // a debug recording (debug.go)
 				a.micAudio(c.id, data[1:])

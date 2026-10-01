@@ -289,10 +289,16 @@ func (a *App) endColors(r *robot, g *game) {
 	a.gameScreen(r, false)
 	a.restoreHead(r)
 	a.clearSprites(r)
+	before := slices.Clone(r.pet.ColorsTop)
 	re := r.pet.FinishColors(now, cg.done, colorLevels*colorTurns, cg.total)
+	a.dropPhotos(before, r.pet.ColorsTop)
 	a.log.Info("color game over", "robot", r.id, "rounds", cg.done, "seconds", cg.total.Seconds(), "wrong", cg.wrong, "record", re.Record)
 	a.dirty = true
-	a.begin(r, now, 6*time.Second)
+	busy := 6 * time.Second
+	if re.Place > 0 && a.canPhoto(r) {
+		busy = a.timing.photoShot + 2*time.Second // the countdown and the photo
+	}
+	a.begin(r, now, busy)
 	a.emotion(r, "happy")
 	a.play(r, sound.Tada, false)
 	leds := idleSides(r.pet, r.pet.Mood(now))
@@ -304,6 +310,7 @@ func (a *App) endColors(r *robot, g *game) {
 	}
 	a.say(r, key, secondsText(r.pet.Settings.Lang, cg.total), 4)
 	r.conn.command("nod", nil)
+	a.boardAfterGame(r, re, now)
 	a.publishReaction(r, re)
 	a.publishState(r)
 }

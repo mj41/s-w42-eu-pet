@@ -84,6 +84,7 @@ func main() {
 		Location:   loc,
 		Log:        log,
 		DebugDir:   *debugDir,
+		PhotoDir:   photoDir(*stateFile),
 		Voice:      synth,
 	})
 	srv := &http.Server{Addr: *listen, Handler: a.Handler(), ReadHeaderTimeout: 10 * time.Second}
@@ -188,4 +189,12 @@ func lanIP() string {
 		return c.LocalAddr().(*net.UDPAddr).IP.String()
 	}
 	return "127.0.0.1"
+}
+
+// photoDir keeps the leaderboard photos next to the state file ("" without one).
+func photoDir(stateFile string) string {
+	if stateFile == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(stateFile), "photos")
 }

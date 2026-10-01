@@ -552,3 +552,61 @@ func digit(img *image.RGBA, d, cx, cy, h int, c color.RGBA) {
 		draw.Draw(img, at[s], &image.Uniform{c}, image.Point{}, draw.Src)
 	}
 }
+
+// LeaderEntry is one place for Leaderboard: the player's photo (a JPEG, nil = none)
+// and the time.
+type LeaderEntry struct {
+	Photo   []byte
+	Seconds int
+}
+
+// Leaderboard is the color game's top three as a podium (JPEG): first in the middle
+// and highest, second on the left, third on the right; each with its photo in a
+// medal colored frame, the time in seconds, and the place number on the podium.
+func Leaderboard(entries []LeaderEntry) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{0x0e, 0x14, 0x33, 0xff}}, image.Point{}, draw.Src)
+	medals := []color.RGBA{{0xff, 0xc1, 0x07, 0xff}, {0xcf, 0xd8, 0xdc, 0xff}, {0xd7, 0x89, 0x4a, 0xff}}
+	type spot struct{ cx, top int }
+	spots := []spot{{160, 8}, {56, 34}, {264, 50}} // first, second, third
+	const pw, ph = 96, 72
+	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	for place, sp := range spots {
+		m := medals[place]
+		box := image.Rect(sp.cx-pw/2-4, sp.top, sp.cx+pw/2+4, sp.top+ph+8)
+		podium := image.Rect(sp.cx-pw/2-4, box.Max.Y+34, sp.cx+pw/2+4, H)
+		draw.Draw(img, podium, &image.Uniform{m}, image.Point{}, draw.Src)
+		digit(img, place+1, sp.cx, (podium.Min.Y+podium.Max.Y)/2, 40, color.RGBA{0x0e, 0x14, 0x33, 0xff})
+		if place >= len(entries) {
+			continue // nobody there yet
+		}
+		e := entries[place]
+		draw.Draw(img, box, &image.Uniform{m}, image.Point{}, draw.Src)
+		inner := box.Inset(4)
+		var photo image.Image
+		if e.Photo != nil {
+			photo, _ = jpeg.Decode(bytes.NewReader(e.Photo))
+		}
+		if photo != nil {
+			drawScaled(img, photo, inner)
+		} else {
+			draw.Draw(img, inner, &image.Uniform{color.RGBA{0x26, 0x32, 0x6e, 0xff}}, image.Point{}, draw.Src)
+			if ic := icon("star"); ic != nil {
+				drawScaled(img, ic, image.Rect(sp.cx-24, inner.Min.Y+12, sp.cx+24, inner.Min.Y+60))
+			}
+		}
+		number(img, e.Seconds, sp.cx, box.Max.Y+17, 24, white)
+	}
+	return encode(img)
+}
+
+// number draws n's digits centered at (cx, cy), h pixels tall.
+func number(img *image.RGBA, n, cx, cy, h int, c color.RGBA) {
+	s := fmt.Sprint(max(0, n))
+	step := h/2 + h/5
+	x := cx - (len(s)-1)*step/2
+	for _, r := range s {
+		digit(img, int(r-'0'), x, cy, h, c)
+		x += step
+	}
+}
