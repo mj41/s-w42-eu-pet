@@ -499,3 +499,56 @@ func init() {
 		}
 	}
 }
+
+// Order is the color game's level picture: the robot seen from above, its screen at the
+// bottom (towards the kid), the LED strips on its sides numbered in the order to press.
+// parts is 2 (the whole left and right strips) or 4 (each strip's half near the screen
+// and far from it: left near, left far, right near, right far); order[i] is the part
+// pressed i-th.
+func Order(parts int, order []int) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{0x0e, 0x14, 0x33, 0xff}}, image.Point{}, draw.Src)
+	fillRoundRect(img, image.Rect(105, 30, 215, 215), 22, color.RGBA{0xe8, 0xe8, 0xf0, 0xff}) // the body
+	fillRoundRect(img, image.Rect(118, 196, 202, 212), 6, color.RGBA{0x26, 0x32, 0x6e, 0xff}) // the screen
+	fillCircle(img, 145, 204, 3, color.RGBA{0xff, 0xff, 0xff, 0xff})                          // its eyes
+	fillCircle(img, 175, 204, 3, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	strip := color.RGBA{0xff, 0xd5, 0x4f, 0xff}
+	// The parts: x of the strip, y range; numbers go outside the robot.
+	type part struct{ x, y0, y1, nx int }
+	var ps []part
+	if parts == 2 {
+		ps = []part{{80, 40, 205, 40}, {226, 40, 205, 280}}
+	} else {
+		ps = []part{{80, 126, 205, 40}, {80, 40, 119, 40}, {226, 126, 205, 280}, {226, 40, 119, 280}}
+	}
+	for i, p := range ps {
+		fillRoundRect(img, image.Rect(p.x, p.y0, p.x+14, p.y1), 6, strip)
+		n := 0
+		for k, o := range order {
+			if o == i {
+				n = k + 1
+			}
+		}
+		digit(img, n, p.nx, (p.y0+p.y1)/2, 46, color.RGBA{0xff, 0xff, 0xff, 0xff})
+	}
+	return encode(img)
+}
+
+// digit draws d (0..9) as seven segments centered at (cx, cy), h pixels tall.
+func digit(img *image.RGBA, d, cx, cy, h int, c color.RGBA) {
+	segs := []string{"abcdef", "bc", "abged", "abgcd", "fgbc", "afgcd", "afgedc", "abc", "abcdefg", "abcdfg"}[d%10]
+	w, t := h/2, max(4, h/8)
+	x0, y0 := cx-w/2, cy-h/2
+	at := map[rune]image.Rectangle{
+		'a': image.Rect(x0, y0, x0+w, y0+t),
+		'b': image.Rect(x0+w-t, y0, x0+w, cy),
+		'c': image.Rect(x0+w-t, cy, x0+w, y0+h),
+		'd': image.Rect(x0, y0+h-t, x0+w, y0+h),
+		'e': image.Rect(x0, cy, x0+t, y0+h),
+		'f': image.Rect(x0, y0, x0+t, cy),
+		'g': image.Rect(x0, cy-t/2, x0+w, cy+t/2+t%2),
+	}
+	for _, s := range segs {
+		draw.Draw(img, at[s], &image.Uniform{c}, image.Point{}, draw.Src)
+	}
+}

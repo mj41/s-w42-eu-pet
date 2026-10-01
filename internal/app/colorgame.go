@@ -12,34 +12,41 @@ import (
 )
 
 // The color game: the screen shows six color buttons, three by two, in a new order
-// every round; the robot's LED strips show the colors to press, in reading order:
+// every round; the robot's LED strips show colors, and the kid presses them in the
+// level's order. Each level starts with a picture of the robot from above, its
+// strips numbered in that order (robotpic.Order):
 //
-//	1 color   the left strip (the right one stays dark)
-//	2 colors  the left strip, then the right one
-//	3 colors  the left strip's half near the kid (the screen), its far half, then the right near half
-//	4 colors  left near, left far, right near, right far
+//	level 1  the left strip, then the right one
+//	level 2  the right strip, then the left one
+//	level 3  left near the screen, left far, right near, right far
+//	level 4  right far, right near, left far, left near
+//	level 5  the four halves in a random order (not level 3's or 4's)
 //
-// The same color twice in a row is a double tap. A part goes dark once its color
-// is pressed. Rounds: 1, 2, 2 the same (a double tap), 3, 4 colors. A wrong
-// button only buzzes, the clock runs on; a round not done in colorRoundMax moves
-// on and counts with that time. At the end the robot says the time over all
-// rounds; the best time is kept. It is a game like catch (r.game, with colors
+// The same color twice in a row is a double tap. A part goes dark once pressed. A
+// wrong button only buzzes, the clock runs on; a level not done in colorRoundMax
+// moves on and counts with that time. At the end the robot says the time over all
+// levels; the best time is kept. It is a game like catch (r.game, with colors
 // set). Everything here runs with a.mu held.
 
-// colorRoundMax ends a round the kid does not finish; it counts with this time.
+// colorRoundMax ends a level the kid does not finish; it counts with this time.
 const colorRoundMax = 20 * time.Second
 
 type colorGame struct {
-	seq     []string // the colors to press this round, in order
-	next    int      // the next one in seq
+	parts   int      // 2 (left, right) or 4 (halves)
+	order   []int    // the parts in the order to press
+	colors  []string // each part's color
+	next    int      // how many are pressed
 	started time.Time
-	total   time.Duration // the rounds so far
+	total   time.Duration // the levels so far
 	wrong   int
 }
 
+// pressNext is the color to press next.
+func (cg *colorGame) pressNext() string { return cg.colors[cg.order[cg.next]] }
+
 // The LED strips: 12 single LEDs, left 0-5, right 6-11 (wire "leds" pixels). The
-// halves near the kid (the screen) and far from it, for 3 and 4 colors: the left
-// strip starts at the screen, the right one runs the other way (seen on the robot).
+// halves near the kid (the screen) and far from it: the left strip starts at the
+// screen, the right one runs the other way (seen on the robot).
 var (
 	ledLeft      = []int{0, 1, 2, 3, 4, 5}
 	ledRight     = []int{6, 7, 8, 9, 10, 11}
@@ -49,17 +56,32 @@ var (
 	ledRightFar  = []int{6, 7, 8}
 )
 
-// colorParts are the LEDs of each color to press, for n colors.
+// colorParts are the LEDs of each part: 2 the strips, 4 their halves.
 func colorParts(n int) [][]int {
-	switch n {
-	case 1:
-		return [][]int{ledLeft}
-	case 2:
+	if n == 2 {
 		return [][]int{ledLeft, ledRight}
-	case 3:
-		return [][]int{ledLeftNear, ledLeftFar, ledRightNear}
 	}
 	return [][]int{ledLeftNear, ledLeftFar, ledRightNear, ledRightFar}
+}
+
+// colorLevel is level's parts and order (1-based level).
+func colorLevel(level int) (int, []int) {
+	switch level {
+	case 1:
+		return 2, []int{0, 1}
+	case 2:
+		return 2, []int{1, 0}
+	case 3:
+		return 4, []int{0, 1, 2, 3}
+	case 4:
+		return 4, []int{3, 2, 1, 0}
+	}
+	for {
+		order := rand.Perm(4)
+		if !slices.Equal(order, []int{0, 1, 2, 3}) && !slices.Equal(order, []int{3, 2, 1, 0}) {
+			return 4, order
+		}
+	}
 }
 
 // colorSpots are the button centers on the 320x240 screen, three by two.
@@ -114,7 +136,7 @@ func (a *App) startColors(r *robot, now time.Time) {
 	a.afterGame(r, g, a.timing.intro, func() { a.colorRound(r, g) })
 }
 
-// colorRound shuffles the buttons and shows the next colors on the LEDs.
+// colorRound starts the next level: its order picture first, then the buttons and the colors.
 func (a *App) colorRound(r *robot, g *game) {
 	if g.round >= pet.GameRounds {
 		a.endColors(r, g)
@@ -122,53 +144,61 @@ func (a *App) colorRound(r *robot, g *game) {
 	}
 	g.round++
 	cg := g.colors
-	for i, spot := range rand.Perm(len(colorSpots)) {
-		c := robotpic.Colors[i]
-		a.sprite(r, map[string]any{"id": "c:" + c, "asset": assetDir + "color-" + c + ".png",
-			"x": colorSpots[spot][0], "y": colorSpots[spot][1], "z": 21, "tap": true})
+	cg.parts, cg.order = colorLevel(g.round)
+	cg.colors, cg.next = make([]string, cg.parts), 0
+	for i := range cg.colors {
+		cg.colors[i] = robotpic.Colors[rand.IntN(len(robotpic.Colors))]
 	}
-	pick := func() string { return robotpic.Colors[rand.IntN(len(robotpic.Colors))] }
-	switch g.round {
-	case 1:
-		cg.seq = []string{pick()}
-	case 2: // two different colors
-		p := rand.Perm(len(robotpic.Colors))
-		cg.seq = []string{robotpic.Colors[p[0]], robotpic.Colors[p[1]]}
-	case 3: // the same color twice: a double tap
-		c := pick()
-		cg.seq = []string{c, c}
-	default: // 3, then 4 colors, any
-		cg.seq = nil
-		for range g.round - 1 {
-			cg.seq = append(cg.seq, pick())
-		}
+	r.conn.command("leds", map[string]any{"pixels": slices.Repeat([]string{"#000000"}, 12)})
+	for _, id := range append([]string{"c:bg"}, colorIDs()...) { // the picture is under the sprites
+		r.conn.command("sprite", map[string]any{"id": id, "hidden": true})
 	}
-	cg.next = 0
-	a.colorLEDs(r, cg)
-	cg.started = time.Now()
+	a.showPicture(r, robotpic.Order(cg.parts, cg.order))
 	r.busyUntil = a.now().Add(time.Minute)
 	a.publishState(r)
 	round := g.round
-	a.afterGame(r, g, colorRoundMax, func() {
-		if g.round == round && cg.next < len(cg.seq) { // not finished: on to the next round
-			cg.total += colorRoundMax
-			a.colorRound(r, g)
+	a.afterGame(r, g, 2*a.timing.intro, func() {
+		if g.round != round {
+			return
 		}
+		r.conn.command("face", nil)
+		r.pictureOn = false
+		r.conn.command("sprite", map[string]any{"id": "c:bg", "hidden": false})
+		for i, spot := range rand.Perm(len(colorSpots)) {
+			c := robotpic.Colors[i]
+			a.sprite(r, map[string]any{"id": "c:" + c, "asset": assetDir + "color-" + c + ".png",
+				"x": colorSpots[spot][0], "y": colorSpots[spot][1], "z": 21, "tap": true, "hidden": false})
+		}
+		a.colorLEDs(r, cg)
+		cg.started = time.Now()
+		a.afterGame(r, g, colorRoundMax, func() {
+			if g.round == round && cg.next < cg.parts { // not finished: on to the next level
+				cg.total += colorRoundMax
+				a.colorRound(r, g)
+			}
+		})
 	})
+}
+
+// colorIDs are the buttons' sprite ids.
+func colorIDs() []string {
+	ids := make([]string, len(robotpic.Colors))
+	for i, c := range robotpic.Colors {
+		ids[i] = "c:" + c
+	}
+	return ids
 }
 
 // colorLEDs shows on the LED strips the colors still to press; the pressed ones go dark.
 func (a *App) colorLEDs(r *robot, cg *colorGame) {
-	pixels := make([]string, 12)
-	for i := range pixels {
-		pixels[i] = "#000000"
-	}
-	for i, part := range colorParts(len(cg.seq)) {
-		if i < cg.next {
-			continue
+	pixels := slices.Repeat([]string{"#000000"}, 12)
+	parts := colorParts(cg.parts)
+	for i, part := range parts {
+		if slices.Contains(cg.order[:cg.next], i) {
+			continue // pressed
 		}
 		for _, p := range part {
-			pixels[p] = robotpic.ColorLED[cg.seq[i]]
+			pixels[p] = robotpic.ColorLED[cg.colors[i]]
 		}
 	}
 	r.conn.command("leds", map[string]any{"pixels": pixels})
@@ -178,10 +208,10 @@ func (a *App) colorLEDs(r *robot, cg *colorGame) {
 func (a *App) colorTap(r *robot, g *game, sprite string) {
 	cg := g.colors
 	c, ok := strings.CutPrefix(sprite, "c:")
-	if !ok || !slices.Contains(robotpic.Colors, c) || cg.next >= len(cg.seq) {
+	if !ok || !slices.Contains(robotpic.Colors, c) || cg.started.IsZero() || cg.next >= cg.parts {
 		return
 	}
-	if c != cg.seq[cg.next] {
+	if c != cg.pressNext() {
 		cg.wrong++
 		a.play(r, sound.No, false)
 		return
@@ -189,10 +219,11 @@ func (a *App) colorTap(r *robot, g *game, sprite string) {
 	cg.next++
 	a.play(r, sound.Chirp, false)
 	a.colorLEDs(r, cg)
-	if cg.next < len(cg.seq) {
+	if cg.next < cg.parts {
 		return
 	}
-	cg.total += time.Since(cg.started) // the round is done
+	cg.total += time.Since(cg.started) // the level is done
+	cg.started = time.Time{}           // no presses until the next level's buttons
 	g.hits++
 	r.pet.Caught(a.now())
 	a.publishState(r)

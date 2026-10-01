@@ -46,6 +46,7 @@ type robotConn struct {
 	done      chan struct{}
 
 	sent, dropped atomic.Uint64 // messages queued, and dropped because the queue was full (watchdog.go)
+	held          atomic.Bool   // the robot is in someone's hands: no head commands (held.go)
 }
 
 func (c *robotConn) close() {
@@ -76,6 +77,9 @@ func (c *robotConn) frame(kind string, body any) bool {
 
 // command queues a robot command.
 func (c *robotConn) command(name string, args map[string]any) bool {
+	if headCommands[name] && c.held.Load() {
+		return false // the head stays still in a kid's hands
+	}
 	return c.frame(wire.KindRobotCommand, wire.RobotCommandBody{Command: name, Args: args})
 }
 
@@ -153,6 +157,7 @@ func (a *App) attach(c *robotConn, commands []string) {
 	r := a.robotFor(c.id)
 	old := r.conn
 	r.conn = c
+	c.held.Store(r.hold.held)
 	r.commands = commands
 	r.files = map[string]bool{} // filled from the robot's "assets" answer
 	r.spriteIDs, r.faceShown, r.faceHidden = nil, "", false

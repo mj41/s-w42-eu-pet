@@ -442,6 +442,9 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 			return
 		}
 	case "shake":
+		if r.hold.shaken() {
+			a.setHeld(r)
+		}
 		re = p.Shake(now)
 	case "proximity_near":
 		a.hello(r, now)
@@ -865,6 +868,9 @@ func (a *App) telemetry(id string, m map[string]float64) {
 		return
 	}
 	r.telemetry = m
+	if r.hold.imuSample(m) {
+		a.setHeld(r)
+	}
 	yaw, okYaw := m["head_yaw_deg"]
 	pitch, okPitch := m["head_pitch_deg"]
 	if okYaw && okPitch {
@@ -1073,4 +1079,12 @@ func (a *App) gentle(r *robot, now time.Time) {
 	a.begin(r, now, reactionTime)
 	a.emotion(r, "doubt")
 	a.say(r, "long_press", "", 4)
+}
+
+// setHeld passes the hold state to the connection (which drops head commands while held).
+func (a *App) setHeld(r *robot) {
+	a.log.Info("robot held", "robot", r.id, "held", r.hold.held)
+	if r.conn != nil {
+		r.conn.held.Store(r.hold.held)
+	}
 }

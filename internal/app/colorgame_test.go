@@ -1,10 +1,12 @@
 package app
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/mj41/stackchan-pet/internal/pet"
 	"github.com/mj41/stackchan-pet/internal/robotpic"
 	"github.com/mj41/stackchan-server/wire"
 )
@@ -34,36 +36,36 @@ func TestColorGame(t *testing.T) {
 	for c, hex := range robotpic.ColorLED {
 		ledColor[hex] = c
 	}
-	for round, n := range []int{1, 2, 2, 3, 4} {
-		// The LED strips say what to press, in order (colorParts).
-		var pixels []any
-		for pixels == nil { // the next round's (the left strip lit; pressed parts go dark)
-			if args := r.command("leds"); args["pixels"] != nil && args["pixels"].([]any)[0] != "#000000" {
+	for level := 1; level <= pet.GameRounds; level++ {
+		r.binary(wire.BinShowJPEG) // the order picture
+		var pixels []any           // then the colors (some lit)
+		for pixels == nil {
+			if args := r.command("leds"); args["pixels"] != nil && slices.ContainsFunc(args["pixels"].([]any), func(p any) bool { return p != "#000000" }) {
 				pixels = args["pixels"].([]any)
 			}
 		}
-		var seq []string
-		for i, part := range colorParts(n) {
-			seq = append(seq, ledColor[pixels[part[0]].(string)])
-			if seq[i] == "" {
-				t.Fatalf("round %d: part %d dark: %v", round+1, i, pixels)
+		var parts int
+		var order []int
+		e.robotState("robot-1", func(rb *robot) { parts, order = rb.game.colors.parts, slices.Clone(rb.game.colors.order) })
+		want := map[int]int{1: 2, 2: 2, 3: 4, 4: 4, 5: 4}[level]
+		if parts != want {
+			t.Fatalf("level %d: %d parts", level, parts)
+		}
+		if level == 2 && !slices.Equal(order, []int{1, 0}) || level == 4 && !slices.Equal(order, []int{3, 2, 1, 0}) ||
+			level == 5 && (slices.Equal(order, []int{0, 1, 2, 3}) || slices.Equal(order, []int{3, 2, 1, 0})) {
+			t.Fatalf("level %d: order %v", level, order)
+		}
+		ledParts := colorParts(parts)
+		if level == 1 { // a wrong one first (the right strip's color, if it differs): only a buzz
+			if c := ledColor[pixels[ledParts[1][0]].(string)]; c != ledColor[pixels[ledParts[0][0]].(string)] {
+				r.event("screen_tap", map[string]any{"sprite": "c:" + c})
 			}
 		}
-		if n == 1 && pixels[6] != "#000000" {
-			t.Fatalf("one color lights the right strip: %v", pixels)
-		}
-		if round == 2 && seq[0] != seq[1] {
-			t.Fatalf("round 3 is a double tap: %v", seq)
-		}
-		if round == 1 { // a wrong button first: only a buzz
-			for _, c := range robotpic.Colors {
-				if c != seq[0] {
-					r.event("screen_tap", map[string]any{"sprite": "c:" + c})
-					break
-				}
+		for _, part := range order {
+			c := ledColor[pixels[ledParts[part][0]].(string)]
+			if c == "" {
+				t.Fatalf("level %d: part %d dark: %v", level, part, pixels)
 			}
-		}
-		for _, c := range seq {
 			r.event("screen_tap", map[string]any{"sprite": "c:" + c})
 		}
 	}

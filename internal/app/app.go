@@ -130,6 +130,7 @@ type robot struct {
 	quietSince    time.Time // nothing was sent to the robot since then
 	lastSchool    time.Time // the last "I rest during school" (engine.go)
 	barStep       int       // the energy bar shown while asleep (energyBar)
+	hold          holdState // held in someone's hands (held.go)
 }
 
 func New(cfg Config) *App {
