@@ -8,6 +8,7 @@ package robotpic
 import (
 	"bytes"
 	"embed"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -265,6 +266,9 @@ func Files() map[string][]byte {
 	for _, c := range Colors {
 		out["color-"+c+".png"] = ColorButton(c)
 	}
+	for pct := 0; pct <= 100; pct += 10 {
+		out[fmt.Sprintf("zbar-%d.png", pct)] = EnergyBar(pct)
+	}
 	entries, _ := pngFS.ReadDir("png")
 	for _, e := range entries {
 		if b, err := pngFS.ReadFile("png/" + e.Name()); err == nil {
@@ -438,5 +442,27 @@ func ColorButton(name string) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, ColorButtonW, ColorButtonH))
 	fillRoundRect(img, img.Bounds(), 18, color.RGBA{0xff, 0xff, 0xff, 0xff})
 	fillRoundRect(img, image.Rect(5, 5, ColorButtonW-5, ColorButtonH-5), 14, ColorRGBA[name])
+	return encodePNG(img)
+}
+
+// EnergyBar is the tiny energy bar under the sleeping face (PNG, transparent): the
+// zzz icon and a bar filled to pct percent, colored like the needs bars.
+func EnergyBar(pct int) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, 140, 28))
+	if ic := icon("zzz"); ic != nil {
+		drawScaled(img, ic, image.Rect(0, 1, 26, 27))
+	}
+	bar := image.Rect(32, 6, 140, 22)
+	fillRound(img, bar, color.RGBA{0x55, 0x5c, 0x7a, 0xff})
+	c := green
+	switch {
+	case pct < 30:
+		c = red
+	case pct < 60:
+		c = yellow
+	}
+	fill := bar
+	fill.Max.X = bar.Min.X + max(bar.Dy(), bar.Dx()*max(0, min(100, pct))/100)
+	fillRound(img, fill, c)
 	return encodePNG(img)
 }

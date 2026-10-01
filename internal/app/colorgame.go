@@ -16,7 +16,7 @@ import (
 //
 //	1 color   the left strip (the right one stays dark)
 //	2 colors  the left strip, then the right one
-//	3 colors  the left strip's half near the kid, its far half, then the right strip
+//	3 colors  the left strip's half near the kid (the screen), its far half, then the right near half
 //	4 colors  left near, left far, right near, right far
 //
 // The same color twice in a row is a double tap. A part goes dark once its color
@@ -38,14 +38,15 @@ type colorGame struct {
 }
 
 // The LED strips: 12 single LEDs, left 0-5, right 6-11 (wire "leds" pixels). The
-// halves near the kid and far from it, for 3 and 4 colors.
+// halves near the kid (the screen) and far from it, for 3 and 4 colors: the left
+// strip starts at the screen, the right one runs the other way (seen on the robot).
 var (
 	ledLeft      = []int{0, 1, 2, 3, 4, 5}
 	ledRight     = []int{6, 7, 8, 9, 10, 11}
 	ledLeftNear  = []int{0, 1, 2}
 	ledLeftFar   = []int{3, 4, 5}
-	ledRightNear = []int{6, 7, 8}
-	ledRightFar  = []int{9, 10, 11}
+	ledRightNear = []int{9, 10, 11}
+	ledRightFar  = []int{6, 7, 8}
 )
 
 // colorParts are the LEDs of each color to press, for n colors.
@@ -56,7 +57,7 @@ func colorParts(n int) [][]int {
 	case 2:
 		return [][]int{ledLeft, ledRight}
 	case 3:
-		return [][]int{ledLeftNear, ledLeftFar, ledRight}
+		return [][]int{ledLeftNear, ledLeftFar, ledRightNear}
 	}
 	return [][]int{ledLeftNear, ledLeftFar, ledRightNear, ledRightFar}
 }

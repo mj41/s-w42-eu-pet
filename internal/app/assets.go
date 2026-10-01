@@ -2,7 +2,9 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"hash/crc32"
+	"math"
 	"slices"
 	"sort"
 	"strings"
@@ -192,3 +194,17 @@ func (a *App) refreshFace(r *robot) {
 		a.express(r, a.now())
 	}
 }
+
+// energyBar: while the pet sleeps (a nap, or the screen lit at night), a tiny bar
+// under the face shows its energy, in steps of 10%. Only sent when it changes.
+func (a *App) energyBar(r *robot) {
+	step := int(math.Round(r.pet.Stats.Energy/10)) * 10
+	asset := fmt.Sprintf("%szbar-%d.png", assetDir, step)
+	if !r.canSprite(asset) || (r.spriteIDs[energyBarSprite] && r.barStep == step) {
+		return
+	}
+	r.barStep = step
+	a.sprite(r, map[string]any{"id": energyBarSprite, "asset": asset, "x": 160, "y": 220, "z": 5})
+}
+
+const energyBarSprite = "zbar"

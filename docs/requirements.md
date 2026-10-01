@@ -161,8 +161,8 @@ there, instead of flipping the behaviour back and forth.
   buttons (red, yellow, green, cyan, blue, purple), three by two, in a new order
   every round. The robot's LED strips show the colors to press, in reading
   order: 1 color the left strip (right dark); 2 colors left, then right; 3 colors
-  the left strip's half near the kid, its far half, then the right strip; 4 colors
-  left near, left far, right near, right far. The same color twice is a double
+  the left strip's half near the kid (the screen), its far half, then the right
+  strip's near half; 4 colors left near, left far, right near, right far. The same color twice is a double
   tap. A pressed part goes dark. Rounds of 1, 2, 2 the same (a double tap), 3 and
   4 colors; no spoken color names (the LEDs are the game). A wrong button only
   buzzes (the clock runs on); a round not done in 20 s moves on and counts 20 s.

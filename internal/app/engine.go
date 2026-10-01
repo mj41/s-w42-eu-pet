@@ -84,6 +84,9 @@ func (a *App) express(r *robot, now time.Time) {
 	}
 	c.command("emotion", map[string]any{"name": moodEmotion[mood]})
 	a.drawnFace(r, moodFace[mood])
+	if mood == pet.Napping || mood == pet.Sleeping {
+		a.energyBar(r)
+	}
 	if mood == pet.Sleeping {
 		c.command("leds", a.nightLEDs(r, now))
 	} else {
@@ -998,6 +1001,10 @@ func (a *App) Pulse() {
 			a.demoCheck(r, now) // demo mode: a full need drops back within seconds
 		}
 		a.watchdog(r, now)
+		if (r.shownMood == pet.Napping || r.shownMood == pet.Sleeping) && r.conn != nil && now.After(r.busyUntil) &&
+			r.menu == "" && r.game == nil {
+			a.energyBar(r) // energy comes back while it sleeps
+		}
 		if a.watched(r.id) {
 			a.publishState(r)
 		}

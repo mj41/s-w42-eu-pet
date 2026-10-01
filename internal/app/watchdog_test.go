@@ -93,3 +93,28 @@ func TestReactionClosesTheMenu(t *testing.T) {
 		}
 	})
 }
+
+func TestEnergyBarWhileNapping(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobotWith("robot-1", []string{"sprite", "assets"})
+	r.frame(wire.KindAccepted)
+	haveFiles(t, r, "pet/zbar-30.png", "pet/zbar-40.png")
+	e.robotState("robot-1", func(rb *robot) {
+		rb.pet.Stats.Energy = 30
+		rb.pet.Nap(e.app.now())
+		e.app.express(rb, e.app.now())
+	})
+	if s := r.command("sprite"); s["id"] != energyBarSprite || s["asset"] != assetDir+"zbar-30.png" {
+		t.Fatalf("the bar: %v", s)
+	}
+	e.robotState("robot-1", func(rb *robot) { rb.pet.Stats.Energy = 41; rb.busyUntil = time.Time{} })
+	e.app.Pulse()
+	for {
+		if s := r.command("sprite"); s["id"] == energyBarSprite {
+			if s["asset"] != assetDir+"zbar-40.png" {
+				t.Fatalf("the bar after a while: %v", s)
+			}
+			break
+		}
+	}
+}
