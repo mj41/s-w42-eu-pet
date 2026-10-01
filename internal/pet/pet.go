@@ -57,6 +57,9 @@ type Pet struct {
 	Born     time.Time `json:"born"`
 	Updated  time.Time `json:"updated"`
 	NapUntil time.Time `json:"nap_until,omitzero"`
+	// A demo nap follows a curve from where it started (napCurve).
+	NapFrom       time.Time `json:"nap_from,omitzero"`
+	NapFromEnergy float64   `json:"nap_from_energy,omitempty"`
 	// NightWakeUntil: woken at night by a hard press, awake until then (needs stay paused).
 	NightWakeUntil time.Time `json:"night_wake_until,omitzero"`
 
@@ -133,11 +136,36 @@ func (p *Pet) Advance(now time.Time) {
 		}
 		t = t.Add(step)
 	}
+	if p.Settings.Demo && !p.NapFrom.IsZero() { // a demo nap: quick at first, then up to 75%
+		end := now
+		if !p.NapUntil.IsZero() && p.NapUntil.Before(end) {
+			end = p.NapUntil
+		}
+		p.Stats.Energy = max(p.Stats.Energy, napCurve(p.NapFromEnergy, end.Sub(p.NapFrom)))
+	}
 	p.clamp()
 	p.Updated = now
 	if !p.NapUntil.IsZero() && !now.Before(p.NapUntil) {
-		p.NapUntil = time.Time{}
+		p.NapUntil, p.NapFrom = time.Time{}, time.Time{}
 	}
+}
+
+// Demo nap: +20% in the first 5 s (to see it work), then up to 75% at the end (1 minute).
+const (
+	demoNapQuick     = 5 * time.Second
+	demoNapQuickGain = 20
+	demoNapTarget    = 75
+)
+
+// napCurve is the energy after a demo nap of length d that started at from.
+func napCurve(from float64, d time.Duration) float64 {
+	quick := from + demoNapQuickGain
+	if d <= demoNapQuick {
+		return from + demoNapQuickGain*d.Seconds()/demoNapQuick.Seconds()
+	}
+	target := max(float64(demoNapTarget), quick)
+	rest := (DemoNapLength - demoNapQuick).Seconds()
+	return quick + (target-quick)*min(1, (d-demoNapQuick).Seconds()/rest)
 }
 
 func (p *Pet) clamp() {
@@ -411,7 +439,7 @@ func (p *Pet) FinishGame(now time.Time, hits int) Reaction {
 // in demo mode.
 const (
 	NapLength     = 15 * time.Minute
-	DemoNapLength = 2 * time.Minute
+	DemoNapLength = time.Minute
 )
 
 // Nap puts the pet to sleep for NapLength during the day.
@@ -428,6 +456,7 @@ func (p *Pet) Nap(now time.Time) Reaction {
 	length := NapLength
 	if p.Settings.Demo {
 		length = DemoNapLength
+		p.NapFrom, p.NapFromEnergy = now, p.Stats.Energy
 	}
 	p.NapUntil = now.Add(length)
 	p.log(now, "nap", "")
@@ -440,7 +469,7 @@ func (p *Pet) Wake(now time.Time) Reaction {
 	if !p.Napping(now) {
 		return Reaction{Kind: KindWake}
 	}
-	p.NapUntil = time.Time{}
+	p.NapUntil, p.NapFrom = time.Time{}, time.Time{}
 	return Reaction{Kind: KindWake, Changed: true}
 }
 

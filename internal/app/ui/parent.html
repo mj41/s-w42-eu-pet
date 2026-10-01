@@ -437,6 +437,19 @@ $("reset").onclick = async () => { if (confirm(t("resetConfirm"))) { await api("
 
 texts();
 load();
+// Live needs: the same event stream as the kid's page (every 2 s and on changes).
+let events = null;
+function liveState() {
+  if (events || !data?.unlocked) return;
+  events = new EventSource("/api/events");
+  events.addEventListener("state", (e) => {
+    if (!data?.unlocked) return;
+    data.state = JSON.parse(e.data);
+    renderToday(data);
+  });
+}
+setInterval(liveState, 1000);
+
 setInterval(async () => { // keep "today" and the log fresh while the page is open
   if (!data?.unlocked) return;
   const { status, out } = await api("/api/parent");

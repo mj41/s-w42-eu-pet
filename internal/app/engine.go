@@ -920,3 +920,34 @@ func (a *App) demoCheck(r *robot, now time.Time) bool {
 	a.publishState(r)
 	return true
 }
+
+// Pulse (every 2 s) keeps open pages live (the bars move, e.g. during a nap) and
+// wakes a pet whose nap just ended, without waiting for the Tick.
+func (a *App) Pulse() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	now := a.now()
+	for _, r := range a.robots {
+		p := r.pet
+		p.Advance(now)
+		if r.conn != nil && r.shownMood == pet.Napping && !p.Napping(now) && now.After(r.busyUntil) &&
+			p.Phase(now) != pet.Night {
+			re := pet.Reaction{Kind: pet.KindWake, Changed: true}
+			a.react(r, re, now)
+			a.publishReaction(r, re)
+		}
+		if a.watched(r.id) {
+			a.publishState(r)
+		}
+	}
+}
+
+// watched: a page paired with the robot is open (its event stream).
+func (a *App) watched(robotID string) bool {
+	for sub := range a.subs {
+		if s := a.sessions[sub.sid]; s != nil && slices.Contains(s.Robots, robotID) {
+			return true
+		}
+	}
+	return false
+}

@@ -291,16 +291,25 @@ func TestDemoReset(t *testing.T) {
 func TestDemoNap(t *testing.T) {
 	s := DefaultSettings()
 	s.Demo = true
-	p := New(at(0, 13, 0), s)
+	t0 := at(0, 13, 0)
+	p := New(t0, s)
 	p.Stats = Stats{Food: 50, Fun: 50, Energy: 10}
-	if r := p.Nap(at(0, 13, 0)); r.Kind != KindNap || !p.NapUntil.Equal(at(0, 13, 2)) {
+	if r := p.Nap(t0); r.Kind != KindNap || !p.NapUntil.Equal(t0.Add(time.Minute)) {
 		t.Fatalf("demo nap: %+v until %v", r, p.NapUntil)
 	}
-	if reset := p.DemoReset(at(0, 13, 1)); reset != nil || p.Stats.Energy < 45 {
-		t.Fatalf("during the nap: reset %v, energy %.0f", reset, p.Stats.Energy)
+	for _, c := range []struct {
+		after  time.Duration
+		energy float64
+	}{{5 * time.Second, 30}, {time.Minute, 75}} {
+		p.Advance(t0.Add(c.after))
+		if math.Abs(p.Stats.Energy-c.energy) > 1 {
+			t.Fatalf("after %v: energy %.1f, want about %.0f", c.after, p.Stats.Energy, c.energy)
+		}
 	}
-	p.Advance(at(0, 13, 2))
-	if p.Stats.Energy < 89 {
-		t.Fatalf("after a 2 minute demo nap: energy %.0f", p.Stats.Energy)
+	if p.Napping(t0.Add(time.Minute)) {
+		t.Fatal("a demo nap ends by itself after a minute")
+	}
+	if reset := p.DemoReset(t0.Add(30 * time.Second)); reset != nil {
+		t.Fatalf("75%% is below the demo reset: %v", reset)
 	}
 }

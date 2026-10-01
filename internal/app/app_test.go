@@ -966,3 +966,23 @@ func TestOldPetFilesAreDeleted(t *testing.T) {
 		t.Fatalf("delete: %v", del)
 	}
 }
+
+func TestPulseKeepsPagesLive(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	res, err := kid.c.Get(e.srv.URL + "/api/events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	buf := make([]byte, 4096)
+	res.Body.Read(buf) // the first state
+	e.clock.set(e.clock.now().Add(30 * time.Minute))
+	e.app.Pulse()
+	n, _ := res.Body.Read(buf)
+	if !strings.Contains(string(buf[:n]), "event: state") {
+		t.Fatalf("no state from the pulse: %q", buf[:n])
+	}
+}

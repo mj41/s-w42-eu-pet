@@ -389,6 +389,8 @@ func (a *App) Run(ctx context.Context) {
 	go a.warmVoice(ctx)
 	tick := time.NewTicker(15 * time.Second)
 	defer tick.Stop()
+	pulse := time.NewTicker(2 * time.Second)
+	defer pulse.Stop()
 	save := time.NewTicker(time.Minute)
 	defer save.Stop()
 	for {
@@ -397,6 +399,8 @@ func (a *App) Run(ctx context.Context) {
 			return
 		case <-tick.C:
 			a.Tick()
+		case <-pulse.C:
+			a.Pulse()
 		case <-save.C:
 			if err := a.Save(); err != nil {
 				a.log.Warn("state not saved", "err", err)
