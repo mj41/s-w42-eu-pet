@@ -1085,3 +1085,77 @@ func TestParentDeviceStaysUnlocked(t *testing.T) {
 		t.Fatal("unmarked device still unlocked")
 	}
 }
+
+func TestSchoolHoursRest(t *testing.T) {
+	e := newEnv(t, "") // Wednesday 10:00
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	e.clock.set(time.Date(2026, 9, 30, 7, 30, 0, 0, prague)) // before school
+	e.app.Tick()
+	e.robotState("robot-1", func(rb *robot) {
+		rb.pet.Settings.School = true
+		rb.pet.Stats.Food = 40
+	})
+	e.clock.set(time.Date(2026, 9, 30, 8, 0, 30, 0, prague))
+	e.app.Tick()
+	if s := r.command("screensaver"); s["on"] != true {
+		t.Fatalf("school start: %v", s)
+	}
+
+	// Food at school: not eaten, only the line.
+	_, out := kid.post("/api/action", map[string]any{"action": "feed", "food": "apple"})
+	if re := out["reaction"].(map[string]any); re["kind"] != "school" {
+		t.Fatalf("feeding at school: %v", re)
+	}
+	r.next("the school line", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		return body.Command == "say" && body.Args["text"] == asciiOnly(robotTexts["cs"]["school"][0])
+	})
+	e.robotState("robot-1", func(rb *robot) {
+		if rb.pet.Stats.Food != 40 {
+			t.Fatalf("food changed at school: %.1f", rb.pet.Stats.Food)
+		}
+		if rb.screenOff {
+			t.Fatal("the screen stayed dark for the line")
+		}
+	})
+
+	// The line said, the screen goes dark again.
+	e.clock.set(e.clock.now().Add(schoolLine + time.Second))
+	e.app.Pulse()
+	if s := r.command("screensaver"); s["on"] != true {
+		t.Fatalf("after the line: %v", s)
+	}
+
+	// After school the face is back.
+	e.clock.set(time.Date(2026, 9, 30, 15, 0, 30, 0, prague))
+	e.app.Tick()
+	if s := r.command("screensaver"); s["on"] != false {
+		t.Fatalf("after school: %v", s)
+	}
+}
+
+func TestLongPressAsksForGentleness(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	r.event("screen_long_press", map[string]any{"x": 160, "y": 120})
+	r.next("the gentle line", func(m robotMsg) bool {
+		var body wire.RobotCommandBody
+		m.frame.Decode(&body)
+		for _, v := range robotTexts["cs"]["long_press"] {
+			if body.Command == "say" && body.Args["text"] == asciiOnly(v) {
+				return true
+			}
+		}
+		return false
+	})
+	e.robotState("robot-1", func(rb *robot) {
+		if rb.game != nil || rb.menu != "" {
+			t.Fatalf("a long press started a game or menu: game %v, menu %q", rb.game != nil, rb.menu)
+		}
+	})
+}

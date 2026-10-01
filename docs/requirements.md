@@ -58,6 +58,11 @@ there, instead of flipping the behaviour back and forth.
   wakes the pet quietly for a few minutes (parent setting, 5; 0 = never), then
   it falls asleep again with the lullaby.
 - **D6** In the morning it lights the screen, greets and plays a tune.
+- **D7** School hours (parent setting, weekdays): the pet rests. The screen
+  goes off and the LEDs too; whatever the kid does (head, cards, screen,
+  shaking, the kid page) gets only "Během školy já odpočívám." (the screen
+  lights for the line, then goes dark again). Nothing is eaten or played. After
+  school the face comes back. In holidays the parent turns school off.
 
 ## On the robot
 
@@ -93,8 +98,9 @@ there, instead of flipping the behaviour back and forth.
 - **M1** By day a tap opens the menu (robots without sprites: the needs
   picture). A tap while a picture covers the face returns to the face. Asleep,
   a tap is a dream (T2), it does not wake the pet.
-- **M2** A long press does what a tap does (opens the menu, closes an open one).
-  It must not start a game.
+- **M2** A long press asks for gentleness: "Jemně a krátce, prosím. Můj
+  obličej je citlivý." (or "Moje obrazovka je citlivá."). It closes an open
+  menu, and never starts a game or opens a menu.
 - **M3** Menus are still pictures (sprites) the robot reports taps on:
   - main: food, play, nap, needs (a 2×2 grid);
   - food: the six foods;
@@ -129,7 +135,8 @@ there, instead of flipping the behaviour back and forth.
   (`pet/`, about 1.9 MB), uploaded when missing or changed (CRC-32), stale ones deleted.
 - **R6** The firmware lets the head servos go at rest and the head sinks. By
   day the pet lifts it back to where it last put it (rest pitch 25°, when
-  8° lower, at most every 20 s). At night and during naps it may droop.
+  8° lower, at most every 20 s); a head turned more than 30° goes back to the
+  middle. At night and during naps it may droop.
 - **R7** By day the screen stays on with the pet's face; the robot must not
   look asleep while the pet is awake (the robot blanks its screen after 60 s
   without commands, so the pet sends its face again every 30 s when idle). A
@@ -152,7 +159,8 @@ there, instead of flipping the behaviour back and forth.
 
 ## Naps
 
-- **S1** A nap lasts 15 minutes unless woken. The pet refuses a nap with energy ≥ 80.
+- **S1** A nap lasts 15 minutes unless woken. Napping is fine anywhere from 10
+  to 90% energy; at 90% or more the pet is not tired (the same in demo mode).
 - **S2** The kid page has a nap button; the robot's menu has a nap tile.
 - **S3** The whole palm on the head wakes a napping pet; a tap or one finger does not (dream).
 - **S4** A nap that ends wakes the pet by itself (face, line), once.
@@ -162,7 +170,8 @@ there, instead of flipping the behaviour back and forth.
 For showing the pet: something always happens within a minute.
 
 - **X1** A need reaching 90% drops back to 10%, with a reset picture (arrows,
-  the need's icon, its bar at 10%) and a line.
+  the need's icon, its bar at 10%) and a line that names the demo mode
+  explicitly ("Ukázkový režim: a zase mám hlad!"), no "magic".
 - **X2** A nap is quick: +20% energy within 5 s, then towards 75% at 1 minute,
   then the pet wakes by itself (auto-wake at about 75%).
 - **X3** The next nap passes 90% within seconds; the demo reset then ends the
@@ -213,18 +222,14 @@ For showing the pet: something always happens within a minute.
 
 ## Conflicts and open decisions
 
-- **C1 Nap refused at ≥ 80% vs. the demo cycle (S1, X2, X3).** Dream cards can
-  leave energy between 80 and 90: too high for a nap, too low for the reset, and
-  it drops only ~7%/hour, so the demo stalls (seen on 2026-10-01 at 86.8%).
-  Proposal: in demo mode a nap is never refused.
-- **C2 The screen stays on all day (R7) vs. school hours.** Nobody watches the
-  pet at school. Proposal: keep it on (the robot is plugged in), or a parent
-  setting "screen off during school".
+- **C1 Nap refused at ≥ 80% vs. the demo cycle (S1, X2, X3).** Decided
+  2026-10-01: naps are allowed from 10 to 90% in every mode (S1).
+- **C2 The screen during school hours (R7).** Decided 2026-10-01: off; the pet
+  rests and says only that it rests (D7).
 - **C3 Faster card reads (T3).** Polling four times a second with a wake on
   head touch read no cards at all (firmware be75bc2, reverted). Twice a second
   is fast enough for now; revisit only if cards feel slow.
 - **C4 Game dodging (G2).** Proximity mostly stayed at 0–30 in games (the rise
   threshold is 60), and the shadow rule fired 5 times in one game. Proposal:
   rise 20, a stricter shadow rule.
-- **C5 Long press (M2)** does the same as a tap. It could get its own meaning
-  later (e.g. straight to food), but must not start a game.
+- **C5 Long press (M2).** Decided 2026-10-01: a line asking for gentleness.

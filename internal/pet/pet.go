@@ -25,7 +25,7 @@ type Phase string
 const (
 	Awake  Phase = "awake"
 	Night  Phase = "night"
-	School Phase = "school" // needs paused; the kid can still play (holidays)
+	School Phase = "school" // needs paused; the pet rests and only says so (no school setting in holidays)
 )
 
 // Mood is what the pet shows, from the phase and its needs.
@@ -302,6 +302,7 @@ const (
 	KindAsleep    = "asleep"     // it is night: only a sleepy answer (a dream on the robot)
 	KindNightWake = "night_wake" // woken at night by a hard press
 	KindDemoReset = "demo_reset" // demo mode set a full need back to 10%
+	KindSchool    = "school"     // school hours: the pet rests and says only that
 	KindPicky     = "picky"      // the same food again: "Nemáš něco jiného?"
 	KindEatAgain  = "eat_again"  // the same food a third time: eaten after all, for 80%
 	KindDreamFood = "dream_food" // a food card while asleep: a dream of it (Changed: a sleep boost)
@@ -314,8 +315,11 @@ const (
 // sleepily, a nap ends.
 func (p *Pet) awake(now time.Time) (Reaction, bool) {
 	p.Advance(now)
-	if p.Phase(now) == Night {
+	switch p.Phase(now) {
+	case Night:
 		return Reaction{Kind: KindAsleep}, false
+	case School:
+		return Reaction{Kind: KindSchool}, false
 	}
 	if p.Napping(now) {
 		p.NapUntil = time.Time{}
@@ -480,9 +484,11 @@ func (p *Pet) Nap(now time.Time) Reaction {
 	switch {
 	case p.Phase(now) == Night:
 		return Reaction{Kind: KindAsleep}
+	case p.Phase(now) == School:
+		return Reaction{Kind: KindSchool}
 	case p.Napping(now):
 		return Reaction{Kind: KindNap}
-	case p.Stats.Energy >= 80:
+	case p.Stats.Energy >= DemoHigh: // napping is fine anywhere from 10 to 90
 		return Reaction{Kind: KindNotTired}
 	}
 	length := NapLength

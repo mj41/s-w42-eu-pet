@@ -10,7 +10,7 @@ import (
 
 // The keys the code says (text(lang, key, ...)).
 var lineKeys = []string{"eat", "full", "cuddle", "play", "too_tired", "limit", "nap", "not_tired", "wake", "shake",
-	"hello", "hungry", "bored", "tired", "bedtime", "goodnight", "morning", "game", "night_wake", "game_over", "game_over_0",
+	"hello", "hungry", "bored", "tired", "bedtime", "goodnight", "morning", "game", "night_wake", "game_over", "game_over_0", "school", "long_press",
 	"tickle", "long_cuddle", "scratch", "game_over_all", "demo_food", "demo_fun", "demo_energy", "picky", "eat_again", "dream_food"}
 
 func TestLinesFilesAreComplete(t *testing.T) {

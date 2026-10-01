@@ -78,7 +78,7 @@ func (a *App) express(r *robot, now time.Time) {
 		c.command("face", nil)
 		r.pictureOn = false
 	}
-	if r.screenOff && mood != pet.Sleeping {
+	if r.screenOff && mood != pet.Sleeping && r.pet.Phase(now) != pet.School {
 		c.command("screensaver", map[string]any{"on": false})
 		r.screenOff = false
 	}
@@ -193,6 +193,9 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 	p := r.pet
 	lang := p.Settings.Lang
 	switch re.Kind {
+	case pet.KindSchool:
+		a.schoolRest(r, now)
+		return
 	case pet.KindAsleep: // a touch while asleep: mostly a sleepy "Zzz", sometimes a dream
 		if rand.Float64() < a.timing.dreamShare {
 			a.dream(r, now)
@@ -344,19 +347,18 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 	}
 	var re pet.Reaction
 	switch ev.Name {
-	case "screen_long_press": // hold a finger on the screen: the menu (or a game without one)
+	case "screen_long_press": // pressing the screen long: the screen is its face, "gently, please"
 		switch {
 		case asleep:
 			re = pet.Reaction{Kind: pet.KindAsleep}
-		case r.menu != "":
-			a.closeMenu(r)
-			a.express(r, now)
-			return
-		case r.canMenu():
-			a.openMenu(r, now, "main")
-			return
+		case p.Phase(now) == pet.School:
+			re = pet.Reaction{Kind: pet.KindSchool}
 		default:
-			re = a.playAction(r, now)
+			if r.menu != "" {
+				a.closeMenu(r)
+			}
+			a.gentle(r, now)
+			return
 		}
 	case "head_press":
 		zones := [3]float64{}
@@ -417,6 +419,8 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		switch {
 		case night:
 			re = pet.Reaction{Kind: pet.KindAsleep}
+		case p.Phase(now) == pet.School:
+			re = pet.Reaction{Kind: pet.KindSchool}
 		case p.Napping(now): // a tap does not wake a napping pet: a dream (the palm on the head does)
 			re = pet.Reaction{Kind: pet.KindAsleep}
 		case r.pictureOn: // tap again: back to the face
@@ -498,7 +502,7 @@ func trimTags(tags map[string]time.Time) {
 // hello greets someone who came close, now and then, by day.
 func (a *App) hello(r *robot, now time.Time) {
 	p := r.pet
-	if r.conn == nil || p.Settings.PhaseAt(now) == pet.Night || p.Napping(now) ||
+	if r.conn == nil || p.Settings.PhaseAt(now) != pet.Awake || p.Napping(now) ||
 		now.Sub(r.lastHello) < helloEvery || now.Before(r.busyUntil) {
 		return
 	}
@@ -524,6 +528,9 @@ func (a *App) robotOnline(r *robot) {
 	if r.phase == pet.Night && a.viewers(r.id) > 0 { // not while the QR code waits for a scan
 		a.dimForNight(r, now)
 	}
+	if r.phase == pet.School && a.viewers(r.id) > 0 {
+		a.schoolScreen(r)
+	}
 }
 
 // Tick advances every pet and plays the day: morning, bedtime, moods, nags.
@@ -545,6 +552,11 @@ func (a *App) Tick() {
 			continue
 		}
 		switch {
+		case prev != "" && prev != pet.School && phase == pet.School:
+			a.schoolStart(r, now)
+		case prev == pet.School && phase != pet.School:
+			a.express(r, now) // back from school: the face again
+		case phase == pet.School: // resting; the watchdog keeps the screen dark
 		case prev != "" && prev != pet.Night && phase == pet.Night:
 			a.goodnight(r, now)
 		case prev == pet.Night && phase != pet.Night:
@@ -860,6 +872,7 @@ func (a *App) telemetry(id string, m map[string]float64) {
 const (
 	headRestPitch = 25               // where the head rests by day, when the pet set nothing else
 	headSag       = 8                // degrees below that count as sunk
+	headYawDrift  = 30               // turned further than this (degrees): back to the middle
 	headLiftEvery = 20 * time.Second // at most this often (a hand may hold it down)
 )
 
@@ -870,12 +883,16 @@ func (a *App) liftHead(r *robot, now time.Time, yaw, pitch float64) {
 	}
 	p := r.pet
 	if r.conn == nil || r.game != nil || r.menu != "" || now.Before(r.busyUntil) || p.Phase(now) == pet.Night ||
-		p.Napping(now) || pitch >= want-headSag || now.Sub(r.lastLift) < headLiftEvery {
+		p.Napping(now) || (pitch >= want-headSag && math.Abs(yaw) <= headYawDrift) || now.Sub(r.lastLift) < headLiftEvery {
 		return // asleep the head may droop: that is the sleeping pose
 	}
 	r.lastLift = now
-	r.conn.command("look", map[string]any{"yaw": math.Round(yaw), "pitch": want})
-	a.log.Debug("head lifted", "robot", r.id, "from", pitch, "to", want)
+	toYaw := math.Round(yaw)
+	if math.Abs(yaw) > headYawDrift {
+		toYaw = 0
+	}
+	r.conn.command("look", map[string]any{"yaw": toYaw, "pitch": want})
+	a.log.Info("head back to its rest", "robot", r.id, "pitch", pitch, "yaw", yaw, "to_pitch", want, "to_yaw", toYaw)
 }
 
 // rememberHead notes where the head is before the pet moves it (a game, a dance).
@@ -974,7 +991,7 @@ func (a *App) Pulse() {
 			re := pet.Reaction{Kind: pet.KindWake, Changed: true}
 			a.react(r, re, now)
 			a.publishReaction(r, re)
-		} else if r.conn != nil && now.After(r.busyUntil) && r.game == nil && r.menu == "" && p.Phase(now) != pet.Night {
+		} else if r.conn != nil && now.After(r.busyUntil) && r.game == nil && r.menu == "" && p.Phase(now) == pet.Awake {
 			a.demoCheck(r, now) // demo mode: a full need drops back within seconds
 		}
 		a.watchdog(r, now)
@@ -992,4 +1009,58 @@ func (a *App) watched(robotID string) bool {
 		}
 	}
 	return false
+}
+
+// School hours: the pet rests with the screen off, and whatever the kid does, it only
+// says so (the screen lights for the line, then goes dark again).
+const (
+	schoolLine  = 6 * time.Second // the screen stays lit this long for the line
+	schoolQuiet = 4 * time.Second // touches this soon after the line get no new one
+)
+
+func (a *App) schoolStart(r *robot, now time.Time) {
+	a.stopGame(r)
+	if r.menu != "" {
+		a.closeMenu(r)
+	}
+	r.gen++
+	r.busyUntil = time.Time{}
+	a.schoolScreen(r)
+}
+
+// schoolScreen: no pictures, LEDs off, the screen off.
+func (a *App) schoolScreen(r *robot) {
+	a.clearSprites(r)
+	if r.pictureOn {
+		r.conn.command("face", nil)
+		r.pictureOn = false
+	}
+	a.emotion(r, "sleepy")
+	r.conn.command("leds", map[string]any{"left": "#000000", "right": "#000000"})
+	r.conn.command("screensaver", map[string]any{"on": true})
+	r.screenOff = true
+	r.shownMood = r.pet.Mood(a.now())
+}
+
+func (a *App) schoolRest(r *robot, now time.Time) {
+	if now.Sub(r.lastSchool) < schoolQuiet {
+		return
+	}
+	r.lastSchool = now
+	r.gen++
+	r.busyUntil = now.Add(schoolLine)
+	if r.screenOff {
+		r.conn.command("screensaver", map[string]any{"on": false})
+		r.screenOff = false
+	}
+	a.emotion(r, "sleepy")
+	a.say(r, "school", "", 4)
+	a.later(r, schoolLine, func() { a.schoolScreen(r) })
+}
+
+// gentle: a long press on the screen, which is the pet's face.
+func (a *App) gentle(r *robot, now time.Time) {
+	a.begin(r, now, reactionTime)
+	a.emotion(r, "doubt")
+	a.say(r, "long_press", "", 4)
 }

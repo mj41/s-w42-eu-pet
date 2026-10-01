@@ -376,3 +376,11 @@ func TestDreamFood(t *testing.T) {
 		t.Fatalf("dreaming of food does not feed: %.0f", p.Stats.Food)
 	}
 }
+
+func TestNapUpTo90(t *testing.T) {
+	p := New(at(0, 13, 0), DefaultSettings())
+	p.Stats = Stats{Food: 80, Fun: 80, Energy: 85}
+	if r := p.Nap(at(0, 13, 0)); r.Kind != KindNap {
+		t.Fatalf("energy 85 should nap: %+v", r)
+	}
+}

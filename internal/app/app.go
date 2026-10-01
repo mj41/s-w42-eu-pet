@@ -128,6 +128,7 @@ type robot struct {
 	sentSeen      uint64             // the connection's sent count the watchdog saw last
 	droppedSeen   uint64
 	quietSince    time.Time // nothing was sent to the robot since then
+	lastSchool    time.Time // the last "I rest during school" (engine.go)
 }
 
 func New(cfg Config) *App {

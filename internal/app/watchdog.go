@@ -48,8 +48,14 @@ func (a *App) watchdog(r *robot, now time.Time) {
 	case r.pictureOn && r.game == nil && r.menu == "" && now.After(r.busyUntil.Add(staleWait)):
 		fixed("picture left on")
 	default:
+		if r.pet.Phase(now) == pet.School { // resting: the screen stays dark
+			if !r.screenOff && idle && !time.Now().Before(r.speakingUntil) {
+				a.schoolScreen(r)
+			}
+			return
+		}
 		// Keep-alive: by day an idle pet shows its face again before the robot blanks it.
-		if !idle || r.game != nil || r.menu != "" || r.screenManual || r.pet.Phase(now) == pet.Night ||
+		if !idle || r.game != nil || r.menu != "" || r.screenManual || r.pet.Phase(now) != pet.Awake ||
 			time.Now().Before(r.speakingUntil) || now.Sub(r.quietSince) < keepAlive {
 			return
 		}

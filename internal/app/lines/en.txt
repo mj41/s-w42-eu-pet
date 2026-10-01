@@ -147,16 +147,23 @@ Next time!
 Let's try again?
 
 [demo_food]
-Demo: and I'm hungry again!
-Magic! My tummy is empty again.
+Demo mode: and I'm hungry again!
+Demo mode: my tummy is empty again.
 
 [demo_fun]
-Demo: and I'm bored again!
-Magic! I want to play again.
+Demo mode: and I'm bored again!
+Demo mode: I want to play again.
 
 [demo_energy]
-Demo: and I'm tired again!
-Magic! My batteries are low again.
+Demo mode: and I'm tired again!
+Demo mode: I'm sleepy again.
+
+[school]
+During school I rest.
+
+[long_press]
+Gently and briefly, please. My face is sensitive.
+Gently and briefly, please. My screen is sensitive.
 
 [names]
 apple = apple

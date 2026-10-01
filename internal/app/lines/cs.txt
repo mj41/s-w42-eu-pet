@@ -176,16 +176,25 @@ Zkusíme to znovu?
 
 # Ukázkový režim (demo): potřeba byla na 90 %, spadla zpátky na 10 %.
 [demo_food]
-Ukázka: a zase mám hlad!
-Kouzlo! Bříško je zase prázdné.
+Ukázkový režim: a zase mám hlad!
+Ukázkový režim: bříško je zase prázdné.
 
 [demo_fun]
-Ukázka: a zase se nudím!
-Kouzlo! Chce se mi zase hrát.
+Ukázkový režim: a zase se nudím!
+Ukázkový režim: chce se mi zase hrát.
 
 [demo_energy]
-Ukázka: a zase jsem unavený!
-Kouzlo! Baterky jsou zase dole.
+Ukázkový režim: a zase jsem unavený!
+Ukázkový režim: zase se mi chce spát.
+
+# Během školy (rodič nastavil školu): mazlíček odpočívá, na cokoli řekne jen tohle.
+[school]
+Během školy já odpočívám.
+
+# Dlouhé zmáčknutí obrazovky (to je jeho obličej).
+[long_press]
+Jemně a krátce, prosím. Můj obličej je citlivý.
+Jemně a krátce, prosím. Moje obrazovka je citlivá.
 
 # Jména jídel (pro [eat]): klíč = jméno.
 [names]
