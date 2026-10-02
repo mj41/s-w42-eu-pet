@@ -1,6 +1,6 @@
 // Command stackchan-pet is a Tamagotchi for Stack-chan robots in Embody Mode.
 //
-// Robots connect to ws://<host>/api/workers/connect with a bearer token (by
+// Robots connect to ws://<host>/api/devices/connect with a bearer token (by
 // default the same token file as stackchan-server, so that server can offer
 // this one to its robots). Kids open http://<host>/ after scanning the robot's
 // QR code; parents open /parent and set a PIN.
