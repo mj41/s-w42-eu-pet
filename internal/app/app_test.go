@@ -77,7 +77,7 @@ func (e *env) connectRobotWith(id string, commands []string) *fakeRobot {
 	e.t.Helper()
 	h := http.Header{}
 	h.Set("Authorization", "Bearer "+testToken)
-	h.Set(wire.WorkerIDHeader, id)
+	h.Set(wire.DeviceIDHeader, id)
 	ws, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(e.srv.URL, "http")+wire.ConnectPath, h)
 	if err != nil {
 		e.t.Fatalf("robot dial: %v", err)
