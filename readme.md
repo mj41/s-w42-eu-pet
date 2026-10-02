@@ -163,3 +163,7 @@ gofmt -l . && go vet ./... && go test -race ./...
 
 `go.mod` points `github.com/mj41/stackchan-server` at `../stackchan-server`
 (a `replace`) until that module is published with the public `wire` package.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
