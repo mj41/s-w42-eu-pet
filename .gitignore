@@ -1,2 +1,4 @@
 /stackchan-pet
 *.tmp
+go.work
+go.work.sum
