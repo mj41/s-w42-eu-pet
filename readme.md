@@ -161,8 +161,8 @@ again.
 gofmt -l . && go vet ./... && go test -race ./...
 ```
 
-`go.mod` points `github.com/mj41/stackchan-server` at `../stackchan-server`
-(a `replace`) until that module is published with the public `wire` package.
+The protocol comes from `github.com/mj41/stackchan-server/wire`. To work on both at
+once, put an uncommitted `go.work` next to them (`go work init . ../stackchan-server`).
 
 ## License
 
