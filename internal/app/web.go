@@ -46,7 +46,7 @@ func (a *App) page(name string) http.HandlerFunc {
 }
 
 // uiFiles serves a picture folder: emoji (Fluent Emoji Flat, MIT; see ui/emoji/LICENSE)
-// or chan (the tiny Stack-chan faces; see ui/chan/NOTICE).
+// or chan (the tiny Stackchan faces; see ui/chan/NOTICE).
 func (a *App) uiFiles(dir string) http.Handler {
 	if a.cfg.UIDir != "" {
 		return http.FileServer(http.Dir(filepath.Join(a.cfg.UIDir, dir)))

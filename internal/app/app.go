@@ -173,7 +173,6 @@ func (a *App) now() time.Time { return a.cfg.Now().In(a.cfg.Location) }
 func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+wire.ConnectPath, a.handleRobotConnect)
-	mux.HandleFunc("GET "+wire.LegacyConnectPath, a.handleRobotConnect) // firmware before 2026-10-02
 	mux.HandleFunc("GET /{$}", a.page("index.html"))
 	mux.HandleFunc("GET /parent", a.page("parent.html"))
 	mux.HandleFunc("GET /pair", a.handlePair)

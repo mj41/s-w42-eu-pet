@@ -1,4 +1,4 @@
-// Command stackchan-pet is a Tamagotchi for Stack-chan robots in Embody Mode.
+// Command stackchan-pet is a Tamagotchi for Stackchan robots in Embody Mode.
 //
 // Robots connect to ws://<host>/api/devices/connect with a bearer token (by
 // default the same token file as stackchan-server, so that server can offer

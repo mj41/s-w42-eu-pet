@@ -232,7 +232,7 @@ For showing the pet: something always happens within a minute.
 ## Kid's page
 
 - **K1** Opened by scanning the robot's QR code (pairs the browser with the robot).
-- **K2** The tiny colourful Stack-chan face (mood), three need bars, four big
+- **K2** The tiny colourful Stackchan face (mood), three need bars, four big
   picture buttons: food, cuddle, play, nap. Robot actions show on the page too.
   The color game's podium (G8) when there is one, not during games or at night.
 - **K3** No settings, no text the kid must read.

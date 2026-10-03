@@ -1,6 +1,6 @@
 # stackchan-pet
 
-A Tamagotchi for [Stack-chan](https://github.com/m5stack/StackChan) robots
+A Tamagotchi for [Stackchan](https://github.com/m5stack/StackChan) robots
 running Embody Mode. The pet lives on this server; the robot is its body.
 Kids play with the robot itself and with a picture page on a phone or tablet.
 Parents set the daily routine behind a PIN.
@@ -17,6 +17,13 @@ first platform for a home, as a separate app a home includes when its family wan
 
 All requirements, with ids and the open decisions, are in
 [docs/requirements.md](docs/requirements.md); this readme is the overview.
+
+> **A proof of concept, vibe coded.** Written with AI agents and tested on real hardware at
+> home, but neither the code nor its security has been reviewed by humans. Use it on your
+> own network, and don't trust it with anything private yet.
+>
+> **Want more?** Ask in the [issues](https://github.com/mj41/stackchan-pet/issues), and ideally [sponsor mj41](https://github.com/sponsors/mj41) on GitHub:
+> mj41 codes for attention food.
 
 ## Playing
 
@@ -145,8 +152,8 @@ falls back to espeak-ng. The speech is streamed to the robot at speaking pace.
 The robot's speech bubble font has no Czech letters: the bubble shows the
 lines without diacritics.
 
-The pet on the pages is a tiny Stack-chan (`internal/app/ui/chan/`, drawn for
-this project after the robot's own face). Stack-chan is developed and
+The pet on the pages is a tiny Stackchan (`internal/app/ui/chan/`, drawn for
+this project after the robot's own face). Stackchan is developed and
 published by meganetaaan, https://github.com/meganetaaan/stack-chan; the
 character is used under its
 [derivative work guideline](https://github.com/rt-net/stack-chan/blob/main/GUIDELINE.md),
