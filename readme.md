@@ -8,6 +8,12 @@ Parents set the daily routine behind a PIN.
 It is a separate server that the robot switches to from its QR screen
 (Next, then Connect). It speaks the Embody Mode protocol from
 [stackchan-server](https://github.com/mj41/stackchan-server) (`wire` package).
+The robot runs Embody Mode from the
+[StackChan firmware fork](https://github.com/mj41/StackChan/tree/embody-mj41); setting it up:
+[SETUP.md](https://github.com/mj41/StackChan/blob/embody-mj41/firmware/main/apps/app_embody_mode/SETUP.md).
+
+Part of [home-w42-eu](https://github.com/mj41/home-w42-eu), a local first, privacy
+first platform for a home, as a separate app a home includes when its family wants it.
 
 All requirements, with ids and the open decisions, are in
 [docs/requirements.md](docs/requirements.md); this readme is the overview.
@@ -108,8 +114,8 @@ go run ./cmd/stackchan-pet -tz Europe/Prague
 | `-tz` | this machine's | the family's time zone for the schedule |
 | `-ui-dir` | | development: serve the pages from disk (`internal/app/ui`) |
 
-The default token file is stackchan-server's, so that server can offer the pet
-to its robots:
+The default token file is [stackchan-server](https://github.com/mj41/stackchan-server)'s,
+so that server can offer the pet to its robots:
 
 ```sh
 stackchan-server -offer Pet=ws://192.168.1.10:8770,$HOME/.config/stackchan-server/robot-token
@@ -162,7 +168,16 @@ gofmt -l . && go vet ./... && go test -race ./...
 ```
 
 The protocol comes from `github.com/mj41/stackchan-server/wire`. To work on both at
-once, put an uncommitted `go.work` next to them (`go work init . ../stackchan-server`).
+once, clone it next to this repo and add an uncommitted `go.work`
+(`go work init . ../stackchan-server`).
+
+## Related projects
+
+- [StackChan fork, branch `embody-mj41`](https://github.com/mj41/StackChan/tree/embody-mj41): the robot's firmware, Embody Mode.
+- [stackchan-server](https://github.com/mj41/stackchan-server): the `wire` package, and the full dashboard, which offers the pet to its robots.
+- [sbot](https://github.com/mj41/sbot): another app server on the same protocol (a cockpit for the robot and a TPBot car).
+- [stackchan-mj](https://github.com/mj41/stackchan-mj): working notes, and `pet-bg.sh` to run the pet in the background on a LAN.
+- [home-w42-eu](https://github.com/mj41/home-w42-eu): the platform this is part of. All the repos: [The repos today](https://github.com/mj41/home-w42-eu#the-repos-today).
 
 ## License
 
