@@ -11,6 +11,16 @@ It is a separate server that the robot switches to from its QR screen
 The robot runs Embody Mode from the
 [StackChan firmware fork](https://github.com/mj41/StackChan/tree/embody-mj41); setting it up:
 [SETUP.md](https://github.com/mj41/StackChan/blob/embody-mj41/firmware/main/apps/app_embody_mode/SETUP.md).
+The public Embody Mode server is [chan.w42.eu](https://chan.w42.eu): sign in, add your
+robot and use its dashboard from anywhere; the pet itself runs on a server at home.
+
+| The robot's face, per mood | The kid's page |
+|---|---|
+| ![The pet's faces on the robot's screen: happy, yum, fine, yawning, asleep, hungry, bored](docs/img/faces.gif) | <img src="docs/img/kid-page.png" alt="The kid's page: the pet, its three needs and four big buttons" width="260"> |
+| ![All seven faces](docs/img/faces.jpg) | |
+
+The faces are [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) (MIT) made to fill the
+robot's 4:3 screen; a parent can switch back to the robot's own face.
 
 Part of [home-w42-eu](https://github.com/mj41/home-w42-eu), a local first, privacy
 first platform for a home, as a separate app a home includes when its family wants it.
