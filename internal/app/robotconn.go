@@ -90,13 +90,13 @@ func (c *robotConn) binary(kind byte, payload []byte) bool {
 
 func (a *App) handleRobotConnect(w http.ResponseWriter, r *http.Request) {
 	token, _ := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if !a.tokenOK(token) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
 	id := wire.DeviceID(r.Header)
 	if !robotIDPattern.MatchString(id) {
 		http.Error(w, "missing or invalid "+wire.DeviceIDHeader, http.StatusBadRequest)
+		return
+	}
+	if !a.robotOK(r.Context(), id, token) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 	ws, err := upgrader.Upgrade(w, r, nil)

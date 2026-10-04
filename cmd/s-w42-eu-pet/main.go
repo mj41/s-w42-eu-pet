@@ -2,7 +2,8 @@
 //
 // Robots connect to ws://<host>/api/devices/connect with a bearer token (by
 // default the same token file as s-w42-eu-raw, so that server can offer
-// this one to its robots). Kids open http://<host>/ after scanning the robot's
+// this one to its robots), or with a token of their own from a Stackchan
+// manager (-manager-url, s-w42-eu-manager), which this app checks with it. Kids open http://<host>/ after scanning the robot's
 // QR code; parents open /parent and set a PIN.
 package main
 
@@ -27,6 +28,7 @@ import (
 
 	"github.com/mj41/s-w42-eu-pet/internal/app"
 	"github.com/mj41/s-w42-eu-pet/internal/voice"
+	"github.com/mj41/s-w42-eu-raw/robotauth"
 )
 
 func main() {
@@ -43,6 +45,8 @@ func main() {
 		voiceDir  = flag.String("voice-dir", defaultCacheDir("voice"), "where the spoken lines are kept")
 		noVoice   = flag.Bool("no-voice", false, "the pet does not speak")
 		debugDir  = flag.String("debug-dir", defaultCacheDir("screens"), "where screen snapshots from the robot are saved (POST /api/debug/{id}/run)")
+		mgrURL    = flag.String("manager-url", "", "the Stackchan manager that set robots up with tokens for this app, e.g. https://sm.w42.eu (\"\" = none)")
+		mgrSecret = flag.String("manager-secret-file", "", "file with this app's secret at the manager")
 	)
 	flag.Parse()
 
@@ -76,8 +80,17 @@ func main() {
 	if !*noVoice && (*ffmpeg != "" || *espeak != "") {
 		synth = &voice.Synth{FFmpeg: *ffmpeg, Espeak: *espeak, CacheDir: *voiceDir}
 	}
+	var manager *robotauth.Client
+	if *mgrURL != "" {
+		b, err := os.ReadFile(*mgrSecret)
+		if err != nil || strings.TrimSpace(string(b)) == "" {
+			fail("manager secret file", fmt.Errorf("%s: %v", *mgrSecret, err))
+		}
+		manager = robotauth.New(*mgrURL, strings.TrimSpace(string(b)))
+	}
 	a := app.New(app.Config{
 		RobotToken: token,
+		Manager:    manager,
 		PublicURL:  strings.TrimRight(*publicURL, "/"),
 		StateFile:  *stateFile,
 		UIDir:      *uiDir,
@@ -99,7 +112,7 @@ func main() {
 		srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Info("s-w42-eu-pet listening", "listen", *listen, "public_url", *publicURL, "state_file", *stateFile, "tz", loc.String())
+	log.Info("s-w42-eu-pet listening", "listen", *listen, "public_url", *publicURL, "state_file", *stateFile, "tz", loc.String(), "manager", *mgrURL)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		fail("server", err)
 	}

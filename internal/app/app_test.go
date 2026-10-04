@@ -17,6 +17,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/mj41/s-w42-eu-pet/internal/robotpic"
+	"github.com/mj41/s-w42-eu-raw/robotauth"
 	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
@@ -226,11 +227,53 @@ func stats(t *testing.T, state map[string]any) map[string]any {
 
 func TestRobotNeedsToken(t *testing.T) {
 	e := newEnv(t, "")
-	req, _ := http.NewRequest("GET", e.srv.URL+wire.ConnectPath, nil)
-	req.Header.Set("Authorization", "Bearer nope")
-	res, err := http.DefaultClient.Do(req)
-	if err != nil || res.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("want 401, got %v %v", err, res.Status)
+	if code := e.dialRobot("robot-1", "nope"); code != http.StatusUnauthorized {
+		t.Fatalf("wrong token: %d, want 401", code)
+	}
+}
+
+// dialRobot opens a robot connection with this token: the HTTP status of the upgrade.
+func (e *env) dialRobot(id, token string) int {
+	e.t.Helper()
+	h := http.Header{}
+	h.Set("Authorization", "Bearer "+token)
+	h.Set(wire.DeviceIDHeader, id)
+	ws, res, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(e.srv.URL, "http")+wire.ConnectPath, h)
+	if err == nil {
+		ws.Close()
+	}
+	if res == nil {
+		e.t.Fatalf("robot dial: %v", err)
+	}
+	return res.StatusCode
+}
+
+// A robot set up by a Stackchan manager connects with its own token, which the manager confirms
+// for that robot only; the debug API still needs the shared token.
+func TestRobotSetUpByManager(t *testing.T) {
+	mgr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct{ Robot, Token string }
+		json.NewDecoder(r.Body).Decode(&req)
+		ok := r.Header.Get("Authorization") == "Bearer app-secret" && req.Robot == "robot-2" && req.Token == "own-token"
+		json.NewEncoder(w).Encode(map[string]any{"ok": ok, "owner": "someone", "cache_s": 60})
+	}))
+	defer mgr.Close()
+	e := newEnv(t, "")
+	e.app.cfg.Manager = robotauth.New(mgr.URL, "app-secret")
+
+	if code := e.dialRobot("robot-2", "own-token"); code != http.StatusSwitchingProtocols {
+		t.Errorf("its own token: %d, want 101", code)
+	}
+	if code := e.dialRobot("robot-3", "own-token"); code != http.StatusUnauthorized {
+		t.Errorf("another robot with that token: %d, want 401", code)
+	}
+	if code := e.dialRobot("robot-2", testToken); code != http.StatusSwitchingProtocols {
+		t.Errorf("the shared token: %d, want 101", code)
+	}
+	req, _ := http.NewRequest("POST", e.srv.URL+"/api/debug/robot-2/run", strings.NewReader("{}"))
+	req.Header.Set("Authorization", "Bearer own-token")
+	if res, err := http.DefaultClient.Do(req); err != nil || res.StatusCode != http.StatusUnauthorized {
+		t.Errorf("debug with a manager token: %v %v, want 401", err, res.Status)
 	}
 }
 

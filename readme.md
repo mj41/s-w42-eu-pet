@@ -11,8 +11,8 @@ It is a separate server that the robot switches to from its QR screen
 The robot runs Embody Mode from the
 [StackChan firmware fork](https://github.com/mj41/StackChan/tree/embody-mj41); setting it up:
 [SETUP.md](https://github.com/mj41/StackChan/blob/embody-mj41/firmware/main/apps/app_embody_mode/SETUP.md).
-The public Embody Mode server is [chan.w42.eu](https://chan.w42.eu): sign in, add your
-robot and use its dashboard from anywhere; the pet itself runs on a server at home.
+It runs at [pet.sa.w42.eu](https://pet.sa.w42.eu): set your robot up on
+[sm.w42.eu](https://sm.w42.eu) with the pet among its apps, or run the pet on a server at home.
 
 | The robot's face, per mood | The kid's page |
 |---|---|
@@ -117,6 +117,8 @@ go run ./cmd/s-w42-eu-pet -tz Europe/Prague
 | `-espeak` | `espeak-ng` from `PATH` | the fallback voice; `""` = none |
 | `-no-voice` | off | the pet does not speak |
 | `-debug-dir` | `~/.cache/stackchan-pet/screens` | screen snapshots from `POST /api/debug/{id}/run` |
+| `-manager-url` | | the Stackchan manager that set robots up with a token of their own for this app, e.g. `https://sm.w42.eu`; the pet checks those tokens with it |
+| `-manager-secret-file` | | this app's secret at the manager |
 | `-debug` | off | debug logging |
 | `-ui-dir` | | development: serve the pages from disk (`internal/app/ui`) |
 
@@ -126,6 +128,12 @@ so that server can offer the pet to its robots:
 ```sh
 s-w42-eu-raw -offer Pet=ws://192.168.1.10:8770,$HOME/.config/stackchan-server/robot-token
 ```
+
+Robots set up by a [Stackchan manager](https://github.com/mj41/s-w42-eu-manager) connect with
+a token of their own for the pet, which it checks with the manager (`-manager-url`; the package
+[robotauth](https://github.com/mj41/s-w42-eu-raw/tree/main/robotauth)); the debug API
+(`POST /api/debug/{id}/run`) takes only the shared token. A `v*` tag builds the image
+`ghcr.io/mj41/s-w42-eu-pet:<tag>` (Alpine with ffmpeg and espeak-ng for the voice).
 
 The robot adds the offer to its server list; switching to it:
 [SETUP.md, More servers and apps](https://github.com/mj41/StackChan/blob/embody-mj41/firmware/main/apps/app_embody_mode/SETUP.md#more-servers-and-apps).

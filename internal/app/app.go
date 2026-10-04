@@ -25,17 +25,19 @@ import (
 
 	"github.com/mj41/s-w42-eu-pet/internal/pet"
 	"github.com/mj41/s-w42-eu-pet/internal/voice"
+	"github.com/mj41/s-w42-eu-raw/robotauth"
 	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
 // Config configures an App.
 type Config struct {
-	RobotToken string         // bearer token robots must present
-	PublicURL  string         // base URL browsers use, e.g. http://192.168.1.10:8770
-	PairTTL    time.Duration  // lifetime of a pairing code
-	StateFile  string         // JSON file with pets and pairings; "" keeps them in memory only
-	UIDir      string         // development: serve the pages from this directory (e.g. internal/app/ui)
-	Location   *time.Location // the family's time zone for the schedule; default time.Local
+	RobotToken string            // the shared bearer token of the owner's robots (and of /api/debug)
+	Manager    *robotauth.Client // robots set up by a Stackchan manager, with a token of their own; nil = none
+	PublicURL  string            // base URL browsers use, e.g. http://192.168.1.10:8770
+	PairTTL    time.Duration     // lifetime of a pairing code
+	StateFile  string            // JSON file with pets and pairings; "" keeps them in memory only
+	UIDir      string            // development: serve the pages from this directory (e.g. internal/app/ui)
+	Location   *time.Location    // the family's time zone for the schedule; default time.Local
 	Log        *slog.Logger
 	Now        func() time.Time // tests; default time.Now
 	DebugDir   string           // where screen snapshots from the robot are saved (debug.go); "" = not saved
@@ -199,6 +201,22 @@ func (a *App) Handler() http.Handler {
 
 func (a *App) tokenOK(token string) bool {
 	return a.cfg.RobotToken != "" && subtle.ConstantTimeCompare([]byte(token), []byte(a.cfg.RobotToken)) == 1
+}
+
+// robotOK checks a connecting robot's token: the shared token, or the token a Stackchan manager
+// gave this robot for this app (robotauth).
+func (a *App) robotOK(ctx context.Context, id, token string) bool {
+	if a.tokenOK(token) {
+		return true
+	}
+	if a.cfg.Manager == nil || token == "" {
+		return false
+	}
+	auth, err := a.cfg.Manager.Check(ctx, id, token)
+	if err != nil {
+		a.log.Warn("manager", "robot", id, "err", err)
+	}
+	return auth.OK
 }
 
 // robotFor returns the robot, creating it and its pet on first sight. a.mu held.
