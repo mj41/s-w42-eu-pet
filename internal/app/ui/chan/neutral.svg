@@ -17,7 +17,7 @@
 <rect x="10" y="10" width="108" height="84" rx="20" fill="url(#shell)"/>
 <rect x="24" y="14" width="44" height="5" rx="2.5" fill="#fff" opacity=".55"/>
 <rect x="20" y="22" width="88" height="64" rx="12" fill="#1b2340"/>
-<svg x="21" y="23" width="86" height="62" viewBox="2 4.5 28 21" preserveAspectRatio="xMidYMid slice" clip-path="url(#screen-shape)">
+<g clip-path="url(#screen-shape)"><svg x="21" y="23" width="86" height="62" viewBox="2 4.5 28 21" preserveAspectRatio="xMidYMid slice">
 <defs><radialGradient id="skin" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#FFB02E" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></radialGradient></defs>
 
 <rect x="2" y="4.5" width="28" height="21" fill="#FFB02E"/>
@@ -27,6 +27,6 @@
 <path d="M11 15C12.6569 15 14 13.6569 14 12C14 10.3431 12.6569 9 11 9C9.34315 9 8 10.3431 8 12C8 13.6569 9.34315 15 11 15Z" fill="#402A32"/>
 <path d="M21 15C22.6569 15 24 13.6569 24 12C24 10.3431 22.6569 9 21 9C19.3431 9 18 10.3431 18 12C18 13.6569 19.3431 15 21 15Z" fill="#402A32"/>
 <path d="M10 20C10 19.4477 10.4477 19 11 19H21C21.5523 19 22 19.4477 22 20C22 20.5523 21.5523 21 21 21H11C10.4477 21 10 20.5523 10 20Z" fill="#402A32"/>
-</svg>
+</svg></g>
 <path d="M27 29 H48 L33 80 H27 Z" fill="#fff" opacity=".12"/>
 </svg>

@@ -72,9 +72,9 @@ func main() {
 		chanSVG := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
 %s
 %s
-<svg x="21" y="23" width="86" height="62" viewBox="%g %g %g %g" preserveAspectRatio="xMidYMid slice" clip-path="url(#screen-shape)">
+<g clip-path="url(#screen-shape)"><svg x="21" y="23" width="86" height="62" viewBox="%g %g %g %g" preserveAspectRatio="xMidYMid slice">
 %s
-</svg>
+</svg></g>
 %s
 </svg>
 `, note, chanBody, f.x, f.y, f.w, h, inner, chanGlare)
