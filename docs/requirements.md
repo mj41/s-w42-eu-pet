@@ -78,7 +78,7 @@ there, instead of flipping the behaviour back and forth.
 - **T3** A food card held to the robot touches its head too. Such a touch must
   never count as a cuddle: only the card counts. Today: a touch reaction waits
   0.5 s after the release for a card, and touches within 2 s of a card are
-  ignored. Measured 2026-10-01: the card arrives 120–370 ms after the head
+  ignored. Measured: the card arrives 120–370 ms after the head
   touch (the firmware polls twice a second; a read takes 230–460 ms), and a
   card with its touch counts as the card only.
 
@@ -273,25 +273,25 @@ For showing the pet: something always happens within a minute.
 ## Development
 
 - **V1** An offline host simulator for the robot's drawing code
-  (`firmware/tests`), and screen snapshots from the real robot
+  ([`firmware/tests`](https://github.com/mj41/StackChan/tree/embody-mj41/firmware/tests)), and screen snapshots from the real robot
   (`POST /api/debug/{id}/run`), to check pictures without guessing.
 - **V2** Test on the LAN server, not on the public one.
 - **V3** Before committing: `gofmt -l .`, `go vet ./...`, `go test -race ./...`.
 
 ## Conflicts and open decisions
 
-- **C1 Nap refused at ≥ 80% vs. the demo cycle (S1, X2, X3).** Decided
-  2026-10-01: naps are allowed from 10 to 90% in every mode (S1).
-- **C2 The screen during school hours (R7).** Decided 2026-10-01: off; the pet
+- **C1 Nap refused at ≥ 80% vs. the demo cycle (S1, X2, X3).** Decided:
+  naps are allowed from 10 to 90% in every mode (S1).
+- **C2 The screen during school hours (R7).** Decided: off; the pet
   rests and says only that it rests (D7).
 - **C3 Faster card reads (T3).** Polling four times a second with a wake on
   head touch read no cards at all (firmware be75bc2, reverted). Twice a second
   is fast enough for now; revisit only if cards feel slow.
 - **C4 Game dodging (G2).** Proximity mostly stayed at 0–30 in games (the rise
   threshold was 60) and the shadow rule (60%) fired 5 times in one game.
-  Decided 2026-10-01: rise 20, shadow below 40% (G2); check in the next games.
-- **C5 Long press (M2).** Decided 2026-10-01: a line asking for gentleness.
-- **C6 Not yet seen on the robot (2026-10-01):** the held detection (R9; its
+  Decided: rise 20, shadow below 40% (G2); check in the next games.
+- **C5 Long press (M2).** Decided: a line asking for gentleness.
+- **C6 Not yet seen on the robot:** the held detection (R9; its
   thresholds may need tuning), the leaderboard's countdown, photo and podium
   (G8; the camera snapshot itself works), dodges with the new thresholds (C4).
 - **C7 The level picture (G6)** shows the robot from above; whether small kids

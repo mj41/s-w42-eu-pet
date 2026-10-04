@@ -55,39 +55,27 @@ works with pictures, so it needs no reading: the pet's face, three need bars
 (food, fun, energy), four big buttons (food, cuddle, play, nap) and the color
 game's podium. Actions from the robot show on the page too.
 
-**Catch the ball** (the play button on the page, or Play → ball in the robot's menu):
-the robot's screen shows a ball in one of its four quarters, and the kid taps
-it on the robot. Five balls, about five seconds each; a tap on the wrong
-quarter is just ignored, and a ball not caught flies on to the next place.
-The head makes each ball harder: ball 1 it keeps still, ball 2 it circles,
-ball 3 it moves at random, and balls 4 and 5 it dodges a hand that comes
-close (seen by the light sensor next to the screen, streamed at 20
-samples/s with `light_stream`; each dodge adds a second). Every catch chirps;
-at the end the robot shows one star per catch and says the score.
-
-**The color game** (Play → the color dots): six color buttons on the screen,
-reshuffled every round; the robot's LED strips show the colors to press. Five
-levels of five rounds: left then right strip; right then left; the four
-strip halves near to far; far to near; the four halves in a random order. A
-picture of the robot from above shows each level's order (numbered strips)
-before it starts. A wrong button greys the buttons out for 3 s; the robot
-says the total time at the end. The three best games are a leaderboard: a
-place on it gets a photo from the robot's camera ("Usměj se, vyfotím tě"),
-and the robot shows the podium after every game.
+**Catch the ball:** five balls on the robot's screen for the kid to tap; the
+head makes each one harder, up to dodging a hand that comes close
+([G1–G3](docs/requirements.md#play)). **The color game:** the LED strips show colors, the kid
+presses them in each level's order on the screen; the three best games make a
+leaderboard with photos from the robot's camera ([G6–G8](docs/requirements.md#play)).
 
 The head never moves while the robot is in someone's hands (the accelerometer
-and gyro in its telemetry tell).
+and gyro in its telemetry tell). It sinks at rest (the firmware lets the servos
+go), and by day the pet lifts it back
+([R6, R9](docs/requirements.md#what-the-robot-shows-and-says)).
 
-Needs: food, fun and energy go from 0 to 100 and drop while the pet is awake.
-Its mood follows them (happy, fine, hungry, bored, tired). The pet is kind: it
-never dies or gets ill; neglected it only gets sad and asks for food or play
-now and then.
+Needs: food, fun and energy go from 0 to 100 and drop while the pet is awake;
+its mood follows them ([N1–N6](docs/requirements.md#needs-and-mood)). The pet is kind: it never
+dies or gets ill; neglected it only gets sad and asks for food or play now and
+then.
 
 ## Parent page
 
 `/parent` asks for a PIN; the first PIN entered becomes the PIN. A parent's
 phone can be marked as such: it then stays unlocked until its Lock button.
-Settings:
+Settings ([A1–A8](docs/requirements.md#parent-page)):
 
 - name, language (Czech or English), difficulty (how fast needs drop)
 - wake-up and bedtime for weekdays and weekends; optional school hours, when
@@ -98,27 +86,18 @@ Settings:
 - the needs themselves: sliders for food, fun and energy, or all full
 - the games: seconds per ball, whether the head moves; photos for the color
   game's leaderboard, which the page lists (remove a place, clear it)
-- faces on the robot (on by default): Fluent Emoji faces filling the whole screen, one per mood (`internal/robotpic/faces/`, made by `genfaces`); off, the robot shows its own face
-  instead of the robot's own blinking face
+- faces on the robot (on by default): Fluent Emoji faces filling the whole screen, one per
+  mood (`internal/robotpic/faces/`, made by `genfaces`); off: the robot's own blinking face
 - a log of what happened, previews of the morning and bedtime routines and of every sound
 - demo mode, in its own section at the bottom: a need at 90% drops back to
   10%, naps are quick (+20% in 5 s, 75% at a minute, then it wakes), and school
   hours are ignored
 
-The daily routine: 10 minutes before bedtime the pet yawns. At bedtime it
-plays a lullaby, says good night, dims the screen and turns on a warm night
-light that fades out within 10 minutes; the screen goes off 5 minutes after it
-was last lit. At night a light touch on the head (one finger, or a tap on the
-screen) gets a sleepy "Zzz..." or, now and then, a dream; the whole palm on the
-head (all three touch zones at full) wakes the pet quietly for a few minutes,
-then it falls asleep again. While it sleeps, a faint bar in the screen's corner
-shows its energy coming back. In the morning it wakes the screen, greets and
-plays a tune. Needs pause at night and during school hours, so the pet never
-suffers while the kid sleeps or is away.
-
-The firmware lets go of the head servos at rest, so the head slowly sinks; by
-day the pet lifts it back (from the robot's telemetry) to where it last put it.
-At night and during naps it may droop.
+The daily routine: the pet yawns before bedtime, then a lullaby, good night
+and a warm night light that fades out; at night a light touch gets a sleepy
+"Zzz..." or a dream, and in the morning it greets and plays a tune
+([D1–D7](docs/requirements.md#daily-routine)). Needs pause at night and during school hours, so
+the pet never suffers while the kid sleeps or is away.
 
 ## Running
 
@@ -133,6 +112,12 @@ go run ./cmd/stackchan-pet -tz Europe/Prague
 | `-token-file` | `~/.config/stackchan-server/robot-token` | robot bearer token, generated if missing |
 | `-state-file` | `~/.local/state/stackchan-pet/state.json` | pets, PINs, pairings, the leaderboard; its photos go to `photos/` next to it; `""` = memory only (no photos) |
 | `-tz` | this machine's | the family's time zone for the schedule |
+| `-voice-dir` | `~/.cache/stackchan-pet/voice` | where the spoken lines are kept |
+| `-ffmpeg` | `ffmpeg` from `PATH` | for the Edge voice; `""` = no Edge voice |
+| `-espeak` | `espeak-ng` from `PATH` | the fallback voice; `""` = none |
+| `-no-voice` | off | the pet does not speak |
+| `-debug-dir` | `~/.cache/stackchan-pet/screens` | screen snapshots from `POST /api/debug/{id}/run` |
+| `-debug` | off | debug logging |
 | `-ui-dir` | | development: serve the pages from disk (`internal/app/ui`) |
 
 The default token file is [stackchan-server](https://github.com/mj41/stackchan-server)'s,
@@ -142,8 +127,9 @@ so that server can offer the pet to its robots:
 stackchan-server -offer Pet=ws://192.168.1.10:8770,$HOME/.config/stackchan-server/robot-token
 ```
 
-The robot adds the offer to its server list. On its QR screen, press Next
-until "Pet" shows, then Connect, and scan the new QR code with the kid's phone.
+The robot adds the offer to its server list; switching to it:
+[SETUP.md, More servers and apps](https://github.com/mj41/StackChan/blob/embody-mj41/firmware/main/apps/app_embody_mode/SETUP.md#more-servers-and-apps).
+Then scan the pet's QR code with the kid's phone.
 
 ## Layout
 
@@ -167,7 +153,8 @@ The robot's speech bubble font has no Czech letters: the bubble shows the
 lines without diacritics.
 
 The pet on the pages is a tiny Stackchan (`internal/app/ui/chan/`, drawn for
-this project after the robot's own face). Stackchan is developed and
+this project after the robot) showing the same Fluent Emoji faces as the robot
+(see its `NOTICE`). Stackchan is developed and
 published by meganetaaan, https://github.com/meganetaaan/stack-chan; the
 character is used under its
 [derivative work guideline](https://github.com/rt-net/stack-chan/blob/main/GUIDELINE.md),
