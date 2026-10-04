@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
 )
 
 // The keys the code says (text(lang, key, ...)).

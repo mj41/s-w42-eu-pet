@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
-	"github.com/mj41/stackchan-pet/internal/sound"
-	"github.com/mj41/stackchan-server/wire"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-pet/internal/sound"
+	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
 // The pet speaks its lines (Config.Voice: Edge's Antonín, a bit robot and kid, cached;

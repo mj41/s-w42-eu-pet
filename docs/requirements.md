@@ -1,4 +1,4 @@
-# stackchan-pet requirements
+# s-w42-eu-pet requirements
 
 Everything the pet must do, in one place, so a change can be checked against
 the rest before it is made. Each requirement has an id (`N3`, `T5`, ...) to

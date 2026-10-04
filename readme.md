@@ -1,4 +1,4 @@
-# stackchan-pet
+# s-w42-eu-pet
 
 A Tamagotchi for [Stackchan](https://github.com/m5stack/StackChan) robots
 running Embody Mode. The pet lives on this server; the robot is its body.
@@ -7,7 +7,7 @@ Parents set the daily routine behind a PIN.
 
 It is a separate server that the robot switches to from its QR screen
 (Next, then Connect). It speaks the Embody Mode protocol from
-[stackchan-server](https://github.com/mj41/stackchan-server) (`wire` package).
+[s-w42-eu-raw](https://github.com/mj41/s-w42-eu-raw) (`wire` package).
 The robot runs Embody Mode from the
 [StackChan firmware fork](https://github.com/mj41/StackChan/tree/embody-mj41); setting it up:
 [SETUP.md](https://github.com/mj41/StackChan/blob/embody-mj41/firmware/main/apps/app_embody_mode/SETUP.md).
@@ -36,7 +36,7 @@ All requirements, with ids and the open decisions, are in
 > change when something better comes along, without migrations: update the robot's firmware
 > and the servers together.
 >
-> **Want more?** Ask in the [issues](https://github.com/mj41/stackchan-pet/issues), and ideally [sponsor mj41](https://github.com/sponsors/mj41) on GitHub:
+> **Want more?** Ask in the [issues](https://github.com/mj41/s-w42-eu-pet/issues), and ideally [sponsor mj41](https://github.com/sponsors/mj41) on GitHub:
 > mj41 codes for attention food.
 
 ## Playing
@@ -102,7 +102,7 @@ the pet never suffers while the kid sleeps or is away.
 ## Running
 
 ```sh
-go run ./cmd/stackchan-pet -tz Europe/Prague
+go run ./cmd/s-w42-eu-pet -tz Europe/Prague
 ```
 
 | Flag | Default | |
@@ -120,11 +120,11 @@ go run ./cmd/stackchan-pet -tz Europe/Prague
 | `-debug` | off | debug logging |
 | `-ui-dir` | | development: serve the pages from disk (`internal/app/ui`) |
 
-The default token file is [stackchan-server](https://github.com/mj41/stackchan-server)'s,
+The default token file is [s-w42-eu-raw](https://github.com/mj41/s-w42-eu-raw)'s,
 so that server can offer the pet to its robots:
 
 ```sh
-stackchan-server -offer Pet=ws://192.168.1.10:8770,$HOME/.config/stackchan-server/robot-token
+s-w42-eu-raw -offer Pet=ws://192.168.1.10:8770,$HOME/.config/stackchan-server/robot-token
 ```
 
 The robot adds the offer to its server list; switching to it:
@@ -176,17 +176,18 @@ again.
 gofmt -l . && go vet ./... && go test -race ./...
 ```
 
-The protocol comes from `github.com/mj41/stackchan-server/wire`. To work on both at
+The protocol comes from `github.com/mj41/s-w42-eu-raw/wire`. To work on both at
 once, clone it next to this repo and add an uncommitted `go.work`
-(`go work init . ../stackchan-server`).
+(`go work init . ../s-w42-eu-raw`).
 
 ## Related projects
 
 - [StackChan fork, branch `embody-mj41`](https://github.com/mj41/StackChan/tree/embody-mj41): the robot's firmware, Embody Mode.
-- [stackchan-server](https://github.com/mj41/stackchan-server): the `wire` package, and the full dashboard, which offers the pet to its robots.
-- [sbot](https://github.com/mj41/sbot): another app server on the same protocol (a cockpit for the robot and a TPBot car).
-- [stackchan-mj](https://github.com/mj41/stackchan-mj): working notes, and `pet-bg.sh` to run the pet in the background on a LAN.
+- [s-w42-eu-raw](https://github.com/mj41/s-w42-eu-raw): the `wire` package, and the full dashboard, which offers the pet to its robots.
+- [s-w42-eu-sbot](https://github.com/mj41/s-w42-eu-sbot): another app server on the same protocol (a cockpit for the robot and a TPBot car).
 - [home-w42-eu](https://github.com/mj41/home-w42-eu): the platform this is part of. All the repos: [The repos today](https://github.com/mj41/home-w42-eu#the-repos-today).
+
+Stack-chan (スタックチャン) is a registered trademark of Shinya Ishikawa; this project is independent and only made to work with [Stack-chan](https://github.com/stack-chan/stack-chan) robots.
 
 ## License
 

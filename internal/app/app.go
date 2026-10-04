@@ -1,8 +1,8 @@
 // Package app is the pet server: robots connect over the Embody Mode protocol
-// (github.com/mj41/stackchan-server/wire), each robot has one pet, kids play
+// (github.com/mj41/s-w42-eu-raw/wire), each robot has one pet, kids play
 // on the robot and on a picture page, parents change settings behind a PIN.
 //
-// Pairing works like stackchan-server: the robot shows <public-url>/pair?code=...
+// Pairing works like s-w42-eu-raw: the robot shows <public-url>/pair?code=...
 // as a QR code; the browser that opens it may see and play with that pet.
 package app
 
@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
-	"github.com/mj41/stackchan-pet/internal/voice"
-	"github.com/mj41/stackchan-server/wire"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-pet/internal/voice"
+	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
 // Config configures an App.

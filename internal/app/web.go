@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
-	"github.com/mj41/stackchan-server/wire"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
 //go:embed ui/index.html ui/parent.html ui/emoji ui/chan

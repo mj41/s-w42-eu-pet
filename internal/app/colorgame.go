@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
-	"github.com/mj41/stackchan-pet/internal/robotpic"
-	"github.com/mj41/stackchan-pet/internal/sound"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-pet/internal/robotpic"
+	"github.com/mj41/s-w42-eu-pet/internal/sound"
 )
 
 // The color game: the screen shows six color buttons, three by two, in a new order

@@ -1,7 +1,7 @@
-// Command stackchan-pet is a Tamagotchi for Stackchan robots in Embody Mode.
+// Command s-w42-eu-pet is a Tamagotchi for Stackchan robots in Embody Mode.
 //
 // Robots connect to ws://<host>/api/devices/connect with a bearer token (by
-// default the same token file as stackchan-server, so that server can offer
+// default the same token file as s-w42-eu-raw, so that server can offer
 // this one to its robots). Kids open http://<host>/ after scanning the robot's
 // QR code; parents open /parent and set a PIN.
 package main
@@ -25,8 +25,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mj41/stackchan-pet/internal/app"
-	"github.com/mj41/stackchan-pet/internal/voice"
+	"github.com/mj41/s-w42-eu-pet/internal/app"
+	"github.com/mj41/s-w42-eu-pet/internal/voice"
 )
 
 func main() {
@@ -99,7 +99,7 @@ func main() {
 		srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Info("stackchan-pet listening", "listen", *listen, "public_url", *publicURL, "state_file", *stateFile, "tz", loc.String())
+	log.Info("s-w42-eu-pet listening", "listen", *listen, "public_url", *publicURL, "state_file", *stateFile, "tz", loc.String())
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		fail("server", err)
 	}

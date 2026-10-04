@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/mj41/stackchan-pet/internal/robotpic"
-	"github.com/mj41/stackchan-server/wire"
+	"github.com/mj41/s-w42-eu-pet/internal/robotpic"
+	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
 const testToken = "test-token"

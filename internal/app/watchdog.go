@@ -3,7 +3,7 @@ package app
 import (
 	"time"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
 )
 
 // The watchdog runs with every Pulse. The engine sends the robot commands when

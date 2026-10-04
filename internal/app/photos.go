@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
-	"github.com/mj41/stackchan-pet/internal/robotpic"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-pet/internal/robotpic"
 )
 
 // The color game's leaderboard (pet.ColorsTop): the three best full games, each with

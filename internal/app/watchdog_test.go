@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mj41/stackchan-server/wire"
+	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
 // robotState runs fn on the robot under the App's lock.

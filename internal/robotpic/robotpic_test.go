@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
 )
 
 func TestPictures(t *testing.T) {

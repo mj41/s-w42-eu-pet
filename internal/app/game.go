@@ -7,10 +7,10 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/mj41/stackchan-pet/internal/pet"
-	"github.com/mj41/stackchan-pet/internal/robotpic"
-	"github.com/mj41/stackchan-pet/internal/sound"
-	"github.com/mj41/stackchan-server/wire"
+	"github.com/mj41/s-w42-eu-pet/internal/pet"
+	"github.com/mj41/s-w42-eu-pet/internal/robotpic"
+	"github.com/mj41/s-w42-eu-pet/internal/sound"
+	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
 // Catch the ball: the robot's screen shows a ball in one of its four quarters
