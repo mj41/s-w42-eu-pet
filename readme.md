@@ -88,7 +88,7 @@ Settings:
 - the needs themselves: sliders for food, fun and energy, or all full
 - the games: seconds per ball, whether the head moves; photos for the color
   game's leaderboard, which the page lists (remove a place, clear it)
-- a drawn face on the robot: colourful pictures per mood (`internal/robotpic/faces/`)
+- faces on the robot (on by default): Fluent Emoji faces filling the whole screen, one per mood (`internal/robotpic/faces/`, made by `genfaces`); off, the robot shows its own face
   instead of the robot's own blinking face
 - a log of what happened, previews of the morning and bedtime routines and of every sound
 - demo mode, in its own section at the bottom: a need at 90% drops back to
@@ -165,7 +165,8 @@ which asks for that credit where users see it (the pages show it).
 
 Other pictures are [Fluent Emoji Flat](https://github.com/microsoft/fluentui-emoji)
 (MIT, `internal/app/ui/emoji/LICENSE`); `internal/robotpic/render-icons.sh`
-renders the PNGs for the robot's screen.
+renders the PNGs for the robot's screen, and the robot's faces: `genfaces` takes the mood
+emoji, drops the round head and fills the 4:3 screen with its colour.
 
 The pet keeps its pictures in the robot's file store (folder `pet/`): at
 connect it asks for the robot's file list and uploads what is missing or

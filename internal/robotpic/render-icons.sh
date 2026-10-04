@@ -7,8 +7,9 @@ SVG=../app/ui/emoji
 for f in apple carrot banana cake milk bread heart zzz ball star moon plate party refresh; do
     inkscape "$SVG/$f.svg" --export-type=png --export-width=160 --export-filename="png/$f.png" >/dev/null 2>&1
 done
-# Full-screen faces for the robot (faces/*.svg, the screen part of ../app/ui/chan): JPEG, no
-# transparency needed. Needs ImageMagick too.
+# Full-screen faces for the robot: faces/*.svg made from the page's Fluent Emoji (genfaces: the
+# head's colour fills the 4:3 screen), then JPEG, no transparency needed. Needs ImageMagick too.
+go run ./genfaces .
 for f in faces/*.svg; do
     n=$(basename "$f" .svg)
     inkscape "$f" --export-type=png --export-width=320 --export-height=240 --export-filename="/tmp/face-$n.png" >/dev/null 2>&1

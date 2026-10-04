@@ -78,6 +78,7 @@ func DefaultSettings() Settings {
 		GameBallSeconds:  5,
 		GameHeadMoves:    true,
 		ColorPhotos:      true,
+		DrawnFace:        true, // the Fluent Emoji faces, not the robot's own
 		Foods:            map[string]string{},
 	}
 }

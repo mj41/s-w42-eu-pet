@@ -126,9 +126,10 @@ there, instead of flipping the behaviour back and forth.
 
 ### What the robot shows and says
 
-- **R1** Face: the robot's own face with the mood's emotion and LED colour, or
-  (parent setting) drawn colourful faces per mood. Drawn faces step aside for
-  speech bubbles and full-screen pictures.
+- **R1** Face: Fluent Emoji faces per mood filling the whole 4:3 screen (the
+  default), or (parent setting) the robot's own face with the mood's emotion; the
+  LEDs show the mood's colour either way. Drawn faces step aside for speech bubbles
+  and full-screen pictures.
 - **R2** Speech: Edge "Antonín" voice, a bit higher and for kids, lightly
   robotized (`antonin-2-kid-robot-light`); English: Ana. Lines are made once
   and cached; without the network, espeak-ng. Not too loud (no clipping on the
