@@ -500,7 +500,8 @@ func (a *App) Save() error {
 	return os.Rename(tmp, a.cfg.StateFile)
 }
 
-// Run drives the pets (every 15 s) and saves the state (every minute) until ctx ends.
+// Run drives the pets and passes on the manager's app lists (every 15 s: a switch the owner
+// asked for on the manager's page comes soon) and saves the state (every minute) until ctx ends.
 func (a *App) Run(ctx context.Context) {
 	go a.warmVoice(ctx)
 	tick := time.NewTicker(15 * time.Second)
@@ -515,13 +516,13 @@ func (a *App) Run(ctx context.Context) {
 			return
 		case <-tick.C:
 			a.Tick()
+			go a.relayAllManaged(ctx)
 		case <-pulse.C:
 			a.Pulse()
 		case <-save.C:
 			if err := a.Save(); err != nil {
 				a.log.Warn("state not saved", "err", err)
 			}
-			go a.relayAllManaged(ctx)
 		}
 	}
 }

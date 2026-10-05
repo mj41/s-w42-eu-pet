@@ -2,7 +2,7 @@ package app
 
 // The robot's app list, as its owner set it on the Stackchan manager and the manager signed it,
 // relayed to the robot (it checks the signature itself; s-w42-eu-raw does the same): when the
-// robot connects and when the version changes (every minute; the manager's answers are cached).
+// robot connects and when the version changes (asked every 15 s).
 // The manager also learns who is paired with the robot, and which pairings its owner removed.
 
 import (
