@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -50,10 +49,10 @@ type robotConn struct {
 	sent, dropped atomic.Uint64 // messages queued, and dropped because the queue was full (watchdog.go)
 	held          atomic.Bool   // the robot is in someone's hands: no head commands (held.go)
 
-	mgrToken    string       // a token from the manager: asked about again every minute (managed.go)
-	managedSent atomic.Int32 // the version of the signed app list relayed last
-	firmware    string       // from Register, for the manager (owner's page)
-	appsVersion atomic.Int32 // the app list version the robot has (label apps_ver, then AppsVersion)
+	mgrToken     string       // a token from the manager: asked about again every minute (managed.go)
+	managedSent  atomic.Int32 // the version of the signed app list relayed last
+	firmware     string       // from Register, for the manager (owner's page)
+	appsVersions atomic.Value // string: its app lists' versions per manager (label apps_ver, then AppsVersion)
 }
 
 func (c *robotConn) close() {
@@ -131,9 +130,7 @@ func (a *App) handleRobotConnect(w http.ResponseWriter, r *http.Request) {
 	defer a.log.Info("robot disconnected", "robot", id)
 
 	c.firmware = reg.Capabilities.Firmware
-	if v, err := strconv.Atoi(reg.Labels["apps_ver"]); err == nil {
-		c.appsVersion.Store(int32(v))
-	}
+	c.appsVersions.Store(reg.Labels["apps_ver"])
 	a.attach(c, reg.Capabilities.Commands)
 	defer a.detach(c)
 	a.relayManaged(r.Context(), c)
@@ -290,8 +287,8 @@ func (a *App) readLoop(c *robotConn) {
 			}
 			if f.Kind == wire.KindAppsVersion {
 				var body wire.AppsVersionBody
-				if f.Decode(&body) == nil && body.Version > 0 {
-					c.appsVersion.Store(body.Version)
+				if f.Decode(&body) == nil && body.Versions != "" {
+					c.appsVersions.Store(body.Versions)
 					go a.relayManaged(context.Background(), c) // the manager learns at once
 				}
 				continue
