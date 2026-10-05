@@ -33,6 +33,7 @@ type Settings struct {
 	Volume           int  `json:"volume"`              // robot speaker, 0..100
 	NightLight       bool `json:"night_light"`         // dim warm LEDs at night
 	ScreenOffAtNight bool `json:"screen_off_at_night"` // the robot's screen sleeps at night
+	ScreenIdleMin    int  `json:"screen_idle_min"`     // by day the screen goes off after this many minutes nobody plays, 0 = never
 	NightWakeMin     int  `json:"night_wake_min"`      // a hard press at night wakes it this long, 0 = never
 	DrawnFace        bool `json:"drawn_face"`          // the pet's drawn faces on the robot instead of its own
 	Demo             bool `json:"demo"`                // demo mode: a need at 90% drops back to 10% (DemoReset)
@@ -74,6 +75,7 @@ func DefaultSettings() Settings {
 		Volume:           40,
 		NightLight:       true,
 		ScreenOffAtNight: true,
+		ScreenIdleMin:    5,
 		NightWakeMin:     5,
 		GameBallSeconds:  5,
 		GameHeadMoves:    true,
@@ -114,6 +116,7 @@ func (s *Settings) Normalize() {
 	s.PlayLimitMin = max(0, min(600, s.PlayLimitMin))
 	s.Volume = max(0, min(100, s.Volume))
 	s.NightWakeMin = max(0, min(60, s.NightWakeMin))
+	s.ScreenIdleMin = max(0, min(120, s.ScreenIdleMin))
 	s.GameBallSeconds = max(3, min(10, s.GameBallSeconds))
 	if s.Foods == nil {
 		s.Foods = map[string]string{}

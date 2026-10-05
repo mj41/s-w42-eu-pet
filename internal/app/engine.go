@@ -193,6 +193,14 @@ func (a *App) react(r *robot, re pet.Reaction, now time.Time) {
 		return
 	}
 	a.log.Info("reaction", "robot", r.id, "kind", re.Kind, "changed", re.Changed, "touch", re.Touch, "food", re.Food)
+	r.lastPlay = now
+	if r.idleOff { // someone plays: the screen comes back
+		r.idleOff = false
+		if r.screenOff {
+			c.command("screensaver", map[string]any{"on": false})
+			r.screenOff = false
+		}
+	}
 	if r.menu != "" { // e.g. a cuddle while the menu is open: the reaction replaces it
 		a.closeMenu(r)
 	}
@@ -478,7 +486,8 @@ func (a *App) robotEvent(id string, ev wire.RobotEventBody) {
 		r.screenManual = ev.Data["manual"] == 1.0
 		return
 	case "screensaver_off": // a touch lit the screen: at night it dims and has its 5 minutes again
-		r.screenOff, r.screenManual = false, false
+		r.screenOff, r.screenManual, r.idleOff = false, false, false
+		r.lastPlay = now
 		if night {
 			a.dimForNight(r, now)
 		}
@@ -1007,6 +1016,7 @@ func (a *App) Pulse() {
 			a.demoCheck(r, now) // demo mode: a full need drops back within seconds
 		}
 		a.watchdog(r, now)
+		a.idleScreen(r, now)
 		if (r.shownMood == pet.Napping || r.shownMood == pet.Sleeping) && r.conn != nil && now.After(r.busyUntil) &&
 			r.menu == "" && r.game == nil {
 			a.energyBar(r) // energy comes back while it sleeps
@@ -1087,4 +1097,24 @@ func (a *App) setHeld(r *robot) {
 	if r.conn != nil {
 		r.conn.held.Store(r.hold.held)
 	}
+}
+
+// idleScreen turns the robot's screen off by day when nobody has played for ScreenIdleMin
+// minutes (the robot's own screensaver never starts: the pet keeps sending it commands). A touch
+// on the robot lights it again (the robot does that itself), and so does play from a phone.
+func (a *App) idleScreen(r *robot, now time.Time) {
+	mins := r.pet.Settings.ScreenIdleMin
+	if mins <= 0 || r.conn == nil || r.screenOff || r.game != nil || r.menu != "" || now.Before(r.busyUntil) ||
+		r.pet.Phase(now) != pet.Awake {
+		return
+	}
+	if r.lastPlay.IsZero() {
+		r.lastPlay = now
+	}
+	if now.Sub(r.lastPlay) < time.Duration(mins)*time.Minute {
+		return
+	}
+	r.conn.command("screensaver", map[string]any{"on": true})
+	r.screenOff, r.idleOff = true, true
+	a.log.Info("screen off: nobody played", "robot", r.id, "minutes", mins)
 }

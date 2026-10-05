@@ -1210,3 +1210,44 @@ func TestLongPressAsksForGentleness(t *testing.T) {
 		}
 	})
 }
+
+// By day the screen goes off when nobody plays for ScreenIdleMin minutes; a touch (the robot
+// lights it itself: screensaver_off) or play from a phone brings it back.
+func TestScreenOffWhenNobodyPlays(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	kid := e.browser()
+	kid.pair(r)
+	screen := func() (off, idle bool) {
+		e.app.mu.Lock()
+		defer e.app.mu.Unlock()
+		rb := e.app.robots["robot-1"]
+		return rb.screenOff, rb.idleOff
+	}
+	e.clock.set(e.clock.now().Add(4 * time.Minute))
+	e.app.Pulse()
+	if off, _ := screen(); off {
+		t.Fatal("off after 4 minutes (the setting is 5)")
+	}
+	e.clock.set(e.clock.now().Add(2 * time.Minute))
+	e.app.Pulse()
+	if on := r.command("screensaver")["on"]; on != true {
+		t.Fatalf("after 6 minutes: screensaver %v", on)
+	}
+	if off, idle := screen(); !off || !idle {
+		t.Fatal("not marked off")
+	}
+	r.event("screensaver_off", nil) // a touch lit it
+	time.Sleep(50 * time.Millisecond)
+	if off, _ := screen(); off {
+		t.Fatal("still off after the touch")
+	}
+	// Off again, then food from the phone brings it back.
+	e.clock.set(e.clock.now().Add(6 * time.Minute))
+	e.app.Pulse()
+	r.command("screensaver")
+	kid.post("/api/action", map[string]string{"action": "feed", "food": "apple"})
+	if on := r.command("screensaver")["on"]; on != false {
+		t.Fatalf("play from the phone: screensaver %v", on)
+	}
+}

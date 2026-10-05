@@ -89,7 +89,9 @@ Settings ([A1–A8](docs/requirements.md#parent-page)):
 - wake-up and bedtime for weekdays and weekends; optional school hours, when
   the pet rests with its screen off ("Během školy já odpočívám.")
 - minutes of play per day (feeding is never limited)
-- sounds, voice and volume, night light, screen off at night, night wake minutes
+- sounds, voice and volume, night light, screen off at night, night wake minutes; by day the
+  screen goes off when nobody plays (5 minutes by default, 0 = never) and a touch or play from
+  a phone lights it again
 - food cards: tags seen by the robot, each assigned a food
 - the needs themselves: sliders for food, fun and energy, or all full
 - the games: seconds per ball, whether the head moves; photos for the color

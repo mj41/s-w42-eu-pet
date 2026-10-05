@@ -103,6 +103,8 @@ type robot struct {
 	lastAsleep    time.Time         // last sleepy answer at night, to not repeat it on every touch
 	pictureOn     bool              // a picture covers the face
 	screenOff     bool              // the pet turned the robot's screen off for the night
+	idleOff       bool              // ... or because nobody played for a while (Settings.ScreenIdleMin)
+	lastPlay      time.Time         // the last reaction: a touch, food, play (from the robot or a phone)
 	busyUntil     time.Time         // a reaction shows until then; the mood waits
 	gen           int               // bumped by each reaction; delayed steps of an older one are dropped
 	game          *game             // a game of catch in progress (game.go)

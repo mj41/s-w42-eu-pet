@@ -176,6 +176,7 @@ func (a *App) attach(c *robotConn, commands []string) {
 	r.commands = commands
 	r.files = map[string]bool{} // filled from the robot's "assets" answer
 	r.spriteIDs, r.faceShown, r.faceHidden = nil, "", false
+	r.lastPlay, r.idleOff = a.cfg.Now(), false // just connected: the full time before the screen goes off
 	if slices.Contains(commands, "sprite") {
 		c.command("sprite_clear", nil) // sprites stay on the robot across servers
 	}

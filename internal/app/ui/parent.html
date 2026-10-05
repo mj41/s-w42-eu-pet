@@ -153,6 +153,7 @@
       <div class="row"><label for="volume" data-t="volume"></label><input id="volume" type="range" min="0" max="100"><span id="volumeN" style="min-width:2.5em"></span></div>
       <div class="row"><label><input id="nightLight" type="checkbox"> <span data-t="nightLight"></span></label></div>
       <div class="row"><label><input id="screenOff" type="checkbox"> <span data-t="screenOff"></span></label></div>
+      <div class="row"><label for="screenIdle" data-t="screenIdle"></label><input id="screenIdle" type="number" min="0" max="120"></div>
       <div class="row"><label><input id="drawnFace" type="checkbox"> <span data-t="drawnFace"></span></label></div>
       <p class="hint" data-t="drawnFaceHint"></p>
     </section>
@@ -240,7 +241,7 @@ const T = {
     school: "Škola / školka (Po–Pá)", schoolHint: "Během školy potřeby stojí, aby mazlíček netrpěl, když dítě není doma.",
     limits: "Omezení", playLimit: "Hraní denně", minutes: "Minut za den, 0 = bez omezení.",
     playLimitHint: "Po vyčerpání je mazlíček unavený a chce si odpočinout do zítřka. Krmit jde vždy.",
-    robot: "Robot", sounds: "Zvuky", volume: "Hlasitost", nightLight: "Noční světýlko (tlumené LED)", screenOff: "V noci vypnout obrazovku",
+    robot: "Robot", sounds: "Zvuky", volume: "Hlasitost", nightLight: "Noční světýlko (tlumené LED)", screenOff: "V noci vypnout obrazovku", screenIdle: "Přes den vypnout obrazovku, když si nikdo nehraje (minuty, 0 = nikdy)",
     cards: "Kartičky s jídlem (NFC)", cardsHint: "Přilož kartičku k robotovi – objeví se tady a můžeš jí vybrat jídlo. Neznámá kartička dá jablko.",
     noCards: "Zatím žádné kartičky.", unknown: "nová", remove: "Odebrat",
     save: "Uložit", saved: "Uloženo ✓",
@@ -291,7 +292,7 @@ const T = {
     school: "School / kindergarten (Mon–Fri)", schoolHint: "During school the needs pause, so the pet does not suffer while the kid is away.",
     limits: "Limits", playLimit: "Play per day", minutes: "Minutes per day, 0 = no limit.",
     playLimitHint: "When it is used up, the pet is tired and rests until tomorrow. Feeding always works.",
-    robot: "Robot", sounds: "Sounds", volume: "Volume", nightLight: "Night light (dim LEDs)", screenOff: "Screen off at night",
+    robot: "Robot", sounds: "Sounds", volume: "Volume", nightLight: "Night light (dim LEDs)", screenOff: "Screen off at night", screenIdle: "By day, screen off when nobody plays (minutes, 0 = never)",
     cards: "Food cards (NFC)", cardsHint: "Hold a card to the robot – it shows up here and you can pick its food. An unknown card feeds an apple.",
     noCards: "No cards yet.", unknown: "new", remove: "Remove",
     save: "Save", saved: "Saved ✓",
@@ -381,7 +382,7 @@ function fill(d) {
   $("school").checked = s.school; $("schoolFrom").value = s.school_from; $("schoolTo").value = s.school_to;
   $("playLimit").value = s.play_limit_min;
   $("sounds").checked = s.sounds; $("volume").value = s.volume; $("volumeN").textContent = s.volume;
-  $("nightLight").checked = s.night_light; $("screenOff").checked = s.screen_off_at_night;
+  $("nightLight").checked = s.night_light; $("screenOff").checked = s.screen_off_at_night; $("screenIdle").value = s.screen_idle_min;
   cardFoods = { ...s.foods };
   for (const tag of d.unknown_tags || []) if (!(tag.uid in cardFoods)) cardFoods[tag.uid] = "";
   renderCards(d.unknown_tags);
@@ -485,7 +486,7 @@ function collect() {
     demo: $("demo").checked,
     demo_no_school: $("demoNoSchool").checked,
     sounds: $("sounds").checked, volume: +$("volume").value,
-    night_light: $("nightLight").checked, screen_off_at_night: $("screenOff").checked,
+    night_light: $("nightLight").checked, screen_off_at_night: $("screenOff").checked, screen_idle_min: +$("screenIdle").value || 0,
     foods,
   };
 }
