@@ -127,7 +127,7 @@ func (a *App) sayLine(r *robot, t string, seconds float64, atNight bool) {
 	if t == "" {
 		return
 	}
-	a.hideFace(r) // the bubble belongs to the robot's own face
+	// The drawn face stays: the robot shows its speech bubble above it (Embody Mode embody-v0.3.0).
 	r.conn.command("say", map[string]any{"text": asciiOnly(t), "seconds": seconds})
 	a.speak(r, t, atNight)
 }

@@ -78,7 +78,8 @@ then.
 (`-manager-sign-in`, as on pet.sa.w42.eu) the owner signs in (one sign-in for all the manager's
 apps; package [sso](https://github.com/mj41/s-w42-eu-raw/tree/main/sso)): the manager says whose
 robot it is, the owner's signed-in browsers get it without the QR code, and nobody else gets
-the parent page; robots with the shared token belong to `-admin-emails`. Kids pair by the QR
+the parent page; robots with the shared token belong to `-admin-emails`. The parent page links to
+the manager (the robot and its apps). Kids pair by the QR
 code without an account. Without sign-in (a pet at home) `/parent` asks for a PIN; the first PIN
 entered becomes the PIN. A parent's phone can be marked as such: it then stays unlocked until
 its Lock button.

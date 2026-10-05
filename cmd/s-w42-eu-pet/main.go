@@ -102,6 +102,7 @@ func main() {
 		Manager:     manager,
 		SignIn:      signIn,
 		AdminEmails: splitList(*admins),
+		ManagerURL:  strings.TrimRight(*mgrURL, "/"),
 		PublicURL:   strings.TrimRight(*publicURL, "/"),
 		StateFile:   *stateFile,
 		UIDir:       *uiDir,

@@ -47,6 +47,9 @@ type robotConn struct {
 
 	sent, dropped atomic.Uint64 // messages queued, and dropped because the queue was full (watchdog.go)
 	held          atomic.Bool   // the robot is in someone's hands: no head commands (held.go)
+
+	mgrToken    string       // a token from the manager: asked about again every minute (managed.go)
+	managedSent atomic.Int32 // the version of the signed app list relayed last
 }
 
 func (c *robotConn) close() {
@@ -106,6 +109,9 @@ func (a *App) handleRobotConnect(w http.ResponseWriter, r *http.Request) {
 	}
 	ws.SetReadLimit(maxMessageBytes)
 	c := &robotConn{id: id, ws: ws, send: make(chan outMsg, 64), done: make(chan struct{})}
+	if a.cfg.Manager != nil && !a.tokenOK(token) {
+		c.mgrToken = token
+	}
 	defer c.close()
 
 	reg, reason := readRegister(ws, id)
@@ -122,6 +128,7 @@ func (a *App) handleRobotConnect(w http.ResponseWriter, r *http.Request) {
 
 	a.attach(c, reg.Capabilities.Commands)
 	defer a.detach(c)
+	a.relayManaged(r.Context(), c)
 	go a.writeLoop(c)
 	a.readLoop(c)
 }

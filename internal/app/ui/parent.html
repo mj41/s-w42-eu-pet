@@ -63,6 +63,7 @@
     <a href="/" data-t="toKid"></a>
     <button id="lockBtn" class="hidden" data-t="lock"></button>
     <button id="signOutBtn" class="hidden" data-t="signOut"></button>
+    <a id="managerLink" class="hidden" href="#"></a>
   </header>
 
   <section id="notPaired" class="hidden"><p data-t="notPaired"></p>
@@ -207,6 +208,7 @@ const T = {
   cs: {
     title: "Nastavení pro rodiče", toKid: "Zpět k mazlíčkovi", lock: "Zamknout",
     signIn: "Přihlásit se", signOut: "Odhlásit", ownerOnly: "Jen pro majitele robota",
+    manager: h => `Robot a aplikace (${h})`,
     signInHint: "Přihlas se účtem, kterým byl robot nastavený.",
     notOwner: n => `Jsi přihlášen(a) jako ${n}, ale robot patří jinému účtu.`,
     notPairedSignIn: "Majitel robota se může rovnou přihlásit:",
@@ -257,6 +259,7 @@ const T = {
   en: {
     title: "Parent settings", toKid: "Back to the pet", lock: "Lock",
     signIn: "Sign in", signOut: "Sign out", ownerOnly: "For the robot's owner",
+    manager: h => `Robot and apps (${h})`,
     signInHint: "Sign in with the account that set the robot up.",
     notOwner: n => `Signed in as ${n}, but the robot belongs to another account.`,
     notPairedSignIn: "The robot's owner can sign in instead:",
@@ -328,6 +331,11 @@ async function load() {
   texts();
   const signIn = !!out.sign_in;
   show("signOutBtn", signIn && out.signed_in);
+  if (out.manager_url) {
+    $("managerLink").href = out.manager_url;
+    $("managerLink").textContent = t("manager")(new URL(out.manager_url).host);
+  }
+  show("managerLink", !!out.manager_url);
   show("notPaired", status === 404);
   show("notPairedSignIn", status === 404 && signIn && !out.signed_in);
   if (status === 404) { show("lock", false); show("panel", false); return; }

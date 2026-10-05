@@ -36,6 +36,7 @@ type Config struct {
 	Manager     *robotauth.Client // robots set up by a Stackchan manager, with a token of their own; nil = none
 	SignIn      *sso.Client       // sign-in through that manager (signin.go): the parent page is the owner's; nil = PIN
 	AdminEmails []string          // with SignIn: parents of the robots with the shared token
+	ManagerURL  string            // the manager's page for people (the parent page links to it); "" = none
 	PublicURL   string            // base URL browsers use, e.g. http://192.168.1.10:8770
 	PairTTL     time.Duration     // lifetime of a pairing code
 	StateFile   string            // JSON file with pets and pairings; "" keeps them in memory only
@@ -487,6 +488,7 @@ func (a *App) Run(ctx context.Context) {
 			if err := a.Save(); err != nil {
 				a.log.Warn("state not saved", "err", err)
 			}
+			go a.relayAllManaged(ctx)
 		}
 	}
 }

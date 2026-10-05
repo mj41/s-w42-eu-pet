@@ -353,7 +353,7 @@ func (a *App) handleParent(w http.ResponseWriter, r *http.Request) {
 	defer a.mu.Unlock()
 	a.pairOwnedLocked(sid) // robots that connected since sign-in
 	s := a.sessionFor(sid)
-	signIn := map[string]any{"sign_in": a.cfg.SignIn != nil, "signed_in": s.account != nil}
+	signIn := map[string]any{"sign_in": a.cfg.SignIn != nil, "signed_in": s.account != nil, "manager_url": a.cfg.ManagerURL}
 	if s.account != nil {
 		signIn["name"] = s.account.Name
 	}
