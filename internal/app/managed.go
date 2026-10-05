@@ -3,6 +3,7 @@ package app
 // The robot's app list, as its owner set it on the Stackchan manager and the manager signed it,
 // relayed to the robot (it checks the signature itself; s-w42-eu-raw does the same): when the
 // robot connects and when the version changes (every minute; the manager's answers are cached).
+// The manager also learns who is paired with the robot, and which pairings its owner removed.
 
 import (
 	"context"
@@ -18,8 +19,16 @@ func (a *App) relayManaged(ctx context.Context, c *robotConn) {
 		return
 	}
 	versions, _ := c.appsVersions.Load().(string)
-	auth, err := a.cfg.Manager.Seen(ctx, c.id, c.mgrToken, robotauth.Seen{Firmware: c.firmware, AppsVersions: versions})
-	if err != nil || !auth.OK || auth.Managed == nil {
+	a.mu.Lock()
+	pairings := a.pairings(c.id)
+	a.mu.Unlock()
+	auth, err := a.cfg.Manager.Seen(ctx, c.id, c.mgrToken,
+		robotauth.Seen{Firmware: c.firmware, AppsVersions: versions, Pairings: pairings})
+	if err != nil || !auth.OK {
+		return
+	}
+	a.unpair(c.id, auth.Unpair)
+	if auth.Managed == nil {
 		return
 	}
 	b, err := base64.StdEncoding.DecodeString(auth.Managed.Payload)

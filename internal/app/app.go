@@ -81,6 +81,8 @@ type session struct {
 
 	account *sso.Account // signed in through the manager (signin.go)
 	handle  string       // that sign-in's handle at the manager
+
+	meta sessionMeta // device, last seen, paired since (pairings.go)
 }
 
 // robot is one robot and its pet; it stays after the robot disconnects.
@@ -290,6 +292,7 @@ func (a *App) redeem(sid, code string) (*robot, bool) {
 	}
 	s := a.sessionFor(sid)
 	s.Robots = append([]string{pc.robotID}, slices.DeleteFunc(s.Robots, func(id string) bool { return id == pc.robotID })...)
+	a.pairedNow(s, pc.robotID)
 	a.dirty = true
 	return a.robotFor(pc.robotID), true
 }
@@ -334,6 +337,7 @@ const sessionCookie = "stackchan_pet_session"
 // sessionID returns the browser's session id, setting a new cookie if needed.
 func (a *App) sessionID(w http.ResponseWriter, r *http.Request) string {
 	if c, err := r.Cookie(sessionCookie); err == nil && validSessionID(c.Value) {
+		a.seen(c.Value, r)
 		return c.Value
 	}
 	b := make([]byte, 32)
@@ -393,6 +397,8 @@ type stateFile struct {
 	ParentDevices map[string]bool `json:"parent_devices,omitempty"`
 	// Sessions signed in through the manager (signin.go).
 	SignIns map[string]savedSignIn `json:"sign_ins,omitempty"`
+	// Device, last seen and paired since of the paired sessions (pairings.go).
+	Meta map[string]sessionMeta `json:"sessions_meta,omitempty"`
 }
 
 type savedSignIn struct {
@@ -428,7 +434,7 @@ func (a *App) load() error {
 	}
 	for sid, ids := range st.Sessions {
 		if validSessionID(sid) {
-			a.sessions[sid] = &session{Robots: ids}
+			a.sessions[sid] = &session{Robots: ids, meta: st.Meta[sid]}
 		}
 	}
 	for sid, si := range st.SignIns {
@@ -459,7 +465,9 @@ func (a *App) Save() error {
 		a.mu.Unlock()
 		return nil
 	}
-	st := stateFile{Robots: map[string]savedRobot{}, Sessions: map[string][]string{}, ParentDevices: map[string]bool{}, SignIns: map[string]savedSignIn{}}
+	st := stateFile{Robots: map[string]savedRobot{}, Sessions: map[string][]string{}, ParentDevices: map[string]bool{},
+		SignIns: map[string]savedSignIn{}, Meta: map[string]sessionMeta{}}
+	a.expirePairings()
 	for id, r := range a.robots {
 		r.pet.Advance(a.now())
 		st.Robots[id] = savedRobot{Pet: r.pet, PINHash: r.pinHash, Owner: r.owner, UnknownTags: r.unknownTags}
@@ -470,6 +478,7 @@ func (a *App) Save() error {
 		}
 		if len(s.Robots) > 0 {
 			st.Sessions[sid] = s.Robots
+			st.Meta[sid] = s.meta
 			if s.parentDevice {
 				st.ParentDevices[sid] = s.locked
 			}

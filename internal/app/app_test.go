@@ -1251,3 +1251,29 @@ func TestScreenOffWhenNobodyPlays(t *testing.T) {
 		t.Fatalf("play from the phone: screensaver %v", on)
 	}
 }
+
+// The manager learns who is paired (device, since) and may remove a pairing.
+func TestPairingsListedAndRemoved(t *testing.T) {
+	e := newEnv(t, "")
+	r := e.connectRobot("robot-1")
+	r.frame(wire.KindAccepted)
+	kid := e.browser()
+	kid.pair(r)
+	r.frame(wire.KindPaired)
+	kid.get("/api/state")
+	e.app.mu.Lock()
+	p := e.app.pairings("robot-1")
+	e.app.mu.Unlock()
+	if len(p) != 1 || p[0].Device == "" || p[0].Paired.IsZero() || p[0].LastSeen.IsZero() || len(p[0].ID) != 12 {
+		t.Fatalf("pairings %+v", p)
+	}
+	e.app.unpair("robot-1", []string{"000000000000"})
+	if code, _ := kid.get("/api/state"); code != 200 {
+		t.Fatalf("another id removed this one: %d", code)
+	}
+	e.app.unpair("robot-1", []string{p[0].ID})
+	r.frame(wire.KindPaired) // the robot is told
+	if code, out := kid.get("/api/state"); code != http.StatusNotFound || out["error"] != "not_paired" {
+		t.Fatalf("after removal: %d %v", code, out)
+	}
+}

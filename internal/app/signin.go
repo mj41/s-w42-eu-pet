@@ -55,6 +55,7 @@ func (a *App) pairOwnedLocked(sid string) {
 	for id, rb := range a.robots {
 		if a.isParent(s, rb) && !slices.Contains(s.Robots, id) {
 			s.Robots = append(s.Robots, id)
+			a.pairedNow(s, id)
 			a.dirty = true
 		}
 	}
