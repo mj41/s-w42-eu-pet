@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"net/http"
 	"regexp"
 	"slices"
@@ -49,10 +48,7 @@ type robotConn struct {
 	sent, dropped atomic.Uint64 // messages queued, and dropped because the queue was full (watchdog.go)
 	held          atomic.Bool   // the robot is in someone's hands: no head commands (held.go)
 
-	mgrToken     string       // a token from the manager: asked about again every minute (managed.go)
-	managedSent  atomic.Int32 // the version of the signed app list relayed last
-	firmware     string       // from Register, for the manager (owner's page)
-	appsVersions atomic.Value // string: its app lists' versions per manager (label apps_ver, then AppsVersion)
+	mgrToken string // a token from the manager: asked about again every minute (managed.go)
 }
 
 func (c *robotConn) close() {
@@ -129,11 +125,9 @@ func (a *App) handleRobotConnect(w http.ResponseWriter, r *http.Request) {
 	a.log.Info("robot connected", "robot", id, "firmware", reg.Capabilities.Firmware)
 	defer a.log.Info("robot disconnected", "robot", id)
 
-	c.firmware = reg.Capabilities.Firmware
-	c.appsVersions.Store(reg.Labels["apps_ver"])
 	a.attach(c, reg.Capabilities.Commands)
 	defer a.detach(c)
-	a.relayManaged(r.Context(), c)
+	a.reportSeen(r.Context(), c)
 	go a.writeLoop(c)
 	a.readLoop(c)
 }
@@ -286,14 +280,7 @@ func (a *App) readLoop(c *robotConn) {
 				}
 				continue
 			}
-			if f.Kind == wire.KindAppsVersion {
-				var body wire.AppsVersionBody
-				if f.Decode(&body) == nil && body.Versions != "" {
-					c.appsVersions.Store(body.Versions)
-					go a.relayManaged(context.Background(), c) // the manager learns at once
-				}
-				continue
-			}
+
 			if f.Kind != wire.KindRobotEvent {
 				continue // heartbeats: the socket being alive is enough
 			}

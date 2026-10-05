@@ -516,7 +516,7 @@ func (a *App) Run(ctx context.Context) {
 			return
 		case <-tick.C:
 			a.Tick()
-			go a.relayAllManaged(ctx)
+			go a.reportAllSeen(ctx)
 		case <-pulse.C:
 			a.Pulse()
 		case <-save.C:
