@@ -186,8 +186,9 @@ func (a *App) attach(c *robotConn, commands []string) {
 	c.command("assets", nil)                               // what the robot's file store holds (logged; used later for the pet's pictures)
 	c.frame(wire.KindPairCode, a.issueCode(c.id))
 	// Browsers paired before: the robot starts with its face, not the QR screen.
-	if n := a.viewers(c.id); n > 0 {
-		c.frame(wire.KindPaired, wire.PairedBody{Viewers: n, Reconnect: true})
+	if p := a.paired(c.id); p.Viewers > 0 {
+		p.Reconnect = true
+		c.frame(wire.KindPaired, p)
 	}
 	a.robotOnline(r)
 	a.publishState(r)

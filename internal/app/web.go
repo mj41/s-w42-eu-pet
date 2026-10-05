@@ -166,6 +166,7 @@ func (a *App) handleEvents(w http.ResponseWriter, r *http.Request) {
 	sub := &subscriber{sid: sid, events: make(chan sseEvent, 32)}
 	a.mu.Lock()
 	a.subs[sub] = struct{}{}
+	a.tellWatching(sid)
 	var first []byte
 	if rb := a.pairedRobot(sid, r.URL.Query().Get("robot")); rb != nil {
 		first = mustJSON(a.view(rb))
@@ -174,6 +175,7 @@ func (a *App) handleEvents(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		a.mu.Lock()
 		delete(a.subs, sub)
+		a.tellWatching(sid)
 		a.mu.Unlock()
 	}()
 
@@ -220,7 +222,7 @@ func (a *App) handlePair(w http.ResponseWriter, r *http.Request) {
 	rb, ok := a.redeem(sid, code)
 	if ok {
 		if c := rb.conn; c != nil {
-			c.frame(wire.KindPaired, wire.PairedBody{Viewers: a.viewers(rb.id)})
+			c.frame(wire.KindPaired, a.paired(rb.id))
 			c.frame(wire.KindPairCode, a.issueCode(rb.id)) // the QR on screen stays valid for the next one
 		}
 		a.publishState(rb)

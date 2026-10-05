@@ -305,6 +305,28 @@ func (a *App) viewers(robotID string) int {
 	return n
 }
 
+// paired is what the robot shows: browsers paired, and of them with a page open now. a.mu held.
+func (a *App) paired(robotID string) wire.PairedBody {
+	seen := map[string]bool{}
+	for sub := range a.subs {
+		if s := a.sessions[sub.sid]; s != nil && slices.Contains(s.Robots, robotID) {
+			seen[sub.sid] = true
+		}
+	}
+	return wire.PairedBody{Viewers: a.viewers(robotID), Watching: len(seen)}
+}
+
+// tellWatching sends the session's robots how many watch now (a page opened or closed). a.mu held.
+func (a *App) tellWatching(sid string) {
+	if s := a.sessions[sid]; s != nil {
+		for _, id := range s.Robots {
+			if rb := a.robots[id]; rb != nil && rb.conn != nil {
+				rb.conn.frame(wire.KindPaired, a.paired(id))
+			}
+		}
+	}
+}
+
 /* -------------------------------- sessions -------------------------------- */
 
 const sessionCookie = "stackchan_pet_session"
