@@ -53,7 +53,7 @@ type robotConn struct {
 	mgrToken    string       // a token from the manager: asked about again every minute (managed.go)
 	managedSent atomic.Int32 // the version of the signed app list relayed last
 	firmware    string       // from Register, for the manager (owner's page)
-	appsVersion atomic.Int32 // the app list version the robot has (label apps_ver, event apps_updated)
+	appsVersion atomic.Int32 // the app list version the robot has (label apps_ver, then AppsVersion)
 }
 
 func (c *robotConn) close() {
@@ -288,6 +288,14 @@ func (a *App) readLoop(c *robotConn) {
 				}
 				continue
 			}
+			if f.Kind == wire.KindAppsVersion {
+				var body wire.AppsVersionBody
+				if f.Decode(&body) == nil && body.Version > 0 {
+					c.appsVersion.Store(body.Version)
+					go a.relayManaged(context.Background(), c) // the manager learns at once
+				}
+				continue
+			}
 			if f.Kind != wire.KindRobotEvent {
 				continue // heartbeats: the socket being alive is enough
 			}
@@ -296,10 +304,6 @@ func (a *App) readLoop(c *robotConn) {
 				continue
 			}
 			a.robotEvent(c.id, ev)
-			if v, ok := ev.Data["version"].(float64); ok && ev.Name == "apps_updated" {
-				c.appsVersion.Store(int32(v))
-				go a.relayManaged(context.Background(), c) // the manager learns at once
-			}
 		}
 	}
 }
