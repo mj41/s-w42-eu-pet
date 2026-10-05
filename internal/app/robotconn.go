@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -50,6 +52,8 @@ type robotConn struct {
 
 	mgrToken    string       // a token from the manager: asked about again every minute (managed.go)
 	managedSent atomic.Int32 // the version of the signed app list relayed last
+	firmware    string       // from Register, for the manager (owner's page)
+	appsVersion atomic.Int32 // the app list version the robot has (label apps_ver, event apps_updated)
 }
 
 func (c *robotConn) close() {
@@ -126,6 +130,10 @@ func (a *App) handleRobotConnect(w http.ResponseWriter, r *http.Request) {
 	a.log.Info("robot connected", "robot", id, "firmware", reg.Capabilities.Firmware)
 	defer a.log.Info("robot disconnected", "robot", id)
 
+	c.firmware = reg.Capabilities.Firmware
+	if v, err := strconv.Atoi(reg.Labels["apps_ver"]); err == nil {
+		c.appsVersion.Store(int32(v))
+	}
 	a.attach(c, reg.Capabilities.Commands)
 	defer a.detach(c)
 	a.relayManaged(r.Context(), c)
@@ -287,6 +295,10 @@ func (a *App) readLoop(c *robotConn) {
 				continue
 			}
 			a.robotEvent(c.id, ev)
+			if v, ok := ev.Data["version"].(float64); ok && ev.Name == "apps_updated" {
+				c.appsVersion.Store(int32(v))
+				go a.relayManaged(context.Background(), c) // the manager learns at once
+			}
 		}
 	}
 }

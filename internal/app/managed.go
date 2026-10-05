@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"github.com/mj41/s-w42-eu-raw/robotauth"
 	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
@@ -16,7 +17,7 @@ func (a *App) relayManaged(ctx context.Context, c *robotConn) {
 	if a.cfg.Manager == nil || c.mgrToken == "" {
 		return
 	}
-	auth, err := a.cfg.Manager.Check(ctx, c.id, c.mgrToken)
+	auth, err := a.cfg.Manager.Seen(ctx, c.id, c.mgrToken, robotauth.Seen{Firmware: c.firmware, AppsVersion: c.appsVersion.Load()})
 	if err != nil || !auth.OK || auth.Managed == nil {
 		return
 	}
