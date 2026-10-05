@@ -18,8 +18,7 @@ import (
 )
 
 const (
-	ssoTriedCookie   = "pet_sso_tried"  // a silent sign-in was tried lately: not again yet
-	ssoRetry         = 10 * time.Minute // how often a page load tries the silent sign-in
+	ssoTriedCookie   = "pet_sso_tried" // the manager's hint a silent sign-in was tried with
 	signInCheckEvery = time.Minute
 )
 
@@ -100,15 +99,16 @@ func localPath(next string) string {
 	return next
 }
 
-// trySignIn wraps a page: a browser not signed in here goes to the manager silently first (at
-// most every ssoRetry), and comes back signed in if it is signed in there.
+// trySignIn wraps a page: a browser not signed in here, but signed in at the manager lately (its
+// hint cookie, sso.HintCookie), goes there silently once and comes back signed in.
 func (a *App) trySignIn(page http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if a.cfg.SignIn == nil || r.URL.Query().Has("signin") {
 			page(w, r)
 			return
 		}
-		if _, err := r.Cookie(ssoTriedCookie); err == nil { // tried lately
+		hint := sso.SilentHint(r, ssoTriedCookie)
+		if hint == "" {
 			page(w, r)
 			return
 		}
@@ -121,8 +121,7 @@ func (a *App) trySignIn(page http.HandlerFunc) http.HandlerFunc {
 			page(w, r)
 			return
 		}
-		http.SetCookie(w, &http.Cookie{Name: ssoTriedCookie, Value: "1", Path: "/", MaxAge: int(ssoRetry / time.Second),
-			HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: strings.HasPrefix(a.cfg.PublicURL, "https://")})
+		sso.MarkTried(w, ssoTriedCookie, hint, strings.HasPrefix(a.cfg.PublicURL, "https://"))
 		http.Redirect(w, r, a.cfg.SignIn.LoginURL(a.ssoReturn(r.URL.RequestURI()), true), http.StatusFound)
 	}
 }

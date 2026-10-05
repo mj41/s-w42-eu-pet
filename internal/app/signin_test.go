@@ -82,7 +82,7 @@ func TestParentSignsIn(t *testing.T) {
 	r := e.connectRobotAs("robot-2", "own-token", nil)
 
 	kid := e.browser()
-	kid.pair(r) // the page load tries the manager silently first: nobody signed in there
+	kid.pair(r) // no hint from the manager: no trip there
 	if code, out := kid.get("/api/parent"); code != http.StatusOK || out["unlocked"] != false || out["sign_in"] != true || out["signed_in"] != false {
 		t.Fatalf("kid: %d %v", code, out)
 	}
