@@ -134,20 +134,31 @@ go run ./cmd/s-w42-eu-pet -tz Europe/Prague
 | `-debug` | off | debug logging |
 | `-ui-dir` | | development: serve the pages from disk (`internal/app/ui`) |
 
-The default token file is [s-w42-eu-raw](https://github.com/mj41/s-w42-eu-raw)'s,
-so that server can offer the pet to its robots:
+The default token file is [s-w42-eu-raw](https://github.com/mj41/s-w42-eu-raw)'s, so both
+accept the same shared robot token.
 
-```sh
-s-w42-eu-raw -offer Pet=ws://192.168.1.10:8770,$HOME/.config/stackchan-server/robot-token
+A robot's apps come from its [Stackchan manager](https://github.com/mj41/s-w42-eu-manager). At
+home, add the pet to the home manager's catalog, `~/.config/s-w42-eu-manager/apps.json`
+([The app catalog](https://github.com/mj41/s-w42-eu-manager#the-app-catalog)), with a secret in a
+file of its own (e.g. `openssl rand -hex 32 > ~/.config/s-w42-eu-manager/pet-secret`):
+
+```json
+{"id": "pet", "name": "Pet", "url": "ws://192.168.1.10:8770", "secret_file": "/home/me/.config/s-w42-eu-manager/pet-secret"}
 ```
 
-Robots set up by a [Stackchan manager](https://github.com/mj41/s-w42-eu-manager) connect with
-a token of their own for the pet, which it checks with the manager (`-manager-url`; the package
+and run the pet with it:
+
+```sh
+s-w42-eu-pet -manager-url http://127.0.0.1:8790 -manager-secret-file ~/.config/s-w42-eu-manager/pet-secret
+```
+
+Robots set up by the manager then get the pet, with a token of their own for it, which the pet
+checks with the manager (the package
 [robotauth](https://github.com/mj41/s-w42-eu-raw/tree/main/robotauth)); the debug API
 (`POST /api/debug/{id}/run`) takes only the shared token. A `v*` tag builds the image
 `ghcr.io/mj41/s-w42-eu-pet:<tag>` (Alpine with ffmpeg and espeak-ng for the voice).
 
-The robot adds the offer to its server list; switching to it:
+Switching the robot to it:
 [SETUP.md, More servers and apps](https://github.com/mj41/StackChan/blob/embody-mj41/firmware/main/apps/app_embody_mode/SETUP.md#more-servers-and-apps).
 Then scan the pet's QR code with the kid's phone.
 
@@ -203,7 +214,7 @@ once, clone it next to this repo and add an uncommitted `go.work`
 ## Related projects
 
 - [StackChan fork, branch `embody-mj41`](https://github.com/mj41/StackChan/tree/embody-mj41): the robot's firmware, Embody Mode.
-- [s-w42-eu-raw](https://github.com/mj41/s-w42-eu-raw): the `wire` package, and the full dashboard, which offers the pet to its robots.
+- [s-w42-eu-raw](https://github.com/mj41/s-w42-eu-raw): the `wire` package, and the full dashboard.
 - [s-w42-eu-sbot](https://github.com/mj41/s-w42-eu-sbot): another app server on the same protocol (a cockpit for the robot and a TPBot car).
 - [home-w42-eu](https://github.com/mj41/home-w42-eu): the platform this is part of. All the repos: [The repos today](https://github.com/mj41/home-w42-eu#the-repos-today).
 
