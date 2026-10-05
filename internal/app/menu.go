@@ -42,9 +42,8 @@ var menus = map[string][]menuItem{
 		{"back", "menu-back.png", 160, 206},
 	},
 	"play": {
-		{"play:catch", "menu-catch.png", 56, 100},
-		{"play:colors", "menu-colors.png", 160, 100},
-		{"play:dance", "menu-dance.png", 264, 100},
+		{"play:catch", "menu-catch.png", 100, 100},
+		{"play:colors", "menu-colors.png", 220, 100},
 		{"back", "menu-back.png", 160, 206},
 	},
 }
@@ -132,8 +131,6 @@ func (a *App) menuTap(r *robot, sprite string, now time.Time) {
 		re = a.playAction(r, now)
 	case action == "play:colors":
 		re = a.colorsAction(r, now)
-	case action == "play:dance":
-		re = p.Play(now)
 	case action == "nap":
 		re = p.Nap(now)
 	default: // back to the face, the backdrop, or a tap next to the tiles

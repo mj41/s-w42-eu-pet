@@ -302,7 +302,7 @@ const (
 	MainTile  = 84 // main menu: square
 	FoodTileW = 92 // food menu
 	FoodTileH = 76
-	PlayTileW = 96 // play menu (three tiles)
+	PlayTileW = 96 // play menu (two tiles)
 	PlayTileH = 110
 	BackTileW = 120 // the back button at the bottom
 	BackTileH = 44
@@ -316,7 +316,6 @@ func menuTilesList() []tile {
 		{"menu-needs", "needs", tilePink, MainTile, MainTile},
 		{"menu-back", "back", tileGrey, BackTileW, BackTileH},
 		{"menu-catch", "ball", tileGreen, PlayTileW, PlayTileH},
-		{"menu-dance", "party", tileBlue, PlayTileW, PlayTileH},
 		{"menu-colors", "colors", tileCream, PlayTileW, PlayTileH},
 	}
 	for _, f := range []string{"apple", "carrot", "banana", "bread", "milk", "cake"} {

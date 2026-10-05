@@ -106,7 +106,7 @@ there, instead of flipping the behaviour back and forth.
 - **M3** Menus are still pictures (sprites) the robot reports taps on:
   - main: food, play, nap, needs (a 2×2 grid);
   - food: the six foods;
-  - play: catch the ball, the color game, dance;
+  - play: catch the ball, the color game;
   - needs: the needs picture with all three bars.
 - **M4** Every menu screen has the same back arrow at the bottom center, and
   no other close control. Back goes to the menu it came from; on the main menu
