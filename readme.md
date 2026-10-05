@@ -3,7 +3,8 @@
 A Tamagotchi for [Stackchan](https://github.com/m5stack/StackChan) robots
 running Embody Mode. The pet lives on this server; the robot is its body.
 Kids play with the robot itself and with a picture page on a phone or tablet.
-Parents set the daily routine behind a PIN.
+Parents set the daily routine on a page of their own: signed in as the robot's owner
+(pet.sa.w42.eu), or behind a PIN (a pet at home).
 
 It is a separate server that the robot switches to from its QR screen
 (Next, then Connect). It speaks the Embody Mode protocol from
@@ -73,8 +74,14 @@ then.
 
 ## Parent page
 
-`/parent` asks for a PIN; the first PIN entered becomes the PIN. A parent's
-phone can be marked as such: it then stays unlocked until its Lock button.
+`/parent` is for the robot's owner. With sign-in through a Stackchan manager
+(`-manager-sign-in`, as on pet.sa.w42.eu) the owner signs in (one sign-in for all the manager's
+apps; package [sso](https://github.com/mj41/s-w42-eu-raw/tree/main/sso)): the manager says whose
+robot it is, the owner's signed-in browsers get it without the QR code, and nobody else gets
+the parent page; robots with the shared token belong to `-admin-emails`. Kids pair by the QR
+code without an account. Without sign-in (a pet at home) `/parent` asks for a PIN; the first PIN
+entered becomes the PIN. A parent's phone can be marked as such: it then stays unlocked until
+its Lock button.
 Settings ([A1–A8](docs/requirements.md#parent-page)):
 
 - name, language (Czech or English), difficulty (how fast needs drop)
@@ -119,6 +126,8 @@ go run ./cmd/s-w42-eu-pet -tz Europe/Prague
 | `-debug-dir` | `~/.cache/stackchan-pet/screens` | screen snapshots from `POST /api/debug/{id}/run` |
 | `-manager-url` | | the Stackchan manager that set robots up with a token of their own for this app, e.g. `https://sm.w42.eu`; the pet checks those tokens with it |
 | `-manager-secret-file` | | this app's secret at the manager |
+| `-manager-sign-in` | off | sign in through the manager: the parent page is the robot owner's, no PIN |
+| `-admin-emails` | | with `-manager-sign-in`: verified e-mails, the parents of robots with the shared token |
 | `-debug` | off | debug logging |
 | `-ui-dir` | | development: serve the pages from disk (`internal/app/ui`) |
 

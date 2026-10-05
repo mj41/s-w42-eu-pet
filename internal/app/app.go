@@ -26,23 +26,26 @@ import (
 	"github.com/mj41/s-w42-eu-pet/internal/pet"
 	"github.com/mj41/s-w42-eu-pet/internal/voice"
 	"github.com/mj41/s-w42-eu-raw/robotauth"
+	"github.com/mj41/s-w42-eu-raw/sso"
 	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
 // Config configures an App.
 type Config struct {
-	RobotToken string            // the shared bearer token of the owner's robots (and of /api/debug)
-	Manager    *robotauth.Client // robots set up by a Stackchan manager, with a token of their own; nil = none
-	PublicURL  string            // base URL browsers use, e.g. http://192.168.1.10:8770
-	PairTTL    time.Duration     // lifetime of a pairing code
-	StateFile  string            // JSON file with pets and pairings; "" keeps them in memory only
-	UIDir      string            // development: serve the pages from this directory (e.g. internal/app/ui)
-	Location   *time.Location    // the family's time zone for the schedule; default time.Local
-	Log        *slog.Logger
-	Now        func() time.Time // tests; default time.Now
-	DebugDir   string           // where screen snapshots from the robot are saved (debug.go); "" = not saved
-	PhotoDir   string           // the color game's leaderboard photos (photos.go); "" = no photos
-	Voice      *voice.Synth     // the pet's voice (voice.go); nil = silent lines
+	RobotToken  string            // the shared bearer token of the owner's robots (and of /api/debug)
+	Manager     *robotauth.Client // robots set up by a Stackchan manager, with a token of their own; nil = none
+	SignIn      *sso.Client       // sign-in through that manager (signin.go): the parent page is the owner's; nil = PIN
+	AdminEmails []string          // with SignIn: parents of the robots with the shared token
+	PublicURL   string            // base URL browsers use, e.g. http://192.168.1.10:8770
+	PairTTL     time.Duration     // lifetime of a pairing code
+	StateFile   string            // JSON file with pets and pairings; "" keeps them in memory only
+	UIDir       string            // development: serve the pages from this directory (e.g. internal/app/ui)
+	Location    *time.Location    // the family's time zone for the schedule; default time.Local
+	Log         *slog.Logger
+	Now         func() time.Time // tests; default time.Now
+	DebugDir    string           // where screen snapshots from the robot are saved (debug.go); "" = not saved
+	PhotoDir    string           // the color game's leaderboard photos (photos.go); "" = no photos
+	Voice       *voice.Synth     // the pet's voice (voice.go); nil = silent lines
 }
 
 // App holds all state. One mutex guards everything; robot sockets only queue messages.
@@ -74,6 +77,9 @@ type session struct {
 	locked       bool      // a parent's device locked with the button: the PIN again
 	pinFails     int
 	pinFailAt    time.Time
+
+	account *sso.Account // signed in through the manager (signin.go)
+	handle  string       // that sign-in's handle at the manager
 }
 
 // robot is one robot and its pet; it stays after the robot disconnects.
@@ -81,6 +87,7 @@ type robot struct {
 	id          string
 	pet         *pet.Pet
 	pinHash     string               // "salt:sha256hex" of the parent PIN, "" = not set yet
+	owner       string               // the owner's account key, from the manager; "" = the shared token
 	unknownTags map[string]time.Time // NFC tags without a chosen food: uid -> last seen
 
 	conn     *robotConn // nil while offline
@@ -175,9 +182,12 @@ func (a *App) now() time.Time { return a.cfg.Now().In(a.cfg.Location) }
 func (a *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+wire.ConnectPath, a.handleRobotConnect)
-	mux.HandleFunc("GET /{$}", a.page("index.html"))
-	mux.HandleFunc("GET /parent", a.page("parent.html"))
-	mux.HandleFunc("GET /pair", a.handlePair)
+	mux.HandleFunc("GET /{$}", a.trySignIn(a.page("index.html")))
+	mux.HandleFunc("GET /parent", a.trySignIn(a.page("parent.html")))
+	mux.HandleFunc("GET /pair", a.trySignIn(a.handlePair))
+	mux.HandleFunc("GET /auth/login", a.handleLogin)
+	mux.HandleFunc("GET /auth/sso", a.handleSSOReturn)
+	mux.HandleFunc("POST /auth/logout", a.handleLogout)
 	mux.HandleFunc("GET /api/state", a.handleState)
 	mux.HandleFunc("GET /api/events", a.handleEvents)
 	mux.HandleFunc("POST /api/action", a.handleAction)
@@ -207,6 +217,9 @@ func (a *App) tokenOK(token string) bool {
 // gave this robot for this app (robotauth).
 func (a *App) robotOK(ctx context.Context, id, token string) bool {
 	if a.tokenOK(token) {
+		a.mu.Lock()
+		a.setOwnerLocked(id, "")
+		a.mu.Unlock()
 		return true
 	}
 	if a.cfg.Manager == nil || token == "" {
@@ -215,6 +228,11 @@ func (a *App) robotOK(ctx context.Context, id, token string) bool {
 	auth, err := a.cfg.Manager.Check(ctx, id, token)
 	if err != nil {
 		a.log.Warn("manager", "robot", id, "err", err)
+	}
+	if auth.OK {
+		a.mu.Lock()
+		a.setOwnerLocked(id, auth.Owner)
+		a.mu.Unlock()
 	}
 	return auth.OK
 }
@@ -348,11 +366,19 @@ type stateFile struct {
 	Sessions map[string][]string   `json:"sessions"`
 	// Parent devices (session id -> locked): their parent page stays unlocked.
 	ParentDevices map[string]bool `json:"parent_devices,omitempty"`
+	// Sessions signed in through the manager (signin.go).
+	SignIns map[string]savedSignIn `json:"sign_ins,omitempty"`
+}
+
+type savedSignIn struct {
+	Account sso.Account `json:"account"`
+	Handle  string      `json:"handle"`
 }
 
 type savedRobot struct {
 	Pet         *pet.Pet             `json:"pet"`
 	PINHash     string               `json:"pin_hash,omitempty"`
+	Owner       string               `json:"owner,omitempty"`
 	UnknownTags map[string]time.Time `json:"unknown_tags,omitempty"`
 }
 
@@ -373,11 +399,18 @@ func (a *App) load() error {
 		if sr.UnknownTags == nil {
 			sr.UnknownTags = map[string]time.Time{}
 		}
-		a.robots[id] = &robot{id: id, pet: sr.Pet, pinHash: sr.PINHash, unknownTags: sr.UnknownTags}
+		a.robots[id] = &robot{id: id, pet: sr.Pet, pinHash: sr.PINHash, owner: sr.Owner, unknownTags: sr.UnknownTags}
 	}
 	for sid, ids := range st.Sessions {
 		if validSessionID(sid) {
 			a.sessions[sid] = &session{Robots: ids}
+		}
+	}
+	for sid, si := range st.SignIns {
+		if validSessionID(sid) && si.Handle != "" && a.cfg.SignIn != nil {
+			s := a.sessionFor(sid)
+			acct := si.Account
+			s.account, s.handle = &acct, si.Handle
 		}
 	}
 	for sid, locked := range st.ParentDevices {
@@ -401,12 +434,15 @@ func (a *App) Save() error {
 		a.mu.Unlock()
 		return nil
 	}
-	st := stateFile{Robots: map[string]savedRobot{}, Sessions: map[string][]string{}, ParentDevices: map[string]bool{}}
+	st := stateFile{Robots: map[string]savedRobot{}, Sessions: map[string][]string{}, ParentDevices: map[string]bool{}, SignIns: map[string]savedSignIn{}}
 	for id, r := range a.robots {
 		r.pet.Advance(a.now())
-		st.Robots[id] = savedRobot{Pet: r.pet, PINHash: r.pinHash, UnknownTags: r.unknownTags}
+		st.Robots[id] = savedRobot{Pet: r.pet, PINHash: r.pinHash, Owner: r.owner, UnknownTags: r.unknownTags}
 	}
 	for sid, s := range a.sessions {
+		if s.account != nil {
+			st.SignIns[sid] = savedSignIn{Account: *s.account, Handle: s.handle}
+		}
 		if len(s.Robots) > 0 {
 			st.Sessions[sid] = s.Robots
 			if s.parentDevice {

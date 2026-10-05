@@ -334,7 +334,7 @@ func (a *App) parentRobot(w http.ResponseWriter, r *http.Request, sid string) *r
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not_paired"})
 		return nil
 	}
-	if s := a.sessions[sid]; s == nil || !s.parentUnlocked(a.cfg.Now()) {
+	if !a.isParent(a.sessions[sid], rb) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "locked"})
 		return nil
 	}
@@ -351,14 +351,23 @@ func (a *App) handleParent(w http.ResponseWriter, r *http.Request) {
 	sid := a.sessionID(w, r)
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	a.pairOwnedLocked(sid) // robots that connected since sign-in
+	s := a.sessionFor(sid)
+	signIn := map[string]any{"sign_in": a.cfg.SignIn != nil, "signed_in": s.account != nil}
+	if s.account != nil {
+		signIn["name"] = s.account.Name
+	}
 	rb := a.pairedRobot(sid, r.URL.Query().Get("robot"))
 	if rb == nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not_paired"})
+		signIn["error"] = "not_paired"
+		writeJSON(w, http.StatusNotFound, signIn)
 		return
 	}
-	s := a.sessionFor(sid)
-	unlocked := s.parentUnlocked(a.cfg.Now())
+	unlocked := a.isParent(s, rb)
 	out := map[string]any{"has_pin": rb.pinHash != "", "unlocked": unlocked, "lang": rb.pet.Settings.Lang, "parent_device": s.parentDevice}
+	for k, v := range signIn {
+		out[k] = v
+	}
 	if unlocked {
 		now := a.now()
 		p := rb.pet
@@ -389,6 +398,10 @@ func (a *App) handleParent(w http.ResponseWriter, r *http.Request) {
 
 // handleUnlock checks the PIN; the first PIN ever entered becomes the PIN.
 func (a *App) handleUnlock(w http.ResponseWriter, r *http.Request) {
+	if a.cfg.SignIn != nil { // the owner signs in instead (signin.go)
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "sign_in"})
+		return
+	}
 	sid := a.sessionID(w, r)
 	var req struct {
 		PIN      string `json:"pin"`
@@ -443,6 +456,10 @@ func (s *session) parentUnlocked(now time.Time) bool {
 }
 
 func (a *App) handleLock(w http.ResponseWriter, r *http.Request) {
+	if a.cfg.SignIn != nil { // the owner signs in instead (signin.go)
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "sign_in"})
+		return
+	}
 	sid := a.sessionID(w, r)
 	a.mu.Lock()
 	s := a.sessionFor(sid)
@@ -458,6 +475,10 @@ func (a *App) handleLock(w http.ResponseWriter, r *http.Request) {
 // handleDevice marks this device as a parent's (stays unlocked) or not (the PIN
 // again after a while). Only while unlocked.
 func (a *App) handleDevice(w http.ResponseWriter, r *http.Request) {
+	if a.cfg.SignIn != nil { // the owner signs in instead (signin.go)
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "sign_in"})
+		return
+	}
 	sid := a.sessionID(w, r)
 	var req struct {
 		Parent bool `json:"parent"`
@@ -523,6 +544,10 @@ func (a *App) handleSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handlePIN(w http.ResponseWriter, r *http.Request) {
+	if a.cfg.SignIn != nil { // the owner signs in instead (signin.go)
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "sign_in"})
+		return
+	}
 	sid := a.sessionID(w, r)
 	var req struct {
 		PIN string `json:"pin"`

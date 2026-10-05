@@ -62,12 +62,18 @@
     <h1 data-t="title"></h1>
     <a href="/" data-t="toKid"></a>
     <button id="lockBtn" class="hidden" data-t="lock"></button>
+    <button id="signOutBtn" class="hidden" data-t="signOut"></button>
   </header>
 
-  <section id="notPaired" class="hidden"><p data-t="notPaired"></p></section>
+  <section id="notPaired" class="hidden"><p data-t="notPaired"></p>
+    <p id="notPairedSignIn" class="hidden"><span data-t="notPairedSignIn"></span> <a href="/auth/login?next=/parent" data-t="signIn"></a></p></section>
 
   <section id="lock" class="lock hidden">
     <h2 id="lockTitle"></h2>
+    <div id="signInBox" class="hidden">
+      <p id="signInText"></p>
+      <p><a id="signInBtn" href="/auth/login?next=/parent" data-t="signIn"></a></p>
+    </div>
     <form id="pinForm">
       <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" pattern="[0-9]*">
       <p><label><input id="remember" type="checkbox"> <span data-t="parentDevice"></span></label></p>
@@ -175,10 +181,12 @@
 
     <section>
       <h2 data-t="advanced"></h2>
+      <div id="pinRows">
       <div class="row"><label for="newPin" data-t="newPin"></label>
         <input id="newPin" type="password" inputmode="numeric" maxlength="8" pattern="[0-9]*"><button id="pinSave" data-t="change"></button><span id="pinSaved" class="saved" data-t="saved"></span></div>
       <div class="row"><label><input id="parentDeviceOn" type="checkbox"> <span data-t="parentDevice"></span></label></div>
       <p class="hint" data-t="parentDeviceHint"></p>
+      </div>
       <div class="row"><button class="danger" id="reset" data-t="reset"></button></div>
       <p class="hint" data-t="resetHint"></p>
     </section>
@@ -198,6 +206,10 @@
 const T = {
   cs: {
     title: "Nastavení pro rodiče", toKid: "Zpět k mazlíčkovi", lock: "Zamknout",
+    signIn: "Přihlásit se", signOut: "Odhlásit", ownerOnly: "Jen pro majitele robota",
+    signInHint: "Přihlas se účtem, kterým byl robot nastavený.",
+    notOwner: n => `Jsi přihlášen(a) jako ${n}, ale robot patří jinému účtu.`,
+    notPairedSignIn: "Majitel robota se může rovnou přihlásit:",
     parentDevice: "Toto je zařízení rodiče (zůstane odemčené)",
     parentDeviceHint: "Na tomto zařízení se stránka pro rodiče nezamyká, dokud nestiskneš Zamknout. Nezaškrtávej na zařízení, které používá dítě.",
     notPaired: "Nejdřív naskenuj QR kód na robotovi, pak otevři tuto stránku znovu.",
@@ -244,6 +256,10 @@ const T = {
   },
   en: {
     title: "Parent settings", toKid: "Back to the pet", lock: "Lock",
+    signIn: "Sign in", signOut: "Sign out", ownerOnly: "For the robot's owner",
+    signInHint: "Sign in with the account that set the robot up.",
+    notOwner: n => `Signed in as ${n}, but the robot belongs to another account.`,
+    notPairedSignIn: "The robot's owner can sign in instead:",
     parentDevice: "This is a parent's device (stays unlocked)",
     parentDeviceHint: "On this device the parent page stays unlocked until you press Lock. Don't tick it on a device the kid uses.",
     notPaired: "Scan the QR code on the robot first, then open this page again.",
@@ -310,12 +326,24 @@ async function load() {
   const { status, out } = await api("/api/parent");
   lang = out.lang || lang;
   texts();
+  const signIn = !!out.sign_in;
+  show("signOutBtn", signIn && out.signed_in);
   show("notPaired", status === 404);
+  show("notPairedSignIn", status === 404 && signIn && !out.signed_in);
   if (status === 404) { show("lock", false); show("panel", false); return; }
   data = out;
-  show("lockBtn", out.unlocked);
+  show("lockBtn", out.unlocked && !signIn);
+  show("pinRows", !signIn);
   show("lock", !out.unlocked);
   show("panel", out.unlocked);
+  show("pinForm", !signIn);
+  show("signInBox", signIn);
+  if (!out.unlocked && signIn) {
+    $("lockTitle").textContent = t("ownerOnly");
+    $("signInText").textContent = out.signed_in ? t("notOwner")(out.name || "?") : t("signInHint");
+    show("signInBtn", !out.signed_in);
+    return;
+  }
   if (!out.unlocked) {
     $("lockTitle").textContent = out.has_pin ? t("enterPin") : t("setPin");
     $("pinHint").textContent = out.has_pin ? "" : t("setPinHint");
@@ -464,6 +492,7 @@ $("pinForm").onsubmit = async e => {
   if (ok) load();
 };
 $("lockBtn").onclick = async () => { await api("/api/parent/lock", {}); load(); };
+$("signOutBtn").onclick = async () => { await api("/auth/logout", {}); load(); };
 $("parentDeviceOn").onchange = async () => { await api("/api/parent/device", { parent: $("parentDeviceOn").checked }); load(); };
 for (const id of ["Food", "Fun", "Energy"]) $("e" + id).oninput = () => $("v" + id).textContent = $("e" + id).value;
 const setNeeds = async (v) => {

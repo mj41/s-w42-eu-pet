@@ -76,8 +76,14 @@ func (e *env) connectRobot(id string) *fakeRobot {
 // connectRobotWith registers a robot that accepts these commands.
 func (e *env) connectRobotWith(id string, commands []string) *fakeRobot {
 	e.t.Helper()
+	return e.connectRobotAs(id, testToken, commands)
+}
+
+// connectRobotAs registers a robot with this token.
+func (e *env) connectRobotAs(id, token string, commands []string) *fakeRobot {
+	e.t.Helper()
 	h := http.Header{}
-	h.Set("Authorization", "Bearer "+testToken)
+	h.Set("Authorization", "Bearer "+token)
 	h.Set(wire.DeviceIDHeader, id)
 	ws, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(e.srv.URL, "http")+wire.ConnectPath, h)
 	if err != nil {

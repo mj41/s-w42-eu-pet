@@ -29,6 +29,7 @@ import (
 	"github.com/mj41/s-w42-eu-pet/internal/app"
 	"github.com/mj41/s-w42-eu-pet/internal/voice"
 	"github.com/mj41/s-w42-eu-raw/robotauth"
+	"github.com/mj41/s-w42-eu-raw/sso"
 )
 
 func main() {
@@ -47,6 +48,8 @@ func main() {
 		debugDir  = flag.String("debug-dir", defaultCacheDir("screens"), "where screen snapshots from the robot are saved (POST /api/debug/{id}/run)")
 		mgrURL    = flag.String("manager-url", "", "the Stackchan manager that set robots up with tokens for this app, e.g. https://sm.w42.eu (\"\" = none)")
 		mgrSecret = flag.String("manager-secret-file", "", "file with this app's secret at the manager")
+		mgrSignIn = flag.Bool("manager-sign-in", false, "sign in through the manager (-manager-url): the parent page is the robot owner's, no PIN")
+		admins    = flag.String("admin-emails", "", "with -manager-sign-in: comma-separated verified e-mails, the parents of robots with the shared token")
 	)
 	flag.Parse()
 
@@ -81,30 +84,39 @@ func main() {
 		synth = &voice.Synth{FFmpeg: *ffmpeg, Espeak: *espeak, CacheDir: *voiceDir}
 	}
 	var manager *robotauth.Client
+	var signIn *sso.Client
 	if *mgrURL != "" {
 		b, err := os.ReadFile(*mgrSecret)
 		if err != nil || strings.TrimSpace(string(b)) == "" {
 			fail("manager secret file", fmt.Errorf("%s: %v", *mgrSecret, err))
 		}
 		manager = robotauth.New(*mgrURL, strings.TrimSpace(string(b)))
+		if *mgrSignIn {
+			signIn = sso.New(*mgrURL, strings.TrimSpace(string(b)))
+		}
+	} else if *mgrSignIn {
+		fail("-manager-sign-in", errors.New("needs -manager-url and -manager-secret-file"))
 	}
 	a := app.New(app.Config{
-		RobotToken: token,
-		Manager:    manager,
-		PublicURL:  strings.TrimRight(*publicURL, "/"),
-		StateFile:  *stateFile,
-		UIDir:      *uiDir,
-		Location:   loc,
-		Log:        log,
-		DebugDir:   *debugDir,
-		PhotoDir:   photoDir(*stateFile),
-		Voice:      synth,
+		RobotToken:  token,
+		Manager:     manager,
+		SignIn:      signIn,
+		AdminEmails: splitList(*admins),
+		PublicURL:   strings.TrimRight(*publicURL, "/"),
+		StateFile:   *stateFile,
+		UIDir:       *uiDir,
+		Location:    loc,
+		Log:         log,
+		DebugDir:    *debugDir,
+		PhotoDir:    photoDir(*stateFile),
+		Voice:       synth,
 	})
 	srv := &http.Server{Addr: *listen, Handler: a.Handler(), ReadHeaderTimeout: 10 * time.Second}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go a.Run(ctx)
+	go a.RunSignInCheck(ctx)
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -210,4 +222,14 @@ func photoDir(stateFile string) string {
 		return ""
 	}
 	return filepath.Join(filepath.Dir(stateFile), "photos")
+}
+
+func splitList(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

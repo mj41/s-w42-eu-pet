@@ -1,6 +1,4 @@
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/mj41/s-w42-eu-raw v0.11.0 h1:wwSIyVHqQ/xkrOAu7Kv55Sf4v+u/5LUx/8WLIRljOKk=
-github.com/mj41/s-w42-eu-raw v0.11.0/go.mod h1:hsgSi9FEk7vSkVeJ68ebsmvU5i4BCqJii73TWEZUF+w=
-github.com/mj41/s-w42-eu-raw v0.13.0 h1:kCKNnp1L2cWKo2rscBKB+yJbC+KZhtUBcSFSQYnvhqA=
-github.com/mj41/s-w42-eu-raw v0.13.0/go.mod h1:rvmn6HTmN8hg96pyEg/XexssQGXBNLMemiT6CuqutSk=
+github.com/mj41/s-w42-eu-raw v0.14.0 h1:dyzS+3FaEI1SDTvGUMyLTlIDTGSvGMk5aJbk5UE2W4Y=
+github.com/mj41/s-w42-eu-raw v0.14.0/go.mod h1:2ps9FXJX79lwrvPoSvwN5y7Jt+lUwUs0dPdxfcvJ3CM=
