@@ -21,6 +21,11 @@ func (a *App) reportSeen(ctx context.Context, c *robotConn) {
 	if err != nil || !auth.OK {
 		return
 	}
+	a.mu.Lock() // a new owner (two users joined at the manager): now, not at the robot's next connect
+	if rb := a.robots[c.id]; rb != nil && auth.Owner != "" && rb.owner != auth.Owner {
+		a.setOwnerLocked(c.id, auth.Owner)
+	}
+	a.mu.Unlock()
 	a.unpair(c.id, auth.Unpair)
 }
 

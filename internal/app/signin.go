@@ -208,9 +208,22 @@ func (a *App) checkSignIns(ctx context.Context) {
 	}
 	a.mu.Unlock()
 	for sid, h := range handles {
-		on, err := a.cfg.SignIn.Check(ctx, h)
+		acct, on, err := a.cfg.SignIn.Check(ctx, h)
 		if err != nil {
 			a.log.Warn("sign-in check", "err", err)
+		}
+		if on && acct != nil && acct.Key != "" {
+			a.mu.Lock()
+			if s := a.sessions[sid]; s != nil && s.handle == h && s.account != nil && *s.account != *acct {
+				changed := s.account.Key != acct.Key
+				fresh := *acct
+				s.account = &fresh // e.g. the manager joined two sign-ins into one user
+				if changed {
+					a.pairOwnedLocked(sid)
+				}
+				a.dirty = true
+			}
+			a.mu.Unlock()
 		}
 		if !on {
 			a.mu.Lock()

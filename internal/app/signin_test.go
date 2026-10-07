@@ -54,8 +54,8 @@ func newSignInManager(t *testing.T) *signInManager {
 			}
 			json.NewEncoder(w).Encode(sso.Answer{OK: ok, Handle: "h" + a.Key, Account: &a, CacheS: 60})
 		case "/api/sso/check":
-			_, ok := m.handles[req.Handle]
-			json.NewEncoder(w).Encode(sso.Answer{OK: ok})
+			a, ok := m.handles[req.Handle]
+			json.NewEncoder(w).Encode(sso.Answer{OK: ok, Account: &a})
 		case "/api/sso/logout":
 			delete(m.handles, req.Handle)
 			w.WriteHeader(http.StatusNoContent)
@@ -120,5 +120,33 @@ func TestParentSignsIn(t *testing.T) {
 	e.app.checkSignIns(t.Context())
 	if _, out := ema.get("/api/parent"); out["unlocked"] != false || out["signed_in"] != false {
 		t.Fatalf("owner after signing out everywhere: %v", out)
+	}
+}
+
+// The manager joins a person's sign-ins into one user: the session's account becomes the user's at
+// the next check, and with it the robot that user owns (its parent page), without signing in again.
+func TestParentJoinedAtTheManager(t *testing.T) {
+	m := newSignInManager(t)
+	e := newEnv(t, "")
+	e.app.cfg.Manager = robotauth.New(m.ts.URL, "app-secret")
+	e.app.cfg.SignIn = sso.New(m.ts.URL, "app-secret")
+	e.connectRobotAs("robot-2", "own-token", nil) // owned by "ema"
+
+	ema := e.browser()
+	m.signInNext("ema-google", "Ema") // another sign-in of hers, not yet joined
+	ema.get("/auth/login?next=/parent")
+	if _, out := ema.get("/api/parent"); out["unlocked"] == true || out["signed_in"] != true {
+		t.Fatalf("before the join: %v", out)
+	}
+	m.mu.Lock()
+	for h, a := range m.handles {
+		a.Key = "ema"
+		m.handles[h] = a
+	}
+	m.mu.Unlock()
+	e.app.cfg.SignIn = sso.New(m.ts.URL, "app-secret") // no cached answer
+	e.app.checkSignIns(t.Context())
+	if _, out := ema.get("/api/parent"); out["unlocked"] != true {
+		t.Fatalf("after the join: %v", out)
 	}
 }
