@@ -11,6 +11,8 @@ github.com/mj41/s-w42-eu-raw v0.20.0 h1:gcC1QtF6xhEEx4FJFgpcc2oYqjjnr8lzGsz69wNi
 github.com/mj41/s-w42-eu-raw v0.20.0/go.mod h1:2ps9FXJX79lwrvPoSvwN5y7Jt+lUwUs0dPdxfcvJ3CM=
 github.com/mj41/s-w42-eu-raw v0.22.0 h1:4hQyJc+vao4yOPELcFZsE+/Bh+bpYq/Rkr4RMpM09LE=
 github.com/mj41/s-w42-eu-raw v0.22.0/go.mod h1:Uf5Qf8an4c+txautfKfrIM53ltm1+KNBLOVgwmhfCN8=
+github.com/mj41/s-w42-eu-raw v0.22.2 h1:P1Wq+n/EaXfdECcXtKtK5ri9dzcyXc0O8B5U5FwmFdQ=
+github.com/mj41/s-w42-eu-raw v0.22.2/go.mod h1:Uf5Qf8an4c+txautfKfrIM53ltm1+KNBLOVgwmhfCN8=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
