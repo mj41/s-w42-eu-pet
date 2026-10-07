@@ -1,13 +1,14 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/mj41/s-w42-eu-raw/statestore"
 
 	"github.com/mj41/s-w42-eu-pet/internal/pet"
 	"github.com/mj41/s-w42-eu-pet/internal/robotpic"
@@ -29,7 +30,7 @@ const (
 
 // canPhoto: photos are kept, the parent allows them, the robot has a camera.
 func (a *App) canPhoto(r *robot) bool {
-	return a.cfg.PhotoDir != "" && r.pet.Settings.ColorPhotos && slices.Contains(r.commands, "snapshot")
+	return a.photos() && r.pet.Settings.ColorPhotos && slices.Contains(r.commands, "snapshot")
 }
 
 // boardAfterGame runs after the color game's time is said: the photo for a new place,
@@ -69,7 +70,7 @@ func (a *App) showBoard(r *robot) {
 	for _, e := range r.pet.ColorsTop {
 		var photo []byte
 		if e.Photo != "" {
-			photo, _ = os.ReadFile(filepath.Join(a.cfg.PhotoDir, e.Photo))
+			photo, _ = a.cfg.State.Blob(context.Background(), e.Photo)
 		}
 		entries = append(entries, robotpic.LeaderEntry{Photo: photo, Seconds: int(math.Round(float64(e.Ms) / 1000))})
 	}
@@ -96,11 +97,7 @@ func (a *App) robotSnapshot(id string, jpeg []byte) {
 		return // the entry left the board meanwhile (a parent cleared it)
 	}
 	name := fmt.Sprintf("%s-%d.jpg", safeName(r.id), at.UnixMilli())
-	if err := os.MkdirAll(a.cfg.PhotoDir, 0o700); err != nil {
-		a.log.Warn("photo not saved", "err", err)
-		return
-	}
-	if err := os.WriteFile(filepath.Join(a.cfg.PhotoDir, name), jpeg, 0o600); err != nil {
+	if err := a.cfg.State.PutBlob(context.Background(), name, jpeg); err != nil {
 		a.log.Warn("photo not saved", "err", err)
 		return
 	}
@@ -117,9 +114,21 @@ func (a *App) robotSnapshot(id string, jpeg []byte) {
 func (a *App) dropPhotos(before, after []pet.TopEntry) {
 	for _, e := range before {
 		if e.Photo != "" && !slices.ContainsFunc(after, func(k pet.TopEntry) bool { return k.Photo == e.Photo }) {
-			os.Remove(filepath.Join(a.cfg.PhotoDir, e.Photo))
+			a.cfg.State.DeleteBlob(context.Background(), e.Photo)
 		}
 	}
+}
+
+// photos: there is somewhere to keep them (a photo directory at home, the database in the
+// cluster).
+func (a *App) photos() bool {
+	if a.cfg.State == nil {
+		return false
+	}
+	if f, ok := a.cfg.State.(*statestore.File); ok {
+		return f.BlobDir != ""
+	}
+	return true
 }
 
 // safeName keeps letters, digits and dashes (a robot id in a file name).

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/mj41/s-w42-eu-pet/internal/robotpic"
+	"github.com/mj41/s-w42-eu-raw/statestore"
 	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
@@ -110,7 +112,8 @@ func TestSecondsText(t *testing.T) {
 func TestLeaderboardPhoto(t *testing.T) {
 	e := newEnv(t, "")
 	e.fastGame(300 * time.Millisecond)
-	e.app.cfg.PhotoDir = t.TempDir()
+	dir := t.TempDir()
+	e.app.cfg.State = &statestore.File{Path: filepath.Join(dir, "state.json"), BlobDir: filepath.Join(dir, "photos")}
 	r := e.connectRobotWith("robot-1", []string{"sprite", "assets", "snapshot"})
 	kid, stranger := e.browser(), e.browser()
 	kid.pair(r)

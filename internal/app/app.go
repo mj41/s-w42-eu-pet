@@ -16,8 +16,6 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -27,6 +25,7 @@ import (
 	"github.com/mj41/s-w42-eu-pet/internal/voice"
 	"github.com/mj41/s-w42-eu-raw/robotauth"
 	"github.com/mj41/s-w42-eu-raw/sso"
+	"github.com/mj41/s-w42-eu-raw/statestore"
 	"github.com/mj41/s-w42-eu-raw/wire"
 )
 
@@ -45,8 +44,11 @@ type Config struct {
 	Log         *slog.Logger
 	Now         func() time.Time // tests; default time.Now
 	DebugDir    string           // where screen snapshots from the robot are saved (debug.go); "" = not saved
-	PhotoDir    string           // the color game's leaderboard photos (photos.go); "" = no photos
-	Voice       *voice.Synth     // the pet's voice (voice.go); nil = silent lines
+	PhotoDir    string           // the color game's leaderboard photos (photos.go) next to StateFile; "" = no photos
+	// State: where pets, pairings and photos go instead of StateFile and PhotoDir (statestore: files,
+	// or Postgres in the cluster); nil = StateFile and PhotoDir.
+	State statestore.Store
+	Voice *voice.Synth // the pet's voice (voice.go); nil = silent lines
 }
 
 // App holds all state. One mutex guards everything; robot sockets only queue messages.
@@ -172,9 +174,12 @@ func New(cfg Config) *App {
 		subs:     map[*subscriber]struct{}{},
 		timing:   defaultTiming,
 	}
-	if cfg.StateFile != "" {
+	if a.cfg.State == nil && cfg.StateFile != "" {
+		a.cfg.State = &statestore.File{Path: cfg.StateFile, BlobDir: cfg.PhotoDir}
+	}
+	if a.cfg.State != nil {
 		if err := a.load(); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			a.log.Warn("state not loaded, starting empty", "file", cfg.StateFile, "err", err)
+			a.log.Warn("state not loaded, starting empty", "state", a.cfg.State.Where(), "err", err)
 		}
 	}
 	return a
@@ -414,9 +419,12 @@ type savedRobot struct {
 }
 
 func (a *App) load() error {
-	b, err := os.ReadFile(a.cfg.StateFile)
+	b, err := a.cfg.State.Load(context.Background())
 	if err != nil {
 		return err
+	}
+	if b == nil {
+		return fs.ErrNotExist
 	}
 	var st stateFile
 	if err := json.Unmarshal(b, &st); err != nil {
@@ -449,13 +457,13 @@ func (a *App) load() error {
 			s.parentDevice, s.locked = true, locked
 		}
 	}
-	a.log.Info("state loaded", "file", a.cfg.StateFile, "pets", len(a.robots), "sessions", len(a.sessions))
+	a.log.Info("state loaded", "state", a.cfg.State.Where(), "pets", len(a.robots), "sessions", len(a.sessions))
 	return nil
 }
 
-// Save writes the state file if anything changed (atomically: temp file, rename).
+// Save saves the state (cfg.State) if anything changed.
 func (a *App) Save() error {
-	if a.cfg.StateFile == "" {
+	if a.cfg.State == nil {
 		return nil
 	}
 	a.saveMu.Lock()
@@ -490,14 +498,13 @@ func (a *App) Save() error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(a.cfg.StateFile), 0o700); err != nil {
+	if err := a.cfg.State.Save(context.Background(), b); err != nil {
+		a.mu.Lock()
+		a.dirty = true // try again next time
+		a.mu.Unlock()
 		return err
 	}
-	tmp := a.cfg.StateFile + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, a.cfg.StateFile)
+	return nil
 }
 
 // Run drives the pets and passes on the manager's app lists (every 15 s: a switch the owner

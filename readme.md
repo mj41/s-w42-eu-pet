@@ -133,6 +133,7 @@ go run ./cmd/s-w42-eu-pet -tz Europe/Prague
 | `-public-url` | `http://<LAN IP>:8770` | base of the QR link |
 | `-token-file` | `~/.config/stackchan-server/robot-token` | robot bearer token, generated if missing |
 | `-state-file` | `~/.local/state/stackchan-pet/state.json` | pets, PINs, pairings, the leaderboard; its photos go to `photos/` next to it; `""` = memory only (no photos) |
+| `-state-database` | `$STATE_DATABASE_URL` | Postgres instead (`postgres://user@host/db`, the password from `PGPASSWORD`): the same document and the photos, with the last 50 saves (s-w42-eu-raw's `statestore`); a `-state-file` that exists, and its photos, are imported once into an empty database; it holds a lock while running and stops if the connection is lost |
 | `-tz` | this machine's | the family's time zone for the schedule |
 | `-voice-dir` | `~/.cache/stackchan-pet/voice` | where the spoken lines are kept |
 | `-ffmpeg` | `ffmpeg` from `PATH` | for the Edge voice; `""` = no Edge voice |

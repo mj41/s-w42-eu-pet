@@ -30,6 +30,7 @@ import (
 	"github.com/mj41/s-w42-eu-pet/internal/voice"
 	"github.com/mj41/s-w42-eu-raw/robotauth"
 	"github.com/mj41/s-w42-eu-raw/sso"
+	"github.com/mj41/s-w42-eu-raw/statestore"
 )
 
 func main() {
@@ -38,6 +39,7 @@ func main() {
 		publicURL = flag.String("public-url", "", "base URL browsers use to reach this server (default: http://<LAN IP>:<port>)")
 		tokenFile = flag.String("token-file", defaultConfigFile("stackchan-server", "robot-token"), "file with the robot bearer token; generated if missing")
 		stateFile = flag.String("state-file", defaultStateFile(), "JSON file with pets and pairings (\"\" keeps them in memory only)")
+		stateDB   = flag.String("state-database", os.Getenv("STATE_DATABASE_URL"), "keep pets, pairings and photos in Postgres instead (postgres://user@host/db; the password from PGPASSWORD); a -state-file that exists (and its photos) is imported once, into an empty database")
 		tz        = flag.String("tz", "", "the family's time zone for the schedule, e.g. Europe/Prague (default: this machine's)")
 		uiDir     = flag.String("ui-dir", "", "development: serve the pages from this directory (e.g. internal/app/ui), so edits need only a reload")
 		debug     = flag.Bool("debug", false, "debug logging")
@@ -97,6 +99,21 @@ func main() {
 	} else if *mgrSignIn {
 		fail("-manager-sign-in", errors.New("needs -manager-url and -manager-secret-file"))
 	}
+	var state statestore.Store
+	if *stateDB != "" {
+		openCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute) // waits for another copy's lock
+		var from *statestore.File
+		if *stateFile != "" {
+			from = &statestore.File{Path: *stateFile, BlobDir: photoDir(*stateFile)}
+		}
+		st, err := statestore.Open(openCtx, *stateDB, "pet", from)
+		cancel()
+		if err != nil {
+			fail("state database", err)
+		}
+		state = st
+		log.Info("state in the database", "where", st.Where())
+	}
 	a := app.New(app.Config{
 		RobotToken:  token,
 		Manager:     manager,
@@ -105,6 +122,7 @@ func main() {
 		ManagerURL:  strings.TrimRight(*mgrURL, "/"),
 		PublicURL:   strings.TrimRight(*publicURL, "/"),
 		StateFile:   *stateFile,
+		State:       state,
 		UIDir:       *uiDir,
 		Location:    loc,
 		Log:         log,
@@ -117,6 +135,16 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go a.Run(ctx)
+	if state != nil {
+		go func() { // the database's lock is gone: another copy may write now; stop here
+			select {
+			case <-state.Lost():
+				log.Error("state database: connection (and lock) lost; exiting")
+				os.Exit(1)
+			case <-ctx.Done():
+			}
+		}()
+	}
 	go a.RunSignInCheck(ctx)
 	go func() {
 		<-ctx.Done()
@@ -131,6 +159,9 @@ func main() {
 	}
 	if err := a.Save(); err != nil {
 		log.Warn("state not saved", "err", err)
+	}
+	if state != nil {
+		state.Close() // releases the lock for the next copy
 	}
 }
 

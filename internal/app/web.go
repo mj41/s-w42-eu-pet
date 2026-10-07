@@ -706,12 +706,18 @@ func (a *App) handlePhoto(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	a.mu.Unlock()
-	if !ok || a.cfg.PhotoDir == "" {
+	if !ok || !a.photos() {
+		http.NotFound(w, r)
+		return
+	}
+	b, err := a.cfg.State.Blob(r.Context(), filepath.Base(name))
+	if err != nil || b == nil {
 		http.NotFound(w, r)
 		return
 	}
 	w.Header().Set("Cache-Control", "private, max-age=86400")
-	http.ServeFile(w, r, filepath.Join(a.cfg.PhotoDir, filepath.Base(name)))
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Write(b)
 }
 
 // handleTop: the parent removes a place from the leaderboard ({"remove": i}) or
