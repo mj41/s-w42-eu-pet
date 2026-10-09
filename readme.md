@@ -1,5 +1,7 @@
 # s-w42-eu-pet
 
+<img src="docs/img/robot3d-pet.png" width="240" align="right" alt="A Stackchan robot running the pet: a happy face, its LEDs warm">
+
 A Tamagotchi for [Stackchan](https://github.com/m5stack/StackChan) robots
 running Embody Mode. The pet lives on this server; the robot is its body.
 Kids play with the robot itself and with a picture page on a phone or tablet.
